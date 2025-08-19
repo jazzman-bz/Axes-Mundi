@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' ws: wss:;">
+    <title>Axes-Mundi - Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #app {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #game-canvas {
+            flex: 1;
+            background: #2a2a2a;
+        }
+
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #ui-overlay > * {
+            pointer-events: auto;
+        }
+
+        .debug-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            color: #888;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            z-index: 20;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <button class="back-button" onclick="goBack()">← Back to Deck Selection</button>
+        
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="ui-overlay">
+            <div class="debug-info">
+                <div>FPS: <span id="fps">--</span></div>
+                <div>Version: <span id="version">--</span></div>
+                <div>Env: <span id="env">--</span></div>
+                <div>Deck: <span id="deck-info">--</span></div>
+            </div>
+            
+            <div class="loading" id="loading">
+                Loading Axes-Mundi...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function goBack() {
+            window.location.href = './index.html';
+        }
+
+        // Check if deck is selected
+        const selectedDeck = localStorage.getItem('selectedDeck');
+        if (!selectedDeck) {
+            alert('No deck selected! Please go back and choose a deck.');
+            window.location.href = './index.html';
+        }
+
+        // Show selected deck info
+        document.getElementById('deck-info').textContent = selectedDeck;
+    </script>
+
+    <script type="module" src="./main.ts"></script>
+</body>
+</html>

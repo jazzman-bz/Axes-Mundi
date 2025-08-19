@@ -1,0 +1,352 @@
+AXES-MUNDI – REGELDATEI (WINDOWS, ELEKTRON, VITE, PIXI, GSAP)
+Version: 1.0
+Autor: Jochen Hagen
+
+Zweck und Geltungsbereich
+Diese Regeldatei definiert technische und organisatorische Regeln für die Entwicklung, Qualitätssicherung, Protokollierung (Logging), Sicherheit, den Windows-Betrieb und die Release-Erstellung der Desktop-Anwendung Axes-Mundi. Sie gilt für alle Beitragenden (Entwicklung, QA, Content).
+
+Systemvoraussetzungen (Windows)
+2.1 Betriebssystem
+– Windows 11 22H2 oder höher (x64)
+– Windows 10 22H2 wird unterstützt, aber primäres Ziel ist Windows 11
+
+2.2 Software
+– Node.js LTS 20.x (über nvm-windows empfohlen)
+– npm 10.x
+– Git 2.44+ (Git for Windows)
+– PowerShell 7.x (pwsh) für Skripte
+– Visual Studio Build Tools 2022 (nur falls native Abhängigkeiten gebraucht werden)
+– Optional: 7-Zip für Log-Bundles
+
+Verzeichnis- und Projektstruktur (verbindlich)
+Repository-Wurzel
+/app
+/main Electron Main-Prozess, App-Lifecycle, IPC, LAN-Host
+/preload Context Isolation Bridges (sichere IPC)
+/renderer Vite-Frontend (Pixi, GSAP, UI)
+/game Szenen, FSM, Systems (render-unabhängige Logik bevorzugt)
+/ui Menüs, HUD, Dialoge
+/data Models, Normalisierung, Schemas
+/content Decks (JSON), Lokalisierungen
+/net LAN-Client
+/utils Hilfsfunktionen
+/config ESLint, Prettier, Vitest, Playwright, Pino-Konfiguration
+/scripts PowerShell/Node-Skripte für Dev, Build, Release, Logs
+/tests Unit (Vitest), E2E (Playwright)
+/dist Build-Artefakte (gitignored)
+/logs Lokaler Dev-Log-Ordner (nur im Dev-Modus)
+/. env Lokale Umgebungsvariablen (nicht commiten)
+
+Branching, Commits, Reviews
+– Branches: main (stabil), dev (Integrationszweig), feat/<scope>, fix/<scope>, chore/<scope>
+– Commits: Conventional Commits (feat:, fix:, refactor:, chore:, docs:, test:)
+– PRs: kleiner Umfang (< 300 Zeilen diff), Pflicht-Review, Screenshots/GIFs oder kurzer Screenrecord
+
+Code-Standards
+– TypeScript strict, keine any-Lücken ohne TSDoc-Rechtfertigung
+– ESLint (airbnb + typescript), Prettier
+– Imports: Pfade alias-basiert (z. B. @/game, @/ui), keine relativen Ketten
+– Keine Geschäftslogik im Renderer-UI-Code, Logik in pure Functions oder FSM
+
+Sicherheits- und Electron-Regeln
+– BrowserWindow mit: contextIsolation: true, nodeIntegration: false, sandbox: true
+– Nur whiteliste IPC-Kanäle; kein eval; keine Remote-Module
+– Preload: explizite, typisierte exposeInMainWorld-API
+– Content-Security-Policy in index.html setzen (script-src 'self')
+– Signierte Releases (Windows Code Signing, sobald verfügbar)
+– Abhängigkeiten regelmäßig aktualisieren, npm audit prüfen
+
+Umgebungsvariablen und Konfiguration (Windows)
+– .env Datei im Projektverzeichnis (lokal, nicht commiten):
+AXM_ENV=development|production
+AXM_LOG_LEVEL=info|debug|warn|error
+AXM_TELEMETRY=off|on
+– PowerShell-Setzen für aktuelle Session:
+$env:AXM_ENV="development"
+$env:AXM_LOG_LEVEL="debug"
+– Persistente Systemweite Variable (mit Admin-Rechten):
+setx AXM_ENV "production" /M
+
+Logging-Regeln (verbindlich)
+8.1 Ziele
+– Vollständige Nachvollziehbarkeit von Fehlern und wichtigen Ereignissen
+– Keine sensiblen Daten in Logs (keine vollen Kartendaten vor Reveal, keine Tokens, keine personenbezogenen Inhalte)
+– Rotation, Aufbewahrung, einfache Analyse
+
+8.2 Logger-Auswahl und Level
+– Node/Electron: Pino als Standardlogger (schnell, JSON). Im Renderer pino/browser.
+– Log-Level: error, warn, info, debug, trace (default im Prod: info, im Dev: debug)
+
+8.3 Log-Speicherorte (Windows)
+– Produktion: %AppData%\Axes-Mundi\logs
+Beispielpfad: C:\Users<User>\AppData\Roaming\Axes-Mundi\logs
+– Entwicklung: ./logs im Repo (gitignored)
+– Dateinamen: app-yyyy-mm-dd.log (täglich), latest.log als Symlink/Kopie
+
+8.4 Rotation und Aufbewahrung
+– Rotation täglich um 00:05 lokale Zeit
+– Max 14 Tage, ältere Logs automatisch löschen
+– Maximalgröße pro Datei 10 MB (bei Überschreitung sofortige neue Datei)
+– Implementierung: pino + pino-transport (rotate), alternativ eigener Rotator via cron-like Job
+
+8.5 Log-Format und Felder
+– JSON pro Zeile (newline-delimited JSON)
+{ "t":"2025-08-18T15:04:05.123Z", "lvl":"info", "scope":"main/app", "msg":"App ready", "meta":{...} }
+– Pflichtfelder: t (ISO-UTC), lvl, scope, msg
+– Optionale Felder: user, deckId, axis, matchId, err.stack
+– Zeitstempel immer in UTC
+
+8.6 Logger-Beispiele
+8.6.1 Main-Prozess (/app/main/logger.ts)
+import path from "node:path";
+import fs from "node:fs";
+import os from "node:os";
+import pino from "pino";
+
+function resolveLogDir(): string {
+const appData = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
+const base = process.env.AXM_ENV === "development" ? path.join(process.cwd(), "logs") : path.join(appData, "Axes-Mundi", "logs");
+fs.mkdirSync(base, { recursive: true });
+return base;
+}
+
+const logDir = resolveLogDir();
+const logFile = path.join(logDir, "latest.log");
+
+export const logger = pino({
+level: process.env.AXM_LOG_LEVEL || (process.env.AXM_ENV === "development" ? "debug" : "info"),
+base: null,
+timestamp: () => ,"t":"${new Date().toISOString()}"
+}, pino.destination({ dest: logFile, sync: false }));
+
+process.on("uncaughtException", (err) => {
+logger.error({ scope: "main/uncaught", msg: err.message, err: { stack: err.stack } });
+});
+process.on("unhandledRejection", (reason: any) => {
+logger.error({ scope: "main/unhandled", msg: "unhandled rejection", err: { reason } });
+});
+
+export function rotateIfNeeded(): void {
+const today = new Date().toISOString().slice(0,10);
+const daily = path.join(logDir, app-${today}.log);
+if (!fs.existsSync(daily)) fs.copyFileSync(logFile, daily);
+// optional: Aufräumen älterer Dateien hier implementieren
+}
+
+8.6.2 Renderer-Logger (/app/renderer/utils/logger.ts)
+import pino from "pino";
+export const rlog = pino({ level: (window as any).AXM?.logLevel || "info", browser: { asObject: true } });
+
+Nutzung:
+logger.info({ scope: "main/app", msg: "ready" });
+logger.warn({ scope: "main/ipc", msg: "unexpected payload", meta: { channel } });
+rlog.debug({ scope: "renderer/game", msg: "card placed", meta: { index } });
+
+8.7 Log-Anzeige und -Auswertung (Windows)
+– Live mit PowerShell:
+Get-Content -Path "$env:APPDATA\Axes-Mundi\logs\latest.log" -Wait -Tail 200
+– Grep-ähnlich:
+Select-String -Path "$env:APPDATA\Axes-Mundi\logs\app-*.log" -Pattern "error|warn"
+– Bundle für Bugreport:
+scripts\bundle-logs.ps1 erstellt ZIP der letzten 7 Tage
+
+Fehlerbehandlung und Crash-Management
+– Alle IPC-Handler catchen Fehler und loggen lvl:error mit err.stack
+– UI zeigt nutzerfreundliche Meldung, kein Stacktrace
+– Main-Prozess registriert uncaughtException und unhandledRejection (siehe Logger)
+– Optionale Crash-Dumps nur lokal (kein Upload ohne Opt-in)
+
+LAN/Netzwerkregeln
+– Topologie: Host-Autorität
+– Discovery: mDNS/Bonjour oder manuelle IP
+– Clients senden nur Intent-Events (placeCard, requestPowerUp)
+– Server validiert und sendet Reveal/Score-Events
+– Timeout-Regeln: Client-Heartbeat 5 s, Drop nach 15 s
+– Logs für Netz: scope net/server, net/client; nie vollständige, noch nicht aufgedeckte Kartenwerte loggen
+
+Build- und Release-Regeln (Windows)
+– Build: npm run build erzeugt Renderer-Bundle via Vite, danach electron-builder
+– electron-builder Ziel: nsis (Installer) und portable (Zip)
+– Artefakte: ./dist/win
+– Installer-Namen: Axes-Mundi-Setup-x.y.z.exe
+– Versionsschema: SemVer (x.y.z)
+– Signierung: Wenn Zertifikat vorhanden, in electron-builder.yml referenzieren
+– Release-Prüfliste:
+
+Unit- und E2E-Tests grün
+
+Lint und Type-Checks ok
+
+Handtest: Starten, eine Runde durchspielen, Logs erzeugt
+
+Logrotation geprüft
+
+CSP vorhanden, IPC-Whitelist stimmt
+
+Lizenzhinweise in About-Dialog
+
+Testregeln
+– Unit-Tests: Kernlogik (Insert-Check, Scoring, Toleranz) Abdeckung >= 90 %
+– E2E: Playwright-Szenarien
+– Start bis Rundenende (Singleplayer)
+– Lernmodus: Fehlerspeicher und Wiederholung
+– Hotseat: Zugwechsel
+– Smoke-Test im CI für Windows-Lauf: npm ci, npm run test, npm run build
+
+Content- und Datenqualitätsregeln
+– Decks als JSON, Schema-validiert (zod oder JSON Schema)
+– Einheiten normiert (SI), Zeitskala: Jahreszahl (BCE negativ)
+– Pflichtfelder pro Karte: id, title, axis, value, unit, displayValue, sources[≥1]
+– Quellenqualität: etablierte Referenzen (z. B. NASA, Britannica)
+– Sprachliche Konsistenz, locale-Felder gepflegt
+
+Entwicklungsablauf (DoR/DoD)
+14.1 Definition of Ready (vor Implementierung)
+– User Story formuliert
+– UI-Skizze vorhanden
+– Akzeptanzkriterien dokumentiert
+– Risiken und Tests skizziert
+
+14.2 Definition of Done
+– Funktion implementiert, UI sichtbar
+– Tests grün, Lint/Types ok
+– Logs an relevanten Stellen vorhanden, kein sensibler Inhalt
+– README/Docs Abschnitt aktualisiert
+– Changelog-Eintrag hinzugefügt
+
+PowerShell-Skripte (Windows)
+15.1 scripts/dev.ps1
+– Startet parallell: Vite-Dev-Server und Electron
+Beispiel (vereinfacht):
+param([switch]$Prod)
+if ($Prod) { $env:AXM_ENV="production"; $env:AXM_LOG_LEVEL="info" } else { $env:AXM_ENV="development"; $env:AXM_LOG_LEVEL="debug" }
+npm run vite:dev &
+Start-Sleep -Seconds 2
+npm run electron:dev
+
+15.2 scripts/tail-logs.ps1
+$logDir = Join-Path $env:APPDATA "Axes-Mundi\logs"
+Get-Content -Path (Join-Path $logDir "latest.log") -Wait -Tail 200
+
+15.3 scripts/bundle-logs.ps1
+param([int]$Days=7)
+$logDir = Join-Path $env:APPDATA "Axes-Mundi\logs"
+$dest = Join-Path $PWD ("logs-" + (Get-Date -Format "yyyyMMdd-HHmmss") + ".zip")
+Compress-Archive -Path (Get-ChildItem $logDir | Where-Object { $_.LastWriteTime -gt (Get-Date).AddDays(-$Days) }) -DestinationPath $dest
+Write-Output "Bundle erstellt: $dest"
+
+IPC- und Preload-Regeln
+– Preload exportiert nur geprüfte Methoden:
+window.AXM = {
+version: "x.y.z",
+logLevel: "info",
+placeCard: (index) => ipcRenderer.invoke("place-card", index)
+}
+– Validierung im Main: Parameter prüfen, Typen erzwingen, on/off-Channel nur als Konstanten
+– Never trust the renderer: jedes Paket vom Renderer validieren
+
+Performance-Regeln
+– Ziel: 60 FPS im Renderer
+– Keine teuren Layout-Pässe in Game-Loop
+– Pixi-Container batching nutzen, Texture Atlases
+– GSAP-Tweens kurz halten (< 250 ms für Feedback, 400–500 ms Flip)
+– Messpunkte: Startzeit bis spielbares UI, Reveal-Latenz, FPS-Overlay im Dev
+
+Datenschutz und Telemetrie
+– Standard: Telemetrie aus (AXM_TELEMETRY=off)
+– Opt-in über Einstellungen möglich (nur anonyme Metriken: Sessiondauer, FPS-Mittelwert, Fehlerraten), niemals Inhalte der Decks oder Benutzertexte
+– Telemetrie-Endpunkte konfigurierbar, keine Third-Party-Uploads im Default
+
+Backup und Wiederherstellung
+– Benutzerkonfiguration und Highscores in %AppData%\Axes-Mundi\user\ speichern
+– Backup: Kopie des user-Ordners erstellen
+– Wiederherstellung: App beenden, Ordner ersetzen, App starten
+– Keine Decks im Code überschreiben; Modding-Decks in separatem Verzeichnis %AppData%\Axes-Mundi\content\
+
+Qualitätstore vor Merge
+– Lint/Types, Unit-Tests, E2E Smoke
+– Manuelle Funktionsprobe der betroffenen Screens
+– Logs erzeugt (mindestens ein info pro relevanter Funktion)
+– Changelog aktualisiert
+
+Vorgehen bei Fehlern im Betrieb (Windows)
+
+Nutzer meldet Problem mit kurzer Beschreibung, Zeitpunkt
+
+Nutzer führt scripts\tail-logs.ps1 aus, relevante Passagen kopieren oder scripts\bundle-logs.ps1 und ZIP bereitstellen
+
+Entwickler analysiert latest.log und tagesbezogene Files
+
+Reproduktion lokal mit denselben Einstellungen/Decks
+
+Fix in Branch fix/<issue>, PR mit Test
+
+Patch-Release erstellen, Hinweis ins Changelog
+
+Beispiel: Fehler-Logging im Game-Flow
+try {
+game.placeCard(index);
+logger.info({ scope: "game/place", msg: "placed card", meta: { index } });
+} catch (err: any) {
+logger.error({ scope: "game/place", msg: "place failed", err: { message: err.message, stack: err.stack } });
+// UI zeigt freundliche Meldung, kein Stacktrace
+}
+
+Checkliste „Was brauchen wir noch?“
+– Threat Model Kurzcheck: IPC-Missbrauch, Deck-Manipulation, LAN-Ereignisfälschung
+– Accessibility-Testplan: Tastatursteuerung, Kontrast, Skalierung 1.0–1.6
+– Content-QA-Workflow: Vier-Augen-Prinzip, Quellenprüfung, Einheitennorm
+– Lizenz- und Attribution-Liste für Assets (Fonts, Sounds, Bilder)
+– CSP-Header überprüft, externe Ressourcen minimiert
+– Repro-Skript für eine komplette Testrunde (Playwright)
+– Installer-UX: Standardpfad, Desktop-Shortcut optional
+– Update-Strategie: auto-update optional, Release-Kanäle (dev/beta/stable)
+– Backup- und Restore-Anleitung im Benutzerhandbuch
+– Datenschutznotiz und Settings-Schalter für Telemetrie
+– Notfallplan: Rollback auf vorherige Version, Log-Marker für Rollback-Trigger
+– Modding-Richtlinien: Was ist erlaubt, wo werden externe Decks platziert
+– Performance-Budget: maximale Draw Calls, Texture-Atlas-Größenlimits
+– Internationalisierung: i18n-Dateien getestet, Fallback auf en/de
+– Dokumentation der Toleranz-Parameter pro Achse und Schwierigkeitsgrad
+
+Kurzanleitung für neue Entwickler (Windows)
+
+Node.js LTS 20 installieren, Git installieren
+
+Repo klonen, npm install
+
+PowerShell: $env:AXM_ENV="development"; $env:AXM_LOG_LEVEL="debug"
+
+npm run dev (startet Vite + Electron)
+
+logs\latest.log prüfen oder scripts\tail-logs.ps1
+
+Einen Unit-Test hinzufügen, npm run test
+
+Feature implementieren, Logs an sinnvollen Stellen ergänzen
+
+PR erstellen, Review abwarten, in dev mergen
+
+Nützliche npm-Skripte (Vorschlag)
+package.json scripts (Auszug)
+"scripts": {
+"vite:dev": "vite dev",
+"vite:build": "vite build",
+"vite:preview": "vite preview",
+"electron:dev": "electron .",
+"dev": "concurrently -n VITE,ELECTRON -c blue,magenta "npm:vite:dev" "npm:electron:dev"",
+"build": "npm run vite:build && electron-builder",
+"preview": "npm run vite:preview",
+"lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+"typecheck": "tsc --noEmit",
+"test": "vitest run",
+"test:e2e": "playwright test"
+}
+
+Anhang: Minimaler IPC-Sicherheitsrahmen (Skizze)
+– Konstanten: IPC_CHANNELS = { PLACE_CARD: "place-card", GET_VERSION: "get-version" } as const
+– Main: ipcMain.handle("place-card", (ev, index: number) => { assertNumber(index); return game.placeCard(index); })
+– Preload: exposeInMainWorld("AXM", { placeCard: (i:number) => ipcRenderer.invoke("place-card", i) })
+– Renderer: window.AXM.placeCard(idx)
+
+Ende der Regeldatei.

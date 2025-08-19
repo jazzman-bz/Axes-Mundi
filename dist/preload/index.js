@@ -1,0 +1,30 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const electron_1 = require("electron");
+/**
+ * Expose protected methods that allow the renderer process to use
+ * the ipcRenderer without exposing the entire object
+ */
+electron_1.contextBridge.exposeInMainWorld('AXM', {
+    // App info
+    version: '1.0.0',
+    logLevel: process.env.AXM_LOG_LEVEL || 'info',
+    // IPC methods
+    getVersion: () => electron_1.ipcRenderer.invoke('get-version'),
+    getEnvironment: () => electron_1.ipcRenderer.invoke('get-environment'),
+    placeCard: (index) => electron_1.ipcRenderer.invoke('place-card', index),
+    // Event listeners
+    on: (channel, func) => {
+        // Whitelist channels
+        const validChannels = ['game-update', 'score-update'];
+        if (validChannels.includes(channel)) {
+            electron_1.ipcRenderer.on(channel, (_event, ...args) => func(...args));
+        }
+    },
+    removeAllListeners: (channel) => {
+        const validChannels = ['game-update', 'score-update'];
+        if (validChannels.includes(channel)) {
+            electron_1.ipcRenderer.removeAllListeners(channel);
+        }
+    },
+});

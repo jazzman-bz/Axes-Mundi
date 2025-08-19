@@ -1,0 +1,358 @@
+# Axes-Mundi Development Rules for Cursor
+
+## Project Overview
+Axes-Mundi is an educational sorting game inspired by Timeline, extended with various axes (time, height, mass, distance, temperature, complexity, etc.). Built with Electron + Vite + PixiJS + GSAP.
+
+## Tech Stack
+- **Frontend**: Electron + Vite + PixiJS + GSAP + TypeScript
+- **State Management**: XState (State Machine)
+- **Multiplayer**: WebSockets (WS)
+- **Testing**: Vitest (Unit) + Playwright (E2E)
+- **Logging**: Pino (Node) + pino/browser (Renderer)
+- **Build**: electron-builder
+- **Linting**: ESLint (airbnb + typescript) + Prettier
+
+## Project Structure (MANDATORY)
+```
+/app
+  /main        # Electron main process (Host, LAN)
+  /preload     # secure bridges (IPC)
+  /renderer    # Vite project with Pixi, GSAP, UI
+    /game      # Scenes, FSM
+    /ui        # Menus, HUD, dialogs
+    /data      # Models & Normalizer
+    /content   # Decks (JSON), localizations
+    /net       # Multiplayer client
+    /utils
+/config        # ESLint, Prettier, Vitest, Playwright, Pino config
+/scripts       # PowerShell/Node scripts for dev, build, release, logs
+/tests         # Vitest + Playwright
+/dist          # Build artifacts (gitignored)
+/logs          # Local dev log folder (dev mode only)
+```
+
+## Code Standards
+
+### TypeScript
+- **Strict mode**: Always use TypeScript strict, no `any` without TSDoc justification
+- **Imports**: Use path aliases (e.g., `@/game`, `@/ui`), no relative chains
+- **Types**: Define explicit interfaces for all data structures
+- **No business logic in UI**: Logic in pure functions or FSM
+
+### File Naming
+- **Components**: PascalCase (e.g., `GameBoard.tsx`)
+- **Utilities**: camelCase (e.g., `cardUtils.ts`)
+- **Constants**: UPPER_SNAKE_CASE (e.g., `GAME_CONSTANTS.ts`)
+- **Types**: PascalCase with descriptive names (e.g., `CardData.ts`)
+
+### Code Organization
+- **One class/interface per file**
+- **Export named exports, not default exports**
+- **Group imports**: external libraries, then internal modules, then relative imports
+
+## Security Rules (CRITICAL)
+
+### Electron Security
+- **Context Isolation**: Always `contextIsolation: true`
+- **Node Integration**: Always `nodeIntegration: false`
+- **Sandbox**: Always `sandbox: true`
+- **IPC Whitelist**: Only whitelisted IPC channels allowed
+- **No eval**: Never use `eval()` or similar
+- **No remote modules**: Don't load remote content
+
+### IPC Guidelines
+```typescript
+// Preload: Explicit, typed exposeInMainWorld API
+window.AXM = {
+  version: "x.y.z",
+  logLevel: "info",
+  placeCard: (index: number) => ipcRenderer.invoke("place-card", index)
+}
+
+// Main: Validate every parameter
+ipcMain.handle("place-card", (ev, index: number) => {
+  assertNumber(index);
+  return game.placeCard(index);
+});
+```
+
+## Logging Rules (MANDATORY)
+
+### Logger Setup
+- **Node/Electron**: Use Pino as standard logger
+- **Renderer**: Use pino/browser
+- **Log Levels**: error, warn, info, debug, trace
+- **Default**: Production = info, Development = debug
+
+### Log Format
+```typescript
+// JSON per line format
+{
+  "t": "2025-08-18T15:04:05.123Z",
+  "lvl": "info",
+  "scope": "main/app",
+  "msg": "App ready",
+  "meta": { ... }
+}
+```
+
+### Log Locations
+- **Production**: `%AppData%\Axes-Mundi\logs`
+- **Development**: `./logs` in repo (gitignored)
+- **Rotation**: Daily at 00:05, max 14 days, max 10MB per file
+
+### Logging Examples
+```typescript
+// Main process
+logger.info({ scope: "main/app", msg: "ready" });
+logger.warn({ scope: "main/ipc", msg: "unexpected payload", meta: { channel } });
+
+// Renderer
+rlog.debug({ scope: "renderer/game", msg: "card placed", meta: { index } });
+```
+
+## Game Development Rules
+
+### State Management
+- **Use XState**: All game logic in state machines
+- **Events over direct state changes**: Send events, don't mutate state directly
+- **Pure functions**: Game logic should be pure and testable
+
+### PixiJS Guidelines
+- **Performance**: Target 60 FPS
+- **Container batching**: Use Pixi container batching
+- **Texture atlases**: Optimize with texture atlases
+- **No expensive operations in game loop**
+
+### GSAP Guidelines
+- **Short tweens**: < 250ms for feedback, 400-500ms for card flips
+- **Performance**: Don't create tweens in game loop
+- **Cleanup**: Always kill tweens when components unmount
+
+## Content Rules
+
+### Deck Structure (JSON)
+```json
+{
+  "id": "space-height-de",
+  "name": "Raumfahrt – Höhe",
+  "axis": "height",
+  "theme": "tech",
+  "locale": "de",
+  "version": "1.0.0",
+  "cards": [
+    {
+      "id": "saturn-v",
+      "title": "Saturn V",
+      "axis": "height",
+      "value": 110.6,
+      "unit": "m",
+      "displayValue": "110,6 m",
+      "image": "saturn_v",
+      "facts": ["Trug Apollo 11 zum Mond."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "easy"
+    }
+  ]
+}
+```
+
+### Content Quality
+- **Schema validation**: Use zod or JSON Schema
+- **Normalized units**: SI units, time scale: year (BCE negative)
+- **Required fields**: id, title, axis, value, unit, displayValue, sources[≥1]
+- **Source quality**: Established references (NASA, Britannica, etc.)
+
+## Testing Rules
+
+### Unit Tests (Vitest)
+- **Coverage**: ≥90% for core logic (Insert-Check, Scoring, Tolerance)
+- **Test core game logic**: Scoring, card placement validation
+- **Mock external dependencies**: Don't test PixiJS/GSAP directly
+
+### E2E Tests (Playwright)
+- **Game flow scenarios**: Start to round end (Singleplayer)
+- **Learning mode**: Error storage and repetition
+- **Hotseat**: Turn switching
+- **Smoke tests**: Complete test rounds
+
+## Development Workflow
+
+### Branching Strategy
+- **main**: Stable branch
+- **dev**: Integration branch
+- **Feature branches**: `feat/<scope>`, `fix/<scope>`, `chore/<scope>`
+
+### Commit Convention
+- **Format**: `type(scope): description`
+- **Types**: feat, fix, refactor, chore, docs, test
+- **Example**: `feat(game): add card placement validation`
+
+### Pull Request Rules
+- **Size**: < 300 lines diff
+- **Required**: Screenshots/GIFs or short screen recording
+- **Review**: Mandatory review before merge
+
+## Environment Variables
+
+### Development
+```bash
+AXM_ENV=development
+AXM_LOG_LEVEL=debug
+AXM_TELEMETRY=off
+```
+
+### Production
+```bash
+AXM_ENV=production
+AXM_LOG_LEVEL=info
+AXM_TELEMETRY=off  # or on with opt-in
+```
+
+## Performance Guidelines
+
+### Targets
+- **Startup**: < 3 seconds to playable UI
+- **FPS**: 60 FPS during gameplay
+- **Memory**: < 200MB RAM usage
+- **Reveal latency**: < 100ms
+
+### Optimization
+- **Texture atlases**: Combine small textures
+- **Object pooling**: Reuse Pixi objects
+- **Lazy loading**: Load content on demand
+- **Memory cleanup**: Dispose unused resources
+
+## Error Handling
+
+### Exception Handling
+```typescript
+try {
+  game.placeCard(index);
+  logger.info({ scope: "game/place", msg: "placed card", meta: { index } });
+} catch (err: any) {
+  logger.error({ 
+    scope: "game/place", 
+    msg: "place failed", 
+    err: { message: err.message, stack: err.stack } 
+  });
+  // Show user-friendly message, no stack trace
+}
+```
+
+### Crash Management
+- **Catch all IPC errors**: Log with error level
+- **User-friendly messages**: Never show stack traces to users
+- **Graceful degradation**: App should continue working after errors
+
+## Build and Release
+
+### Build Process
+1. `npm run vite:build` - Build renderer bundle
+2. `electron-builder` - Package Electron app
+3. **Targets**: nsis (installer) and portable (zip)
+4. **Output**: `./dist/win`
+
+### Release Checklist
+- [ ] Unit and E2E tests pass
+- [ ] Lint and type checks ok
+- [ ] Manual test: Start, play one round, logs generated
+- [ ] Log rotation tested
+- [ ] CSP present, IPC whitelist correct
+- [ ] License notices in About dialog
+
+## Accessibility
+
+### Requirements
+- **Keyboard navigation**: Full game playable with keyboard
+- **Contrast ratios**: WCAG AA compliant
+- **Scaling**: Support 1.0x to 1.6x scaling
+- **Screen readers**: Basic compatibility
+
+## Privacy and Telemetry
+
+### Default Settings
+- **Telemetry**: Off by default (`AXM_TELEMETRY=off`)
+- **Opt-in**: User must explicitly enable
+- **Anonymous only**: No personal data, no deck content
+- **Metrics**: Session duration, average FPS, error rates only
+
+## When Creating New Files
+
+### Always Include
+1. **Proper imports** with path aliases
+2. **TypeScript types** for all data structures
+3. **Error handling** with try-catch blocks
+4. **Logging** at appropriate levels
+5. **JSDoc comments** for public functions
+6. **Unit tests** for business logic
+
+### File Templates
+
+#### Component Template
+```typescript
+import { logger } from '@/utils/logger';
+
+interface ComponentProps {
+  // Define props
+}
+
+export function ComponentName({ ...props }: ComponentProps) {
+  // Component logic
+  logger.debug({ scope: 'ui/component', msg: 'component rendered' });
+  
+  return (
+    // JSX
+  );
+}
+```
+
+#### Utility Template
+```typescript
+import { logger } from '@/utils/logger';
+
+/**
+ * Description of what this function does
+ * @param param Description of parameter
+ * @returns Description of return value
+ */
+export function utilityFunction(param: string): boolean {
+  try {
+    // Function logic
+    logger.debug({ scope: 'utils/function', msg: 'function called', meta: { param } });
+    return true;
+  } catch (error) {
+    logger.error({ scope: 'utils/function', msg: 'function failed', err: { message: error.message } });
+    throw error;
+  }
+}
+```
+
+## Remember
+- **Security first**: Always validate IPC, never trust renderer
+- **Log everything**: Important events, errors, user actions
+- **Performance matters**: 60 FPS target, optimize for smooth gameplay
+- **Test thoroughly**: Unit tests for logic, E2E for flows
+- **User experience**: Friendly error messages, smooth animations
+- **Content quality**: Validate data, cite sources, maintain accuracy
+
+## Was Cursor bevorzugt tun soll
+1) Änderungen immer über kleine, nachvollziehbare Commits.
+2) Zentrale Logik als pure functions implementieren, Unit-Tests mitschreiben.
+3) IPC nur über whitelisted Channels; Parameter validieren.
+4) Keine sensiblen Daten loggen (keine unaufgedeckten Kartenwerte, keine Tokens).
+5) i18n: Texte nicht hardcoden, JSON-Strings verwenden.
+6) Performance-Budget beachten: 60 FPS; kurze GSAP-Tweens, Texture Atlases nutzen.
+
+## Was Cursor nicht tun darf
+- Kein eval, keine Remote-Module, keine Node-Integration im Renderer.
+- Keine Geschäftslogik in UI-Komponenten verstecken.
+- Keine globalen Singletons ohne klaren Grund; State via FSM/ECS-light halten.
+- Keine Tests löschen oder schwächen, ohne explizite Begründung.
+
+
+
+
+

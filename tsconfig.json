@@ -1,0 +1,47 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["app/renderer/*"],
+      "@/game/*": ["app/renderer/game/*"],
+      "@/ui/*": ["app/renderer/ui/*"],
+      "@/data/*": ["app/renderer/data/*"],
+      "@/content/*": ["app/renderer/content/*"],
+      "@/net/*": ["app/renderer/net/*"],
+      "@/utils/*": ["app/renderer/utils/*"],
+      "@/main/*": ["app/main/*"],
+      "@/preload/*": ["app/preload/*"],
+      "@/config/*": ["config/*"],
+      "@/tests/*": ["tests/*"]
+    }
+  },
+  "include": [
+    "app/**/*",
+    "config/**/*",
+    "tests/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "logs"
+  ]
+}
+
+

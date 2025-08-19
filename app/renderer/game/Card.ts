@@ -1,0 +1,579 @@
+import { Card as CardData } from '@/data/types';
+import { logger } from '@/utils/logger';
+
+/**
+ * Visual card component
+ */
+export class GameCard {
+  public x: number;
+  public y: number;
+  public width: number;
+  public height: number;
+  public card: CardData;
+  public isSelected: boolean = false;
+  public isDragging: boolean = false;
+  public dragOffsetX: number = 0;
+  public dragOffsetY: number = 0;
+  public targetX: number | null = null;
+  public targetY: number | null = null;
+  public easingFactor: number = 0.2;
+  public isHovered: boolean = false;
+  public isCorrect: boolean | null = null;
+  public isInHand: boolean = true; // Track if card is in hand or placed on axis
+  
+  // Image loading
+  private imageElement: HTMLImageElement | null = null;
+  private imageLoaded: boolean = false;
+  
+  // Timer for correct card highlighting
+  private correctTimer: number | null = null;
+  
+  // Preview position for drag feedback
+  private previewX: number | null = null;
+  private previewY: number | null = null;
+  private originalX: number | null = null; // Store original position before preview
+  private originalY: number | null = null;
+
+  constructor(card: CardData, x: number, y: number, scale: number = 1) {
+    this.card = card;
+    this.x = x;
+    this.y = y;
+    this.width = 180 * scale;
+    this.height = 300 * scale;
+    this.scale = scale;
+  }
+
+  private scale: number = 1;
+
+  /**
+   * Load card image if available
+   */
+  private loadCardImage(): void {
+    if (this.imageElement || this.imageLoaded || !this.card.image) return;
+    
+    try {
+      this.imageElement = new Image();
+      this.imageElement.onload = () => {
+        this.imageLoaded = true;
+        logger.debug({
+          scope: 'game/card',
+          msg: 'card image loaded successfully',
+          meta: { cardId: this.card.id, image: this.card.image }
+        });
+      };
+      this.imageElement.onerror = () => {
+        logger.warn({
+          scope: 'game/card',
+          msg: 'failed to load card image',
+          meta: { cardId: this.card.id, image: this.card.image }
+        });
+      };
+      
+      // Load from assets folder - handle different deck types
+      let imagePath: string;
+      if (this.card.axis === 'time') {
+        imagePath = `./assets/Time JPG/${this.card.image}.jpg`;
+      } else {
+        // For other decks, try to load from general assets
+        imagePath = `./assets/${this.card.image}.jpg`;
+      }
+      this.imageElement.src = imagePath;
+    } catch (error) {
+      logger.error({
+        scope: 'game/card',
+        msg: 'error loading card image',
+        err: { message: error.message, stack: error.stack }
+      });
+    }
+  }
+
+  /**
+   * Check if point is inside card
+   */
+  public containsPoint(px: number, py: number): boolean {
+    return px >= this.x && px <= this.x + this.width &&
+           py >= this.y && py <= this.y + this.height;
+  }
+
+  /**
+   * Start dragging
+   */
+  public startDrag(mouseX: number, mouseY: number): void {
+    this.isDragging = true;
+    this.dragOffsetX = mouseX - this.x;
+    this.dragOffsetY = mouseY - this.y;
+    logger.debug({ 
+      scope: 'game/card', 
+      msg: 'card drag started', 
+      meta: { cardId: this.card.id, mouseX, mouseY } 
+    });
+  }
+
+  /**
+   * Update drag position
+   */
+  public updateDrag(mouseX: number, mouseY: number): void {
+    if (this.isDragging) {
+      this.x = mouseX - this.dragOffsetX;
+      this.y = mouseY - this.dragOffsetY;
+    }
+  }
+
+  /**
+   * Stop dragging
+   */
+  public stopDrag(): void {
+    this.isDragging = false;
+    logger.debug({ 
+      scope: 'game/card', 
+      msg: 'card drag stopped', 
+      meta: { cardId: this.card.id, finalX: this.x, finalY: this.y } 
+    });
+  }
+
+  /**
+   * Set smooth movement target
+   */
+  public setTargetPosition(x: number, y: number): void {
+    this.targetX = x;
+    this.targetY = y;
+  }
+
+  /**
+   * Set preview position for drag feedback
+   */
+  public setPreviewPosition(x: number, y: number): void {
+    // Store original position if not already stored
+    if (this.originalX === null && this.originalY === null) {
+      this.originalX = this.x;
+      this.originalY = this.y;
+    }
+    
+    this.previewX = x;
+    this.previewY = y;
+  }
+
+  /**
+   * Clear preview position and restore original position
+   */
+  public clearPreviewPosition(): void {
+    // Restore original position if available
+    if (this.originalX !== null && this.originalY !== null) {
+      this.x = this.originalX;
+      this.y = this.originalY;
+    }
+    
+    this.previewX = null;
+    this.previewY = null;
+    this.originalX = null;
+    this.originalY = null;
+  }
+
+  /**
+   * Tick animation
+   */
+  public tick(): void {
+    if (this.isDragging) {
+      return;
+    }
+    
+    // Handle preview position (with easing for smooth animation)
+    if (this.previewX !== null && this.previewY !== null) {
+      const dx = this.previewX - this.x;
+      const dy = this.previewY - this.y;
+      
+      // Use faster easing for preview (more responsive)
+      const previewEasing = 0.3; // Faster than normal easing
+      
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
+        this.x = this.previewX;
+        this.y = this.previewY;
+      } else {
+        this.x += dx * previewEasing;
+        this.y += dy * previewEasing;
+      }
+      return;
+    }
+    
+    // Handle target position (with easing)
+    if (this.targetX === null || this.targetY === null) {
+      return;
+    }
+    
+    const dx = this.targetX - this.x;
+    const dy = this.targetY - this.y;
+    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) {
+      this.x = this.targetX;
+      this.y = this.targetY;
+      this.targetX = null;
+      this.targetY = null;
+      return;
+    }
+    this.x += dx * this.easingFactor;
+    this.y += dy * this.easingFactor;
+  }
+
+  /**
+   * Update scale for this card
+   */
+  public updateScale(newScale: number): void {
+    this.scale = newScale;
+    this.width = 200 * newScale;
+    this.height = 300 * newScale;
+  }
+
+  /**
+   * Cleanup resources
+   */
+  public destroy(): void {
+    if (this.correctTimer) {
+      clearTimeout(this.correctTimer);
+      this.correctTimer = null;
+    }
+    logger.debug({
+      scope: 'game/card',
+      msg: 'card destroyed, timer cleared',
+      meta: { cardId: this.card.id }
+    });
+  }
+
+  /**
+   * Toggle selection
+   */
+  public toggleSelection(): void {
+    this.isSelected = !this.isSelected;
+    logger.debug({ 
+      scope: 'game/card', 
+      msg: 'card selection toggled', 
+      meta: { cardId: this.card.id, isSelected: this.isSelected } 
+    });
+  }
+
+  /**
+   * Set card as correct and start timer to remove highlighting
+   */
+  public setCorrect(): void {
+    this.isCorrect = true;
+    
+    // Clear existing timer if any
+    if (this.correctTimer) {
+      clearTimeout(this.correctTimer);
+    }
+    
+    // Set timer to remove green highlighting after 2 seconds
+    this.correctTimer = setTimeout(() => {
+      this.isCorrect = null;
+      this.correctTimer = null;
+      logger.debug({
+        scope: 'game/card',
+        msg: 'correct card highlighting removed',
+        meta: { cardId: this.card.id }
+      });
+    }, 2000);
+    
+    logger.debug({
+      scope: 'game/card',
+      msg: 'card marked as correct, timer started',
+      meta: { cardId: this.card.id }
+    });
+  }
+
+  /**
+   * Set card as incorrect
+   */
+      public setIncorrect(): void {
+      this.isCorrect = false;
+      
+      // Clear existing timer if any
+      if (this.correctTimer) {
+        clearTimeout(this.correctTimer);
+        this.correctTimer = null;
+      }
+      
+      logger.debug({
+        scope: 'game/card',
+        msg: 'card marked as incorrect',
+        meta: { cardId: this.card.id }
+      });
+    }
+
+  /**
+   * Render card
+   */
+  public render(ctx: CanvasRenderingContext2D): void {
+    // Apply hover effects
+    const hoverScale = this.isHovered ? 1.1 : 1.0;
+    const hoverOffsetY = this.isHovered ? -10 : 0;
+    
+    // Save context for transformations
+    ctx.save();
+    ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+    ctx.scale(hoverScale, hoverScale);
+    ctx.translate(-(this.x + this.width / 2), -(this.y + this.height / 2));
+    
+    const cardX = this.x;
+    const cardY = this.y + hoverOffsetY;
+    
+    // Draw dark textured border (outer frame) with rounded corners
+    ctx.fillStyle = '#2a2a2a';
+    this.drawRoundedRect(ctx, cardX - 2, cardY - 2, this.width + 4, this.height + 4, 8);
+    
+    // Draw main card background with rounded corners
+    ctx.fillStyle = '#f5f5f5';
+    this.drawRoundedRect(ctx, cardX, cardY, this.width, this.height, 6);
+    
+    // Draw light gray background for the entire top section (for images)
+    const topSectionHeight = this.height * 0.6; // Use more of the card height
+    const topSectionY = cardY + 4; // Start even closer to top (4px instead of 8px)
+    ctx.fillStyle = '#f0f0f0'; // Light gray background
+    ctx.fillRect(cardX + 4, topSectionY, this.width - 8, topSectionHeight);
+    
+    // Load and draw card image
+    this.loadCardImage();
+    if (this.imageElement && this.imageLoaded) {
+      try {
+        // Calculate image dimensions to fit in top section with small margin
+        const imageMargin = 6 * this.scale; // Small light gray margin
+        const imageX = cardX + imageMargin;
+        const imageY = topSectionY + imageMargin;
+        const imageWidth = this.width - (imageMargin * 2);
+        const imageHeight = topSectionHeight - (imageMargin * 2);
+        
+        // Draw image maintaining aspect ratio
+        this.drawImageMaintainingAspectRatio(
+          ctx, 
+          this.imageElement, 
+          imageX, 
+          imageY, 
+          imageWidth, 
+          imageHeight
+        );
+        
+        // Draw black border exactly around the image
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(imageX, imageY, imageWidth, imageHeight);
+      } catch (error) {
+        logger.error({
+          scope: 'game/card',
+          msg: 'error drawing card image',
+          err: { message: error.message, stack: error.stack }
+        });
+      }
+    }
+    
+    // Draw light gray bottom section (for description)
+    const bottomSectionY = topSectionY + topSectionHeight + 4 * this.scale; // Space for title
+    const bottomSectionHeight = this.height - bottomSectionY + cardY;
+    ctx.fillStyle = '#e8e8e8';
+    this.drawRoundedRect(ctx, cardX + 4, bottomSectionY, this.width - 8, bottomSectionHeight, 4);
+    
+    // Draw metallic bar between title and description
+    const barHeight = 4;
+    const barY = bottomSectionY - 12 * this.scale; // Above the description section
+    this.drawMetallicBar(ctx, cardX + 4, barY, this.width - 8, barHeight);
+    
+    // Draw subtle pattern in bottom section
+    this.drawPattern(ctx, cardX + 4, bottomSectionY, this.width - 8, bottomSectionHeight);
+    
+    // Removed the small metallic element - measurement will be drawn directly on card
+    
+    // Apply state-based overlay
+    if (this.isCorrect === true) {
+      // Green overlay for correct cards
+      ctx.fillStyle = 'rgba(76, 175, 80, 0.3)';
+      ctx.fillRect(cardX, cardY, this.width, this.height);
+    } else if (this.isCorrect === false) {
+      // Red overlay for incorrect cards
+      ctx.fillStyle = 'rgba(244, 67, 54, 0.3)';
+      ctx.fillRect(cardX, cardY, this.width, this.height);
+    }
+    
+    // Draw card title (below image) - centered with line breaks
+    const titleY = topSectionY + topSectionHeight + 16 * this.scale;
+    ctx.fillStyle = '#000000';
+    ctx.font = `bold ${16 * this.scale}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const maxTitleWidth = this.width - 16 * this.scale;
+    this.drawWrappedTextCentered(ctx, this.card.title, cardX + this.width / 2, titleY, maxTitleWidth, 22 * this.scale);
+    
+    // Draw card description/facts (in gray section) - centered with line breaks
+    if (this.card.facts && this.card.facts.length > 0) {
+      ctx.fillStyle = '#333333';
+      ctx.font = `${14 * this.scale}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const factText = this.card.facts[0];
+      const maxWidth = this.width - 16 * this.scale; // Leave some margin
+      this.drawWrappedTextCentered(ctx, factText, cardX + this.width / 2, bottomSectionY + bottomSectionHeight / 2 + 8 * this.scale, maxWidth, 18 * this.scale);
+    }
+    
+    // Draw measurement value centered on the card (only when not in hand)
+    if (!this.isInHand) {
+      ctx.fillStyle = '#000000';
+      ctx.font = `bold ${16 * this.scale}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(this.card.displayValue, cardX + this.width / 2, cardY + this.height - 12 * this.scale);
+    }
+    
+    // Reset alpha and restore context
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  /**
+   * Draw rounded rectangle
+   */
+  private drawRoundedRect(
+    ctx: CanvasRenderingContext2D, 
+    x: number, 
+    y: number, 
+    width: number, 
+    height: number, 
+    radius: number
+  ): void {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /**
+   * Draw image maintaining aspect ratio
+   */
+  private drawImageMaintainingAspectRatio(
+    ctx: CanvasRenderingContext2D, 
+    img: HTMLImageElement, 
+    x: number, 
+    y: number, 
+    maxWidth: number, 
+    maxHeight: number
+  ): void {
+    const imgAspect = img.width / img.height;
+    const targetAspect = maxWidth / maxHeight;
+    
+    let drawWidth = maxWidth;
+    let drawHeight = maxHeight;
+    let drawX = x;
+    let drawY = y;
+    
+    if (imgAspect > targetAspect) {
+      // Image is wider than target area
+      drawHeight = maxWidth / imgAspect;
+      drawY = y + (maxHeight - drawHeight) / 2;
+    } else {
+      // Image is taller than target area
+      drawWidth = maxHeight * imgAspect;
+      drawX = x + (maxWidth - drawWidth) / 2;
+    }
+    
+    ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+  }
+
+  /**
+   * Draw metallic bar with 3D effect
+   */
+  private drawMetallicBar(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number): void {
+    // Main metallic color
+    const gradient = ctx.createLinearGradient(x, y, x, y + height);
+    gradient.addColorStop(0, '#c0c0c0');
+    gradient.addColorStop(0.5, '#e0e0e0');
+    gradient.addColorStop(1, '#a0a0a0');
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(x, y, width, height);
+    
+    // Highlight
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.fillRect(x, y, width, height / 2);
+    
+    // Shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.fillRect(x, y + height / 2, width, height / 2);
+  }
+
+  /**
+   * Draw subtle pattern in bottom section
+   */
+  private drawPattern(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number): void {
+    ctx.strokeStyle = 'rgba(100, 100, 100, 0.2)';
+    ctx.lineWidth = 1;
+    
+    // Draw some subtle lines
+    for (let i = 0; i < 3; i++) {
+      const lineY = y + (height / 4) * (i + 1);
+      ctx.beginPath();
+      ctx.moveTo(x + 10, lineY);
+      ctx.lineTo(x + width - 10, lineY);
+      ctx.stroke();
+    }
+  }
+
+  /**
+   * Draw wrapped text
+   */
+  private drawWrappedText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number): void {
+    const words = text.split(' ');
+    let line = '';
+    let currentY = y;
+    
+    for (let i = 0; i < words.length; i++) {
+      const testLine = line + words[i] + ' ';
+      const metrics = ctx.measureText(testLine);
+      
+      if (metrics.width > maxWidth && i > 0) {
+        ctx.fillText(line, x, currentY);
+        line = words[i] + ' ';
+        currentY += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    ctx.fillText(line, x, currentY);
+  }
+
+  /**
+   * Draw wrapped text centered
+   */
+  private drawWrappedTextCentered(ctx: CanvasRenderingContext2D, text: string, centerX: number, centerY: number, maxWidth: number, lineHeight: number): void {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+    
+    // First, split text into lines
+    for (let i = 0; i < words.length; i++) {
+      const testLine = currentLine + words[i] + ' ';
+      const metrics = ctx.measureText(testLine);
+      
+      if (metrics.width > maxWidth && i > 0) {
+        lines.push(currentLine.trim());
+        currentLine = words[i] + ' ';
+      } else {
+        currentLine = testLine;
+      }
+    }
+    if (currentLine.trim()) {
+      lines.push(currentLine.trim());
+    }
+    
+    // Calculate total height and starting Y position
+    const totalHeight = lines.length * lineHeight;
+    const startY = centerY - totalHeight / 2 + lineHeight / 2;
+    
+    // Draw each line centered
+    lines.forEach((line, index) => {
+      const y = startY + index * lineHeight;
+      ctx.fillText(line, centerX, y);
+    });
+  }
+}
