@@ -1,194 +1,231 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Axes-Mundi - Choose Your Deck</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-        }
-
-        .container {
-            text-align: center;
-            max-width: 800px;
-            padding: 2rem;
-        }
-
-        .logo {
-            font-size: 3rem;
-            font-weight: bold;
-            margin-bottom: 1rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .subtitle {
-            font-size: 1.2rem;
-            margin-bottom: 3rem;
-            opacity: 0.9;
-        }
-
-        .deck-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-bottom: 2rem;
-        }
-
-        .deck-card {
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            padding: 2rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .deck-card:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.4);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-
-        .deck-title {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-bottom: 1rem;
-        }
-
-        .deck-description {
-            font-size: 1rem;
-            margin-bottom: 1.5rem;
-            opacity: 0.8;
-            line-height: 1.5;
-        }
-
-        .deck-stats {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.9rem;
-            opacity: 0.7;
-        }
-
-        .deck-theme {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            display: inline-block;
-            margin-bottom: 1rem;
-        }
-
-        .loading {
-            display: none;
-            margin-top: 2rem;
-        }
-
-        .loading.show {
-            display: block;
-        }
-
-        .spinner {
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-top: 3px solid white;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .version {
-            position: fixed;
-            bottom: 1rem;
-            right: 1rem;
-            font-size: 0.8rem;
-            opacity: 0.6;
-        }
-    </style>
+    <title>Axes-Mundi - Willkommen</title>
+    <link rel="stylesheet" href="./styles/main.css">
 </head>
 <body>
-    <div class="container">
-        <div class="logo">Axes-Mundi</div>
-        <div class="subtitle">Choose your axes adventure</div>
-        
-        <div class="deck-grid">
-            <div class="deck-card" data-deck="space-height-de">
-                <div class="deck-theme">Space & Height</div>
-                <div class="deck-title">Raumfahrt – Höhe</div>
-                <div class="deck-description">
-                    Explore the heights of space exploration from ground level to the farthest reaches of our solar system. 
-                    Learn about rockets, satellites, and space missions through the lens of altitude.
-                </div>
-                <div class="deck-stats">
-                    <span>54 cards</span>
-                    <span>German</span>
-                </div>
-            </div>
-            
-            <div class="deck-card" data-deck="time-inventions-en">
-                <div class="deck-theme">History & Time</div>
-                <div class="deck-title">Time - Inventions & Discoveries</div>
-                <div class="deck-description">
-                    Journey through human history from prehistoric times to the modern era. 
-                    Discover how inventions and discoveries shaped civilization across millennia.
-                </div>
-                <div class="deck-stats">
-                    <span>75 cards</span>
-                    <span>English</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="loading" id="loading">
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <img src="./assets/axes-mundi logo.png" alt="Axes-Mundi Logo" class="loading-logo">
             <div class="spinner"></div>
-            <div>Loading your chosen timeline...</div>
+            <div class="loading-text">Axes-Mundi wird geladen...</div>
         </div>
     </div>
 
-    <div class="version" id="version"></div>
+    <!-- Main App Container -->
+    <div id="app" class="app-container" style="display: none;">
+        <!-- Header -->
+        <header class="header">
+            <img src="./assets/axes-mundi logo.png" alt="Axes-Mundi Logo" class="header-logo">
+            <h1 class="header-title">Axes-Mundi</h1>
+        </header>
 
-    <script>
-        // Show version info
-        document.getElementById('version').textContent = 'v1.0.0';
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Player Setup Section -->
+            <section id="player-setup" class="section active">
+                <div class="section-content">
+                    <h2 class="section-title">Willkommen bei Axes-Mundi!</h2>
+                    <p class="section-description">Erstelle dein Spielerprofil, um zu beginnen.</p>
+                    
+                    <form id="player-form" class="player-form">
+                        <div class="form-group">
+                            <label for="player-name" class="form-label">Dein Name</label>
+                            <input type="text" id="player-name" class="form-input" placeholder="Gib deinen Namen ein" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Wähle deinen Avatar</label>
+                            <div class="avatar-grid">
+                                <div class="avatar-option" data-avatar="1">
+                                    <div class="avatar-circle">👨‍🚀</div>
+                                    <span class="avatar-name">Astronaut</span>
+                                </div>
+                                <div class="avatar-option" data-avatar="2">
+                                    <div class="avatar-circle">🧙‍♂️</div>
+                                    <span class="avatar-name">Magier</span>
+                                </div>
+                                <div class="avatar-option" data-avatar="3">
+                                    <div class="avatar-circle">🏴‍☠️</div>
+                                    <span class="avatar-name">Pirat</span>
+                                </div>
+                                <div class="avatar-option" data-avatar="4">
+                                    <div class="avatar-circle">🦄</div>
+                                    <span class="avatar-name">Einhorn</span>
+                                </div>
+                                <div class="avatar-option" data-avatar="5">
+                                    <div class="avatar-circle">🤖</div>
+                                    <span class="avatar-name">Roboter</span>
+                                </div>
+                                <div class="avatar-option" data-avatar="6">
+                                    <div class="avatar-circle">🐉</div>
+                                    <span class="avatar-name">Drache</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Weiter</button>
+                    </form>
+                </div>
+            </section>
 
-        // Deck selection
-        document.querySelectorAll('.deck-card').forEach(card => {
-            card.addEventListener('click', async () => {
-                const deckId = card.dataset.deck;
-                
-                // Show loading
-                document.getElementById('loading').classList.add('show');
-                
-                // Store selected deck in localStorage
-                localStorage.setItem('selectedDeck', deckId);
-                
-                // Wait a moment for visual feedback
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                // Redirect to game page
-                window.location.href = './game.html';
-            });
-        });
-    </script>
+            <!-- Game Mode Selection Section -->
+            <section id="game-mode-selection" class="section">
+                <div class="section-content">
+                    <h2 class="section-title">Wähle deinen Spielmodus</h2>
+                    <p class="section-description">Wie möchtest du spielen?</p>
+                    
+                    <div class="game-mode-grid">
+                        <div class="game-mode-card" data-mode="singleplayer">
+                            <div class="mode-icon">🎮</div>
+                            <h3 class="mode-title">Single Player</h3>
+                            <p class="mode-description">Spiele alleine gegen die KI oder im Lernmodus</p>
+                        </div>
+                        
+                        <div class="game-mode-card" data-mode="multiplayer">
+                            <div class="mode-icon">👥</div>
+                            <h3 class="mode-title">Multiplayer</h3>
+                            <p class="mode-description">Spiele mit Freunden am gleichen Computer oder über LAN</p>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-secondary back-btn">← Zurück</button>
+                </div>
+            </section>
+
+            <!-- Single Player Options Section -->
+            <section id="singleplayer-options" class="section">
+                <div class="section-content">
+                    <h2 class="section-title">Single Player Optionen</h2>
+                    <p class="section-description">Wähle deine Spielart</p>
+                    
+                    <div class="option-grid">
+                        <div class="option-card" data-option="ai">
+                            <div class="option-icon">🤖</div>
+                            <h3 class="option-title">Gegen KI</h3>
+                            <p class="option-description">Fordere die künstliche Intelligenz heraus</p>
+                        </div>
+                        
+                        <div class="option-card coming-soon" data-option="educational">
+                            <div class="option-icon">📚</div>
+                            <h3 class="option-title">Lernmodus</h3>
+                            <p class="option-description">Lerne spielerisch neue Fakten</p>
+                            <span class="coming-soon-badge">Coming Soon</span>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-secondary back-btn">← Zurück</button>
+                </div>
+            </section>
+
+            <!-- AI Difficulty Selection Section -->
+            <section id="ai-difficulty" class="section">
+                <div class="section-content">
+                    <h2 class="section-title">Wähle die Schwierigkeit</h2>
+                    <p class="section-description">Wie schwer soll die KI sein?</p>
+                    
+                    <div class="difficulty-grid">
+                        <div class="difficulty-card coming-soon" data-difficulty="easy">
+                            <div class="difficulty-icon">😊</div>
+                            <h3 class="difficulty-title">Einfach</h3>
+                            <p class="difficulty-description">Perfekt für Anfänger</p>
+                            <span class="coming-soon-badge">Coming Soon</span>
+                        </div>
+                        
+                        <div class="difficulty-card coming-soon" data-difficulty="medium">
+                            <div class="difficulty-icon">😐</div>
+                            <h3 class="difficulty-title">Mittel</h3>
+                            <p class="difficulty-description">Für erfahrene Spieler</p>
+                            <span class="coming-soon-badge">Coming Soon</span>
+                        </div>
+                        
+                        <div class="difficulty-card" data-difficulty="hard">
+                            <div class="difficulty-icon">😈</div>
+                            <h3 class="difficulty-title">Schwer</h3>
+                            <p class="difficulty-description">Nur für Experten!</p>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-secondary back-btn">← Zurück</button>
+                </div>
+            </section>
+
+            <!-- Multiplayer Options Section -->
+            <section id="multiplayer-options" class="section">
+                <div class="section-content">
+                    <h2 class="section-title">Multiplayer Optionen</h2>
+                    <p class="section-description">Wie möchtest du mit Freunden spielen?</p>
+                    
+                    <div class="option-grid">
+                        <div class="option-card coming-soon" data-option="hotseat">
+                            <div class="option-icon">🪑</div>
+                            <h3 class="option-title">Hot Seat</h3>
+                            <p class="option-description">Am gleichen Computer abwechselnd spielen</p>
+                            <span class="coming-soon-badge">Coming Soon</span>
+                        </div>
+                        
+                        <div class="option-card coming-soon" data-option="lan">
+                            <div class="option-icon">🌐</div>
+                            <h3 class="option-title">LAN</h3>
+                            <p class="option-description">Über das lokale Netzwerk spielen</p>
+                            <span class="coming-soon-badge">Coming Soon</span>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-secondary back-btn">← Zurück</button>
+                </div>
+            </section>
+
+            <!-- Deck Selection Section -->
+            <section id="deck-selection" class="section">
+                <div class="section-content">
+                    <h2 class="section-title">Wähle dein Deck</h2>
+                    <p class="section-description">Welche Achse möchtest du erkunden?</p>
+                    
+                    <div class="deck-grid">
+                        <div class="deck-card" data-deck="space-height-de">
+                            <div class="deck-theme">Space & Height</div>
+                            <h3 class="deck-title">Raumfahrt – Höhe</h3>
+                            <p class="deck-description">
+                                Erkunde die Höhen der Raumfahrt vom Boden bis zu den fernsten Ecken unseres Sonnensystems.
+                            </p>
+                            <div class="deck-stats">
+                                <span>54 Karten</span>
+                                <span>Deutsch</span>
+                            </div>
+                        </div>
+                        
+                        <div class="deck-card" data-deck="time-inventions-en">
+                            <div class="deck-theme">Geschichte & Zeit</div>
+                            <h3 class="deck-title">Zeit - Erfindungen & Entdeckungen</h3>
+                            <p class="deck-description">
+                                Reise durch die Menschheitsgeschichte von der Vorgeschichte bis zur Moderne.
+                            </p>
+                            <div class="deck-stats">
+                                <span>75 Karten</span>
+                                <span>Englisch</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-secondary back-btn">← Zurück</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Progress Bar -->
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="progress-text" id="progress-text">Schritt 1 von 6</div>
+        </div>
+    </div>
+
+    <script type="module" src="./landing.js"></script>
 </body>
 </html>

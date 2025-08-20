@@ -46,16 +46,7 @@
             pointer-events: auto;
         }
 
-        .debug-info {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-family: monospace;
-        }
+
 
         .loading {
             position: absolute;
@@ -69,41 +60,52 @@
         .back-button {
             position: absolute;
             top: 20px;
-            left: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
+            right: 20px;
+            width: 48px;
+            height: 48px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            color: #ffffff;
             cursor: pointer;
-            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             transition: all 0.3s ease;
-            z-index: 20;
+            z-index: 1000;
         }
 
         .back-button:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .back-button:active {
+            transform: scale(0.95);
+        }
+
+        .back-button svg {
+            width: 24px;
+            height: 24px;
         }
     </style>
 </head>
 <body>
     <div id="app">
-        <button class="back-button" onclick="goBack()">← Back to Deck Selection</button>
-        
         <canvas id="game-canvas"></canvas>
         
         <div id="ui-overlay">
-            <div class="debug-info">
-                <div>FPS: <span id="fps">--</span></div>
-                <div>Version: <span id="version">--</span></div>
-                <div>Env: <span id="env">--</span></div>
-                <div>Deck: <span id="deck-info">--</span></div>
-            </div>
-            
             <div class="loading" id="loading">
                 Loading Axes-Mundi...
             </div>
+            
+            <!-- Back to Deck Selection Button -->
+            <button id="back-button" class="back-button" onclick="window.location.href='./index.html'" title="Back to Deck Selection">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
         </div>
     </div>
 
@@ -118,9 +120,6 @@
             alert('No deck selected! Please go back and choose a deck.');
             window.location.href = './index.html';
         }
-
-        // Show selected deck info
-        document.getElementById('deck-info').textContent = selectedDeck;
     </script>
 
     <script type="module" src="./main.ts"></script>

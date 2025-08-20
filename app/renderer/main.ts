@@ -8,9 +8,6 @@ import { Card as CardData } from '@/data/types';
  * Main application class
  */
 class AxesMundiApp {
-  private fpsCounter: HTMLElement;
-  private versionElement: HTMLElement;
-  private envElement: HTMLElement;
   private loadingElement: HTMLElement;
   private gameCanvas: HTMLCanvasElement;
   private gameContext: CanvasRenderingContext2D;
@@ -40,18 +37,17 @@ class AxesMundiApp {
   private currentTurn: number = 0; // Track current turn
   private isPlayerTurn: boolean = true; // Track whose turn it is (true = player, false = AI)
   private turnText: string = ''; // Display turn information
+  private turnTimer: number = 10; // 10 seconds per turn
+  private turnTimerInterval: number | null = null; // Timer interval ID
 
   constructor() {
-    this.fpsCounter = document.getElementById('fps') as HTMLElement;
-    this.versionElement = document.getElementById('version') as HTMLElement;
-    this.envElement = document.getElementById('env') as HTMLElement;
     this.loadingElement = document.getElementById('loading') as HTMLElement;
     this.gameCanvas = document.getElementById('game-canvas') as HTMLCanvasElement;
     this.gameContext = this.gameCanvas.getContext('2d')!;
 
     this.initCanvas();
     this.setupEventListeners();
-    this.loadAppInfo();
+    this.hideLoadingScreen();
     this.calculateScale(); // Calculate initial scale
     this.loadLogo(); // Load the Axes Mundi logo
     this.loadGame();
@@ -344,21 +340,21 @@ class AxesMundiApp {
       }, 1200 + i * 200); // Start after player cards, 200ms delay between each (slower)
     }
     
-    // Set player turn after all cards are dealt
-    setTimeout(() => {
-      this.isPlayerTurn = true;
-      this.updateTurnText();
-      logger.info({
-        scope: 'renderer/game',
-        msg: 'game started, player turn',
-        meta: { 
-          turn: this.currentTurn,
-          playerHandSize: this.playerHand.length,
-          opponentHandSize: this.opponentHand.length,
-          remainingCards: this.remainingCards.length
-        }
-      });
-    }, 2400); // After all cards are dealt (slower)
+         // Set player turn after all cards are dealt
+     setTimeout(() => {
+       this.isPlayerTurn = true;
+       this.startTurnTimer(); // Start timer for first turn
+       logger.info({
+         scope: 'renderer/game',
+         msg: 'game started, player turn',
+         meta: { 
+           turn: this.currentTurn,
+           playerHandSize: this.playerHand.length,
+           opponentHandSize: this.opponentHand.length,
+           remainingCards: this.remainingCards.length
+         }
+       });
+     }, 2400); // After all cards are dealt (slower)
   }
 
   /**
@@ -472,35 +468,99 @@ class AxesMundiApp {
    */
   private updateTurnText(): void {
     if (this.isPlayerTurn) {
-      this.turnText = `Your Turn (${this.playerHand.length} cards)`;
+      this.turnText = `Your Turn (${this.playerHand.length} cards) - ${this.turnTimer}s`;
     } else {
-      this.turnText = `Opponent's Turn (${this.opponentHand.length} cards)`;
+      this.turnText = `Opponent's Turn (${this.opponentHand.length} cards) - ${this.turnTimer}s`;
     }
   }
 
   /**
-   * Play AI turn - simulates player drag mechanics
+   * Start turn timer
    */
-  private playAITurn(): void {
-    logger.info({
-      scope: 'renderer/ai',
-      msg: 'playAITurn called',
-      meta: { opponentHandSize: this.opponentHand.length }
-    });
+  private startTurnTimer(): void {
+    this.turnTimer = 10; // Reset to 10 seconds
+    this.updateTurnText();
     
-    if (this.opponentHand.length === 0) {
-      // AI has no cards, check for win or skip turn
-      logger.warn({
-        scope: 'renderer/ai',
-        msg: 'AI has no cards, skipping turn',
-        meta: { opponentHandSize: this.opponentHand.length }
+    this.turnTimerInterval = window.setInterval(() => {
+      this.turnTimer--;
+      this.updateTurnText();
+      
+      if (this.turnTimer <= 0) {
+        this.endTurn();
+      }
+    }, 1000);
+  }
+
+  /**
+   * Stop turn timer
+   */
+  private stopTurnTimer(): void {
+    if (this.turnTimerInterval) {
+      clearInterval(this.turnTimerInterval);
+      this.turnTimerInterval = null;
+    }
+  }
+
+  /**
+   * End current turn (time ran out)
+   */
+  private endTurn(): void {
+    this.stopTurnTimer();
+    
+    if (this.isPlayerTurn) {
+      // Player's time ran out - switch to AI turn
+      logger.info({
+        scope: 'renderer/timer',
+        msg: 'player turn timed out, switching to AI',
+        meta: { turn: this.currentTurn }
       });
       
-      // Switch back to player turn
+      this.isPlayerTurn = false;
+      this.currentTurn++;
+      this.updateTurnText();
+      
+      // Let AI play immediately
+      if (this.opponentHand.length > 0) {
+        setTimeout(() => {
+          this.playAITurn();
+        }, 500);
+      }
+    } else {
+      // AI's time ran out - switch back to player
+      logger.info({
+        scope: 'renderer/timer',
+        msg: 'AI turn timed out, switching to player',
+        meta: { turn: this.currentTurn }
+      });
+      
       this.isPlayerTurn = true;
       this.updateTurnText();
-      return;
     }
+  }
+
+     /**
+    * Play AI turn - simulates player drag mechanics
+    */
+   private playAITurn(): void {
+     logger.info({
+       scope: 'renderer/ai',
+       msg: 'playAITurn called',
+       meta: { opponentHandSize: this.opponentHand.length }
+     });
+     
+     if (this.opponentHand.length === 0) {
+       // AI has no cards, check for win or skip turn
+       logger.warn({
+         scope: 'renderer/ai',
+         msg: 'AI has no cards, skipping turn',
+         meta: { opponentHandSize: this.opponentHand.length }
+       });
+       
+       // Switch back to player turn
+       this.isPlayerTurn = true;
+       this.startTurnTimer(); // Start timer for player turn
+       return;
+     }
 
     // AI randomly selects a card from hand
     const randomIndex = Math.floor(Math.random() * this.opponentHand.length);
@@ -665,7 +725,7 @@ class AxesMundiApp {
       // Switch back to player turn
       this.isPlayerTurn = true;
       this.currentTurn++;
-      this.updateTurnText();
+      this.startTurnTimer(); // Start timer for player turn
       
       // Check for AI win
       this.checkForWin();
@@ -752,7 +812,7 @@ class AxesMundiApp {
       // Switch back to player turn
       this.isPlayerTurn = true;
       this.currentTurn++;
-      this.updateTurnText();
+      this.startTurnTimer(); // Start timer for player turn
       
       // Check for AI win
       this.checkForWin();
@@ -1036,24 +1096,24 @@ class AxesMundiApp {
           // 5. CENTER: Center the axis immediately after correct placement
           this.layoutAxisCards();
           
-          // 6. TURN-BASED: Switch turns
-          this.isPlayerTurn = false;
-          this.currentTurn++;
-          this.updateTurnText();
-          
-          // 7. CHECK FOR WIN: Check if player has won
-          this.checkForWin();
-          
-          // 8. AI TURN: If game not over and AI has cards, let AI play
-          if (!this.gameWon && !this.gameLost && this.opponentHand.length > 0) {
-            setTimeout(() => {
-              this.playAITurn();
-            }, 1000); // 1 second delay
-          } else {
-            // Keep player turn if AI has no cards
-            this.isPlayerTurn = true;
-            this.updateTurnText();
-          }
+                     // 6. TURN-BASED: Switch turns
+           this.isPlayerTurn = false;
+           this.currentTurn++;
+           this.stopTurnTimer(); // Stop player timer
+           
+           // 7. CHECK FOR WIN: Check if player has won
+           this.checkForWin();
+           
+           // 8. AI TURN: If game not over and AI has cards, let AI play
+           if (!this.gameWon && !this.gameLost && this.opponentHand.length > 0) {
+             setTimeout(() => {
+               this.playAITurn();
+             }, 1000); // 1 second delay
+           } else {
+             // Keep player turn if AI has no cards
+             this.isPlayerTurn = true;
+             this.startTurnTimer(); // Start timer for player turn
+           }
           
           logger.info({
             scope: 'renderer/game',
@@ -1152,9 +1212,6 @@ class AxesMundiApp {
    * Update game state
    */
   private update(deltaTime: number): void {
-    // Update FPS counter
-    this.fpsCounter.textContent = Math.round(1000 / deltaTime).toString();
-
     // Tick animations for all cards
     if (this.boardCard) {
       this.boardCard.tick?.();
@@ -1228,62 +1285,7 @@ class AxesMundiApp {
       this.drawOpponentCardBack(ctx, card);
     }
     
-    // Debug: Log opponent hand size
-    ctx.fillStyle = '#ff0000';
-    ctx.font = `${12 * this.scale}px Arial`;
-    ctx.textAlign = 'left';
-    ctx.fillText(`Opponent: ${this.opponentHand.length} cards`, 20 * this.scale, 90 * this.scale);
-    
-    // Debug: Show opponent cards in plain text
-    ctx.fillStyle = '#ffff00';
-    ctx.font = `${10 * this.scale}px Arial`;
-    ctx.textAlign = 'left';
-    let yOffset = 120 * this.scale;
-    ctx.fillText('Opponent Cards:', 20 * this.scale, yOffset);
-    yOffset += 15 * this.scale;
-    
-    this.opponentHand.forEach((card, index) => {
-      const cardText = `${index + 1}. ${card.card.title} (${card.card.displayValue}) [x:${Math.round(card.x)}, y:${Math.round(card.y)}]`;
-      ctx.fillText(cardText, 20 * this.scale, yOffset);
-      yOffset += 12 * this.scale;
-      
-      // Show target position if different from current
-      if (card.targetX !== undefined && card.targetY !== undefined && card.targetX !== null && card.targetY !== null) {
-        const targetText = `   Target: [x:${Math.round(card.targetX)}, y:${Math.round(card.targetY)}]`;
-        ctx.fillText(targetText, 20 * this.scale, yOffset);
-        yOffset += 12 * this.scale;
-      }
-    });
-    
-    // Debug: Show remaining cards info
-    yOffset += 10 * this.scale;
-    ctx.fillStyle = '#00ffff';
-    ctx.fillText(`Remaining Cards: ${this.remainingCards.length}`, 20 * this.scale, yOffset);
-    yOffset += 12 * this.scale;
-    ctx.fillText(`Player Hand: ${this.playerHand.length}`, 20 * this.scale, yOffset);
-    yOffset += 12 * this.scale;
-    ctx.fillText(`Opponent Hand: ${this.opponentHand.length}`, 20 * this.scale, yOffset);
-    yOffset += 12 * this.scale;
-    ctx.fillText(`Total: ${this.remainingCards.length + this.playerHand.length + this.opponentHand.length + 1}`, 20 * this.scale, yOffset); // +1 for board card
-    
-    // Debug: Show player hand positions
-    yOffset += 15 * this.scale;
-    ctx.fillStyle = '#00ff00';
-    ctx.fillText('Player Cards:', 20 * this.scale, yOffset);
-    yOffset += 15 * this.scale;
-    
-    this.playerHand.forEach((card, index) => {
-      const cardText = `${index + 1}. ${card.card.title} (${card.card.displayValue}) [x:${Math.round(card.x)}, y:${Math.round(card.y)}]`;
-      ctx.fillText(cardText, 20 * this.scale, yOffset);
-      yOffset += 12 * this.scale;
-      
-      // Show target position if different from current
-      if (card.targetX !== undefined && card.targetY !== undefined && card.targetX !== null && card.targetY !== null) {
-        const targetText = `   Target: [x:${Math.round(card.targetX)}, y:${Math.round(card.targetY)}]`;
-        ctx.fillText(targetText, 20 * this.scale, yOffset);
-        yOffset += 12 * this.scale;
-      }
-    });
+
 
     // Draw placed stacks
     for (const card of this.placedLeft) {
@@ -1312,13 +1314,45 @@ class AxesMundiApp {
     ctx.fillText(`Score: ${this.score}`, 20 * this.scale, 40 * this.scale);
     ctx.fillText(`Turn: ${this.currentTurn}`, 20 * this.scale, 65 * this.scale);
     
-    // Draw turn text
-    if (this.turnText) {
-      ctx.fillStyle = this.isPlayerTurn ? '#4caf50' : '#ff9800';
-      ctx.font = `bold ${20 * this.scale}px Arial`;
-      ctx.textAlign = 'left';
-      ctx.fillText(this.turnText, 20 * this.scale, 110 * this.scale); // Directly under "Opponent: 5 cards"
-    }
+         // Draw turn text
+     if (this.turnText) {
+       ctx.fillStyle = this.isPlayerTurn ? '#4caf50' : '#ff9800';
+       ctx.font = `bold ${20 * this.scale}px Arial`;
+       ctx.textAlign = 'left';
+       ctx.fillText(this.turnText, 20 * this.scale, 90 * this.scale);
+     }
+     
+     // Draw timer bar
+     if (this.turnTimer > 0) {
+       const timerBarWidth = 200 * this.scale;
+       const timerBarHeight = 8 * this.scale;
+       const timerBarX = 20 * this.scale;
+       const timerBarY = 100 * this.scale;
+       
+       // Background bar
+       ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+       ctx.fillRect(timerBarX, timerBarY, timerBarWidth, timerBarHeight);
+       
+       // Progress bar
+       const progress = this.turnTimer / 10;
+       const progressWidth = timerBarWidth * progress;
+       
+       // Color based on time remaining
+       let timerColor = '#4caf50'; // Green
+       if (this.turnTimer <= 3) {
+         timerColor = '#ff4444'; // Red
+       } else if (this.turnTimer <= 5) {
+         timerColor = '#ff9800'; // Orange
+       }
+       
+       ctx.fillStyle = timerColor;
+       ctx.fillRect(timerBarX, timerBarY, progressWidth, timerBarHeight);
+       
+       // Border
+       ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+       ctx.lineWidth = 1;
+       ctx.strokeRect(timerBarX, timerBarY, timerBarWidth, timerBarHeight);
+     }
     
     // Draw deck stack
     this.drawDeckStack(ctx);
@@ -1383,14 +1417,14 @@ class AxesMundiApp {
        // Animate card from deck to hand (same as initial hand cards)
        this.animateCardToHand(newCard);
        
-       // Switch to opponent turn after giving new card
-       this.isPlayerTurn = false;
-       this.updateTurnText();
-       
-       // Let AI play after a short delay
-       setTimeout(() => {
-         this.playAITurn();
-       }, 1000);
+               // Switch to opponent turn after giving new card
+        this.isPlayerTurn = false;
+        this.stopTurnTimer(); // Stop player timer
+        
+        // Let AI play after a short delay
+        setTimeout(() => {
+          this.playAITurn();
+        }, 1000);
        
        logger.info({
          scope: 'renderer/game',
@@ -1787,35 +1821,39 @@ class AxesMundiApp {
     }
   }
 
-  /**
-   * Restart the game
-   */
-  private restartGame(): void {
-    logger.info({
-      scope: 'renderer/game',
-      msg: 'restarting game'
-    });
-    
-    // Reset game state
-    this.gameWon = false;
-    this.gameLost = false;
-    this.score = 0;
-    this.playerHand = [];
-    this.opponentHand = [];
-    this.placedLeft = [];
-    this.placedRight = [];
-    this.graveyard = [];
-    this.selectedCard = null;
-    this.isDragging = false;
-    this.isPreviewActive = false;
-    this.isGameStarted = false;
-    this.currentTurn = 0;
-    this.isPlayerTurn = true;
-    this.turnText = '';
-    
-    // Reload the game
-    this.loadGame();
-  }
+     /**
+    * Restart the game
+    */
+   private restartGame(): void {
+     logger.info({
+       scope: 'renderer/game',
+       msg: 'restarting game'
+     });
+     
+     // Stop any running timer
+     this.stopTurnTimer();
+     
+     // Reset game state
+     this.gameWon = false;
+     this.gameLost = false;
+     this.score = 0;
+     this.playerHand = [];
+     this.opponentHand = [];
+     this.placedLeft = [];
+     this.placedRight = [];
+     this.graveyard = [];
+     this.selectedCard = null;
+     this.isDragging = false;
+     this.isPreviewActive = false;
+     this.isGameStarted = false;
+     this.currentTurn = 0;
+     this.isPlayerTurn = true;
+     this.turnText = '';
+     this.turnTimer = 10;
+     
+     // Reload the game
+     this.loadGame();
+   }
 
   /**
    * Animate card to graveyard position
@@ -1913,58 +1951,18 @@ class AxesMundiApp {
   }
 
   /**
-   * Load app information from main process
+   * Hide loading screen
    */
-  private async loadAppInfo(): Promise<void> {
+  private hideLoadingScreen(): void {
     try {
-      // Always use fallback values for now to ensure app loads
-      this.versionElement.textContent = '1.0.0';
-      this.envElement.textContent = 'development';
-      
-      // Hide loading screen immediately
       this.loadingElement.style.display = 'none';
-      
-      logger.info({ 
-        scope: 'renderer/app', 
-        msg: 'app info loaded (fallback mode)', 
-        meta: { version: '1.0.0', env: 'development' } 
-      });
-      
-      // Try to get real values if AXM API is available
-      if (window.AXM) {
-        try {
-          const [version, env] = await Promise.all([
-            window.AXM.getVersion(),
-            window.AXM.getEnvironment(),
-          ]);
-          
-          this.versionElement.textContent = version;
-          this.envElement.textContent = env.env;
-          
-          logger.info({ 
-            scope: 'renderer/app', 
-            msg: 'real app info loaded', 
-            meta: { version, env: env.env } 
-          });
-        } catch (ipcError) {
-          logger.warn({ 
-            scope: 'renderer/app', 
-            msg: 'IPC failed, keeping fallback values', 
-            err: { message: ipcError.message } 
-          });
-        }
-      } else {
-        logger.warn({ scope: 'renderer/app', msg: 'AXM API not available, using fallback' });
-      }
-    } catch (error) {
+      logger.info({ scope: 'renderer/app', msg: 'loading screen hidden' });
+    } catch (error: any) {
       logger.error({ 
         scope: 'renderer/app', 
-        msg: 'failed to load app info', 
-        err: { message: error.message, stack: error.stack } 
+        msg: 'failed to hide loading screen', 
+        err: { message: error.message } 
       });
-      
-      // Ensure loading screen is hidden even on error
-      this.loadingElement.style.display = 'none';
     }
   }
 }
