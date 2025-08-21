@@ -15,6 +15,8 @@ class AxesMundiApp {
   private lastTime: number;
   private fps: number = 60;
   private logoImage: HTMLImageElement | null = null;
+  private arrowLeftImage: HTMLImageElement | null = null;
+  private arrowRightImage: HTMLImageElement | null = null;
   
   // Game state
   private playerHand: GameCard[] = [];
@@ -64,6 +66,7 @@ class AxesMundiApp {
     this.hideLoadingScreen();
     this.calculateScale(); // Calculate initial scale
     this.loadLogo(); // Load the Axes Mundi logo
+    this.loadArrowImages(); // Load arrow images
     this.loadGame();
     this.startGameLoop();
   }
@@ -99,6 +102,9 @@ class AxesMundiApp {
     window.addEventListener('mousemove', this.handleMouseMove.bind(this));
     window.addEventListener('mouseup', this.handleMouseUp.bind(this));
     
+    // Arrow navigation clicks
+    this.gameCanvas.addEventListener('click', this.handleCanvasClick.bind(this));
+    
     logger.debug({ scope: 'renderer/app', msg: 'event listeners set up' });
   }
 
@@ -123,6 +129,105 @@ class AxesMundiApp {
         err: { message: error.message, stack: error.stack } 
       });
       this.logoImage = null;
+    }
+  }
+
+  /**
+   * Load arrow images for board navigation
+   */
+  private loadArrowImages(): void {
+    try {
+      // Load left arrow
+      this.arrowLeftImage = new Image();
+      this.arrowLeftImage.onload = () => {
+        logger.debug({ scope: 'renderer/app', msg: 'left arrow loaded successfully' });
+        // Convert to white after loading
+        this.convertImageToWhite(this.arrowLeftImage!);
+      };
+      this.arrowLeftImage.onerror = () => {
+        logger.warn({ scope: 'renderer/app', msg: 'failed to load left arrow' });
+        this.arrowLeftImage = null;
+      };
+      this.arrowLeftImage.src = './assets/arrow left.png';
+
+      // Load right arrow
+      this.arrowRightImage = new Image();
+      this.arrowRightImage.onload = () => {
+        logger.debug({ scope: 'renderer/app', msg: 'right arrow loaded successfully' });
+        // Convert to white after loading
+        this.convertImageToWhite(this.arrowRightImage!);
+      };
+      this.arrowRightImage.onerror = () => {
+        logger.warn({ scope: 'renderer/app', msg: 'failed to load right arrow' });
+        this.arrowRightImage = null;
+      };
+      this.arrowRightImage.src = './assets/arrow right.png';
+    } catch (error) {
+      logger.error({ 
+        scope: 'renderer/app', 
+        msg: 'failed to load arrow images', 
+        err: { message: error.message, stack: error.stack } 
+      });
+      this.arrowLeftImage = null;
+      this.arrowRightImage = null;
+    }
+  }
+
+  /**
+   * Convert image colors to white using canvas manipulation
+   */
+  private convertImageToWhite(image: HTMLImageElement): void {
+    try {
+      // Create a canvas to manipulate the image
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      
+      // Set canvas size to match image
+      canvas.width = image.width;
+      canvas.height = image.height;
+      
+      // Draw the original image
+      ctx.drawImage(image, 0, 0);
+      
+      // Get image data
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Convert all non-transparent pixels to white
+      for (let i = 0; i < data.length; i += 4) {
+        const alpha = data[i + 3]; // Alpha channel
+        
+        if (alpha > 0) {
+          // Keep original alpha, but set RGB to white
+          data[i] = 255;     // Red
+          data[i + 1] = 255; // Green
+          data[i + 2] = 255; // Blue
+          // Alpha stays the same
+        }
+      }
+      
+      // Put the modified image data back
+      ctx.putImageData(imageData, 0, 0);
+      
+      // Create a new image from the canvas
+      const whiteImage = new Image();
+      whiteImage.onload = () => {
+        // Replace the original image with the white version
+        if (image === this.arrowLeftImage) {
+          this.arrowLeftImage = whiteImage;
+        } else if (image === this.arrowRightImage) {
+          this.arrowRightImage = whiteImage;
+        }
+        logger.debug({ scope: 'renderer/app', msg: 'arrow converted to white successfully' });
+      };
+      whiteImage.src = canvas.toDataURL();
+      
+    } catch (error) {
+      logger.error({ 
+        scope: 'renderer/app', 
+        msg: 'failed to convert arrow to white', 
+        err: { message: error.message, stack: error.stack } 
+      });
     }
   }
 
@@ -1127,6 +1232,122 @@ class AxesMundiApp {
   }
 
   /**
+   * Handle canvas click for arrow navigation
+   */
+  private handleCanvasClick(event: MouseEvent): void {
+    // Only allow navigation during player turn
+    if (!this.isPlayerTurn || this.gameWon || this.gameLost) {
+      return;
+    }
+    
+    const rect = this.gameCanvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    // Check if click is on navigation arrows
+    const totalBoardCards = (this.boardCard ? 1 : 0) + this.placedLeft.length + this.placedRight.length;
+    
+    // Only show arrows if more than 5 cards
+    if (totalBoardCards > 5) {
+      const arrowWidth = 120 * this.scale;
+      const arrowHeight = 120 * this.scale;
+      const arrowY = this.gameCanvas.height / 2 - arrowHeight / 2;
+      
+      // Left arrow position
+      const leftArrowX = 20 * this.scale;
+      
+      // Right arrow position
+      const rightArrowX = this.gameCanvas.width - arrowWidth - 20 * this.scale;
+      
+      // Check if click is on left arrow
+      if (x >= leftArrowX && x <= leftArrowX + arrowWidth && 
+          y >= arrowY && y <= arrowY + arrowHeight) {
+        this.moveBoardCardsLeft();
+        return;
+      }
+      
+      // Check if click is on right arrow
+      if (x >= rightArrowX && x <= rightArrowX + arrowWidth && 
+          y >= arrowY && y <= arrowY + arrowHeight) {
+        this.moveBoardCardsRight();
+        return;
+      }
+    }
+  }
+
+  /**
+   * Move all board cards one card width to the left
+   */
+  private moveBoardCardsLeft(): void {
+    const cardWidth = 200 * this.scale;
+    const spacing = 5 * this.scale;
+    const moveDistance = cardWidth + spacing;
+    
+    // Move board card
+    if (this.boardCard) {
+      const newX = this.boardCard.x + moveDistance;
+      this.boardCard.setTargetPosition(newX, this.boardCard.y);
+    }
+    
+    // Move placed left cards
+    for (const card of this.placedLeft) {
+      const newX = card.x + moveDistance;
+      card.setTargetPosition(newX, card.y);
+    }
+    
+    // Move placed right cards
+    for (const card of this.placedRight) {
+      const newX = card.x + moveDistance;
+      card.setTargetPosition(newX, card.y);
+    }
+    
+    logger.info({
+      scope: 'renderer/navigation',
+      msg: 'board cards moved left',
+      meta: { 
+        moveDistance,
+        totalCards: (this.boardCard ? 1 : 0) + this.placedLeft.length + this.placedRight.length
+      }
+    });
+  }
+
+  /**
+   * Move all board cards one card width to the right
+   */
+  private moveBoardCardsRight(): void {
+    const cardWidth = 200 * this.scale;
+    const spacing = 5 * this.scale;
+    const moveDistance = cardWidth + spacing;
+    
+    // Move board card
+    if (this.boardCard) {
+      const newX = this.boardCard.x - moveDistance;
+      this.boardCard.setTargetPosition(newX, this.boardCard.y);
+    }
+    
+    // Move placed left cards
+    for (const card of this.placedLeft) {
+      const newX = card.x - moveDistance;
+      card.setTargetPosition(newX, card.y);
+    }
+    
+    // Move placed right cards
+    for (const card of this.placedRight) {
+      const newX = card.x - moveDistance;
+      card.setTargetPosition(newX, card.y);
+    }
+    
+    logger.info({
+      scope: 'renderer/navigation',
+      msg: 'board cards moved right',
+      meta: { 
+        moveDistance,
+        totalCards: (this.boardCard ? 1 : 0) + this.placedLeft.length + this.placedRight.length
+      }
+    });
+  }
+
+  /**
    * Handle mouse up
    */
   private handleMouseUp(event: MouseEvent): void {
@@ -1494,6 +1715,9 @@ class AxesMundiApp {
       ctx.fillStyle = '#cccccc';
       ctx.fillText('Check the dialog for next steps...', this.gameCanvas.width / 2, this.gameCanvas.height / 2 + 80);
     }
+
+    // Draw navigation arrows if more than 5 cards on board
+    this.drawNavigationArrows(ctx);
   }
 
      /**
@@ -1618,6 +1842,71 @@ class AxesMundiApp {
       ctx.textAlign = 'center';
       ctx.fillText('Player Hand', this.gameCanvas.width / 2, playerY - 20 * this.scale);
       ctx.fillText('Opponent Hand', this.gameCanvas.width / 2, opponentY + cardHeight + 40 * this.scale);
+    }
+
+    /**
+     * Draw navigation arrows when more than 5 cards are on the board
+     */
+    private drawNavigationArrows(ctx: CanvasRenderingContext2D): void {
+      // Count total cards on board (board card + placed left + placed right)
+      const totalBoardCards = (this.boardCard ? 1 : 0) + this.placedLeft.length + this.placedRight.length;
+      
+      // Only show arrows if more than 5 cards
+      if (totalBoardCards <= 5) return;
+      
+             // Arrow dimensions
+       const arrowWidth = 120 * this.scale;
+       const arrowHeight = 120 * this.scale;
+      const arrowY = this.gameCanvas.height / 2 - arrowHeight / 2;
+      
+      // Left arrow position
+      const leftArrowX = 20 * this.scale;
+      
+      // Right arrow position
+      const rightArrowX = this.gameCanvas.width - arrowWidth - 20 * this.scale;
+      
+      // Draw left arrow
+      if (this.arrowLeftImage) {
+        ctx.globalAlpha = 0.8;
+        ctx.drawImage(this.arrowLeftImage, leftArrowX, arrowY, arrowWidth, arrowHeight);
+        ctx.globalAlpha = 1;
+      } else {
+        // Fallback: draw a simple left arrow
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.beginPath();
+        ctx.moveTo(leftArrowX + arrowWidth, arrowY);
+        ctx.lineTo(leftArrowX, arrowY + arrowHeight / 2);
+        ctx.lineTo(leftArrowX + arrowWidth, arrowY + arrowHeight);
+        ctx.closePath();
+        ctx.fill();
+      }
+      
+      // Draw right arrow
+      if (this.arrowRightImage) {
+        ctx.globalAlpha = 0.8;
+        ctx.drawImage(this.arrowRightImage, rightArrowX, arrowY, arrowWidth, arrowHeight);
+        ctx.globalAlpha = 1;
+      } else {
+        // Fallback: draw a simple right arrow
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.beginPath();
+        ctx.moveTo(rightArrowX, arrowY);
+        ctx.lineTo(rightArrowX + arrowWidth, arrowY + arrowHeight / 2);
+        ctx.lineTo(rightArrowX, arrowY + arrowHeight);
+        ctx.closePath();
+        ctx.fill();
+      }
+      
+      logger.debug({
+        scope: 'renderer/game',
+        msg: 'navigation arrows drawn',
+        meta: { 
+          totalBoardCards,
+          boardCard: this.boardCard ? 1 : 0,
+          placedLeft: this.placedLeft.length,
+          placedRight: this.placedRight.length
+        }
+      });
     }
 
    /**
