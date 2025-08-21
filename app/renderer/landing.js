@@ -306,13 +306,11 @@ class LandingPageController {
       const difficultyCard = event.currentTarget;
       const difficulty = difficultyCard.dataset.difficulty;
       
-      // Check if difficulty is coming soon
-      if (difficultyCard.classList.contains('coming-soon')) {
-        this.showComingSoonMessage();
-        return;
-      }
-      
+      // Save difficulty to game config
       this.gameConfig.difficulty = difficulty;
+      
+      // Save difficulty to localStorage for game access
+      localStorage.setItem('selectedDifficulty', difficulty);
       
       // Navigate to deck selection
       this.navigateToSection('deck-selection');

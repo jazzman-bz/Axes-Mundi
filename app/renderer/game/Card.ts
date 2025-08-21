@@ -40,18 +40,37 @@ export class GameCard {
     this.deck = deck;
     this.x = x;
     this.y = y;
-    this.width = 180 * scale;
-    this.height = 300 * scale;
     this.scale = scale;
+    this.width = 200 * scale;
+    this.height = 300 * scale;
   }
 
   private scale: number = 1;
+  private readonly baseWidth: number = 200;
+  private readonly baseHeight: number = 300;
+
+  /**
+   * Force reload card image (for scale changes)
+   */
+  private forceReloadCardImage(): void {
+    if (!this.card.image) return;
+    
+    // Clear existing image state
+    this.imageLoaded = false;
+    this.imageElement = null;
+    
+    // Load the image again
+    this.loadCardImage();
+  }
 
   /**
    * Load card image if available
    */
   private loadCardImage(): void {
-    if (this.imageElement || this.imageLoaded || !this.card.image) return;
+    if (!this.card.image) return;
+    
+    // Only load if not already loaded (for initial load)
+    if (this.imageElement && this.imageLoaded) return;
     
     try {
       this.imageElement = new Image();
@@ -269,12 +288,49 @@ export class GameCard {
   }
 
   /**
-   * Update scale for this card
+   * Update scale for this card and adjust positions accordingly
    */
   public updateScale(newScale: number): void {
+    const oldScale = this.scale;
     this.scale = newScale;
-    this.width = 200 * newScale;
-    this.height = 300 * newScale;
+    this.width = this.baseWidth * newScale;
+    this.height = this.baseHeight * newScale;
+    
+    // Adjust positions proportionally to maintain relative positioning
+    if (oldScale !== newScale) {
+      const scaleRatio = newScale / oldScale;
+      this.x = this.x * scaleRatio;
+      this.y = this.y * scaleRatio;
+      
+      // Also update target positions if they exist
+      if (this.targetX !== null && this.targetY !== null) {
+        this.targetX = this.targetX * scaleRatio;
+        this.targetY = this.targetY * scaleRatio;
+      }
+      
+      // Update preview positions if they exist
+      if (this.previewX !== null && this.previewY !== null) {
+        this.previewX = this.previewX * scaleRatio;
+        this.previewY = this.previewY * scaleRatio;
+      }
+      
+      // Force reload image with new scale for proper rendering
+      this.forceReloadCardImage();
+      
+      logger.debug({
+        scope: 'game/card',
+        msg: 'card scale updated with image reload',
+        meta: { 
+          cardId: this.card.id, 
+          oldScale, 
+          newScale, 
+          newWidth: this.width, 
+          newHeight: this.height,
+          newX: this.x,
+          newY: this.y
+        }
+      });
+    }
   }
 
   /**
@@ -371,65 +427,77 @@ export class GameCard {
     
     // Draw dark textured border (outer frame) with rounded corners
     ctx.fillStyle = '#2a2a2a';
-    this.drawRoundedRect(ctx, cardX - 2, cardY - 2, this.width + 4, this.height + 4, 8);
+    this.drawRoundedRect(ctx, cardX - 2 * this.scale, cardY - 2 * this.scale, this.width + 4 * this.scale, this.height + 4 * this.scale, 8 * this.scale);
     
     // Draw main card background with rounded corners
     ctx.fillStyle = '#f5f5f5';
-    this.drawRoundedRect(ctx, cardX, cardY, this.width, this.height, 6);
+    this.drawRoundedRect(ctx, cardX, cardY, this.width, this.height, 6 * this.scale);
     
     // Draw light gray background for the entire top section (for images)
-    const topSectionHeight = this.height * 0.6; // Use more of the card height
-    const topSectionY = cardY + 4; // Start even closer to top (4px instead of 8px)
+    const topSectionHeight = this.baseHeight * 0.6 * this.scale; // Use more of the card height
+    const topSectionY = cardY + 4 * this.scale; // Start even closer to top (4px instead of 8px)
     ctx.fillStyle = '#f0f0f0'; // Light gray background
-    ctx.fillRect(cardX + 4, topSectionY, this.width - 8, topSectionHeight);
+    ctx.fillRect(cardX + 4 * this.scale, topSectionY, (this.baseWidth - 8) * this.scale, topSectionHeight);
     
-    // Load and draw card image
-    this.loadCardImage();
-    if (this.imageElement && this.imageLoaded) {
-      try {
-        // Calculate image dimensions to fit in top section with small margin
-        const imageMargin = 6 * this.scale; // Small light gray margin
-        const imageX = cardX + imageMargin;
-        const imageY = topSectionY + imageMargin;
-        const imageWidth = this.width - (imageMargin * 2);
-        const imageHeight = topSectionHeight - (imageMargin * 2);
-        
-        // Draw image maintaining aspect ratio
-        this.drawImageMaintainingAspectRatio(
-          ctx, 
-          this.imageElement, 
-          imageX, 
-          imageY, 
-          imageWidth, 
-          imageHeight
-        );
-        
-        // Draw black border exactly around the image
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(imageX, imageY, imageWidth, imageHeight);
-      } catch (error) {
-        logger.error({
-          scope: 'game/card',
-          msg: 'error drawing card image',
-          err: { message: error.message, stack: error.stack }
-        });
-      }
-    }
+         // Load and draw card image
+     this.loadCardImage();
+     if (this.imageElement && this.imageLoaded) {
+       try {
+                   // Calculate image dimensions with margin for nice border - centered on entire card
+          const imageMargin = 8 * this.scale; // 8px margin for nice border
+          const availableWidth = this.baseWidth * this.scale; // Full card width
+          const availableImageWidth = availableWidth - (imageMargin * 2); // Margin on both sides
+          const availableImageHeight = topSectionHeight - (imageMargin * 2); // Margin top/bottom
+          
+          // Center the image area on the entire card width
+          const imageX = cardX + (availableWidth - availableImageWidth) / 2; // Centered on card
+          const imageY = topSectionY + imageMargin; // Gray background + margin
+          const imageWidth = availableImageWidth;
+          const imageHeight = availableImageHeight;
+         
+         // Draw image maintaining aspect ratio with current scale
+         const actualImageDimensions = this.drawImageMaintainingAspectRatio(
+           ctx, 
+           this.imageElement, 
+           imageX, 
+           imageY, 
+           imageWidth, 
+           imageHeight
+         );
+         
+         // Draw black border exactly around the actual image (not the available space)
+         if (actualImageDimensions) {
+           ctx.strokeStyle = '#000000';
+           ctx.lineWidth = 2 * this.scale; // 2px border width
+           ctx.strokeRect(
+             actualImageDimensions.x, 
+             actualImageDimensions.y, 
+             actualImageDimensions.width, 
+             actualImageDimensions.height
+           );
+         }
+       } catch (error) {
+         logger.error({
+           scope: 'game/card',
+           msg: 'error drawing card image',
+           err: { message: error.message, stack: error.stack }
+         });
+       }
+     }
     
     // Draw light gray bottom section (for description)
     const bottomSectionY = topSectionY + topSectionHeight + 4 * this.scale; // Space for title
     const bottomSectionHeight = this.height - bottomSectionY + cardY;
     ctx.fillStyle = '#e8e8e8';
-    this.drawRoundedRect(ctx, cardX + 4, bottomSectionY, this.width - 8, bottomSectionHeight, 4);
+    this.drawRoundedRect(ctx, cardX + 4 * this.scale, bottomSectionY, (this.baseWidth - 8) * this.scale, bottomSectionHeight, 4 * this.scale);
     
     // Draw metallic bar between title and description
-    const barHeight = 4;
+    const barHeight = 4 * this.scale;
     const barY = bottomSectionY - 12 * this.scale; // Above the description section
-    this.drawMetallicBar(ctx, cardX + 4, barY, this.width - 8, barHeight);
+    this.drawMetallicBar(ctx, cardX + 4 * this.scale, barY, (this.baseWidth - 8) * this.scale, barHeight);
     
     // Draw subtle pattern in bottom section
-    this.drawPattern(ctx, cardX + 4, bottomSectionY, this.width - 8, bottomSectionHeight);
+    this.drawPattern(ctx, cardX + 4 * this.scale, bottomSectionY, (this.baseWidth - 8) * this.scale, bottomSectionHeight);
     
     // Removed the small metallic element - measurement will be drawn directly on card
     
@@ -450,7 +518,7 @@ export class GameCard {
     ctx.font = `bold ${16 * this.scale}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    const maxTitleWidth = this.width - 16 * this.scale;
+    const maxTitleWidth = (this.baseWidth - 16) * this.scale;
     this.drawWrappedTextCentered(ctx, this.card.title, cardX + this.width / 2, titleY, maxTitleWidth, 22 * this.scale);
     
     // Draw card description/facts (in gray section) - centered with line breaks
@@ -460,7 +528,7 @@ export class GameCard {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       const factText = this.card.facts[0];
-      const maxWidth = this.width - 16 * this.scale; // Leave some margin
+      const maxWidth = (this.baseWidth - 16) * this.scale; // Leave some margin
       this.drawWrappedTextCentered(ctx, factText, cardX + this.width / 2, bottomSectionY + bottomSectionHeight / 2 + 8 * this.scale, maxWidth, 18 * this.scale);
     }
     
@@ -503,39 +571,56 @@ export class GameCard {
     ctx.fill();
   }
 
-  /**
-   * Draw image maintaining aspect ratio with improved quality
-   * For narrow images, scale to square width for better presentation
-   */
-  private drawImageMaintainingAspectRatio(
-    ctx: CanvasRenderingContext2D, 
-    img: HTMLImageElement, 
-    x: number, 
-    y: number, 
-    maxWidth: number, 
-    maxHeight: number
-  ): void {
-    const imgAspect = img.width / img.height;
-    const targetAspect = maxWidth / maxHeight;
-    
-    let drawWidth = maxWidth;
-    let drawHeight = maxHeight;
-         let drawX = x;
-     let drawY = y;
-     
-     // Make all images square by stretching width to fill the available space
-     drawWidth = maxWidth; // Use full available width
-     drawHeight = maxWidth; // Make it square (same as width)
-     drawX = x; // Start from left edge
-     drawY = y + (maxHeight - drawHeight) / 2; // Center vertically
-    
-    // Enable image smoothing for better quality
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    
-    // Draw the image with proper scaling
-    ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-  }
+                   /**
+      * Draw image filling the entire available space (aspect ratio may be changed)
+      * Images are stretched to fill the exact dimensions provided
+      * Returns the actual dimensions and position of the drawn image
+      */
+     private drawImageMaintainingAspectRatio(
+       ctx: CanvasRenderingContext2D, 
+       img: HTMLImageElement, 
+       x: number, 
+       y: number, 
+       maxWidth: number, 
+       maxHeight: number
+     ): { x: number; y: number; width: number; height: number } | null {
+       // Always use the full available space - stretch image to fit exactly
+       const drawWidth = maxWidth;
+       const drawHeight = maxHeight;
+       const drawX = x;
+       const drawY = y;
+       
+       // Enable image smoothing for better quality
+       ctx.imageSmoothingEnabled = true;
+       ctx.imageSmoothingQuality = 'high';
+       
+       // Draw the image stretched to fill the entire available rectangle
+       ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+       
+       logger.debug({
+         scope: 'game/card',
+         msg: 'image drawn stretched to fill entire space',
+         meta: { 
+           cardId: this.card.id,
+           scale: this.scale,
+           drawWidth,
+           drawHeight,
+           maxWidth,
+           maxHeight,
+           originalAspect: img.width / img.height,
+           targetAspect: maxWidth / maxHeight,
+           actualPosition: { x: drawX, y: drawY, width: drawWidth, height: drawHeight }
+         }
+       });
+       
+       // Return actual image dimensions and position
+       return {
+         x: drawX,
+         y: drawY,
+         width: drawWidth,
+         height: drawHeight
+       };
+     }
 
   /**
    * Draw metallic bar with 3D effect
@@ -559,22 +644,22 @@ export class GameCard {
     ctx.fillRect(x, y + height / 2, width, height / 2);
   }
 
-  /**
-   * Draw subtle pattern in bottom section
-   */
-  private drawPattern(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number): void {
-    ctx.strokeStyle = 'rgba(100, 100, 100, 0.2)';
-    ctx.lineWidth = 1;
-    
-    // Draw some subtle lines
-    for (let i = 0; i < 3; i++) {
-      const lineY = y + (height / 4) * (i + 1);
-      ctx.beginPath();
-      ctx.moveTo(x + 10, lineY);
-      ctx.lineTo(x + width - 10, lineY);
-      ctx.stroke();
-    }
-  }
+     /**
+    * Draw subtle pattern in bottom section
+    */
+   private drawPattern(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number): void {
+     ctx.strokeStyle = 'rgba(100, 100, 100, 0.2)';
+     ctx.lineWidth = 1 * this.scale; // Scale line width
+     
+     // Draw some subtle lines
+     for (let i = 0; i < 3; i++) {
+       const lineY = y + (height / 4) * (i + 1);
+       ctx.beginPath();
+       ctx.moveTo(x + 10 * this.scale, lineY);
+       ctx.lineTo(x + width - 10 * this.scale, lineY);
+       ctx.stroke();
+     }
+   }
 
   /**
    * Draw wrapped text

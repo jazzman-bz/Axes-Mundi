@@ -38,14 +38,26 @@ class AxesMundiApp {
   private currentTurn: number = 0; // Track current turn
   private isPlayerTurn: boolean = true; // Track whose turn it is (true = player, false = AI)
   private turnText: string = ''; // Display turn information
-  private turnTimer: number = 10; // 10 seconds per turn
+  private turnTimer: number = 10; // Default timer
+  private gameDifficulty: 'easy' | 'medium' | 'hard'; // Current game difficulty
   private turnTimerInterval: number | null = null; // Timer interval ID
   private isAITurnInProgress: boolean = false; // Prevent multiple AI turns
+
 
   constructor() {
     this.loadingElement = document.getElementById('loading') as HTMLElement;
     this.gameCanvas = document.getElementById('game-canvas') as HTMLCanvasElement;
     this.gameContext = this.gameCanvas.getContext('2d')!;
+
+    // Initialize game difficulty from localStorage or default to medium
+    const savedDifficulty = localStorage.getItem('selectedDifficulty') as 'easy' | 'medium' | 'hard';
+    this.gameDifficulty = savedDifficulty || 'medium';
+    
+    logger.info({ 
+      scope: 'renderer/app', 
+      msg: 'game difficulty initialized', 
+      meta: { difficulty: this.gameDifficulty, timer: this.getDifficultyTimer() } 
+    });
 
     this.initCanvas();
     this.setupEventListeners();
@@ -148,19 +160,28 @@ class AxesMundiApp {
         } 
       });
       
-      // Update scale for all existing cards
+      // Update scale for all existing cards (this also adjusts their positions proportionally)
       this.updateAllCardsScale();
       
-      // Re-layout on resize with new scale
+      // Re-layout all cards with new scale to ensure proper positioning
       this.layoutHand();
       this.layoutOpponentHand();
       this.layoutAxisCards();
       
-      // Re-position board card if it exists
+      // Re-position board card if it exists (center it properly)
       if (this.boardCard) {
         const centerX = this.gameCanvas.width / 2 - this.boardCard.width / 2;
         const centerY = this.gameCanvas.height / 2 - this.boardCard.height / 2;
         this.boardCard.setTargetPosition(centerX, centerY);
+      }
+      
+      // Update graveyard positions if any cards exist there
+      if (this.graveyard.length > 0) {
+        const graveyardX = this.gameCanvas.width - 150 * this.scale;
+        const graveyardY = 50 * this.scale;
+        this.graveyard.forEach(card => {
+          card.setTargetPosition(graveyardX, graveyardY);
+        });
       }
       
       // Update snap threshold for new scale
@@ -320,13 +341,35 @@ class AxesMundiApp {
 
 
   /**
-   * Deal cards to both players (5 each at once)
+   * Get difficulty-based opponent card count
+   */
+  private getOpponentCardCount(): number {
+    switch (this.gameDifficulty) {
+      case 'easy':
+        return 7;
+      case 'medium':
+        return 6;
+      case 'hard':
+        return 5;
+      default:
+        return 5;
+    }
+  }
+
+  /**
+   * Deal cards to both players based on difficulty
    */
   private dealCardsToPlayers(): void {
+    const opponentCardCount = this.getOpponentCardCount();
+    
     logger.info({
       scope: 'renderer/game',
       msg: 'dealCardsToPlayers called',
-      meta: { remainingCards: this.remainingCards.length }
+      meta: { 
+        remainingCards: this.remainingCards.length,
+        difficulty: this.gameDifficulty,
+        opponentCardCount: opponentCardCount
+      }
     });
     
     // Deal 5 cards to player with small delay
@@ -336,14 +379,15 @@ class AxesMundiApp {
       }, i * 200); // 200ms delay between each card (slower)
     }
     
-    // Deal 5 cards to opponent with small delay
-    for (let i = 0; i < 5; i++) {
+    // Deal cards to opponent based on difficulty
+    for (let i = 0; i < opponentCardCount; i++) {
       setTimeout(() => {
         this.dealCardToOpponent();
       }, 1200 + i * 200); // Start after player cards, 200ms delay between each (slower)
     }
     
          // Set player turn after all cards are dealt
+     const totalDealTime = 1200 + 5 * 200 + opponentCardCount * 200; // Player cards + opponent cards
      setTimeout(() => {
        this.isPlayerTurn = true;
        this.startTurnTimer(); // Start timer for first turn
@@ -354,10 +398,12 @@ class AxesMundiApp {
            turn: this.currentTurn,
            playerHandSize: this.playerHand.length,
            opponentHandSize: this.opponentHand.length,
-           remainingCards: this.remainingCards.length
+           remainingCards: this.remainingCards.length,
+           difficulty: this.gameDifficulty,
+           opponentCardCount: opponentCardCount
          }
        });
-     }, 2400); // After all cards are dealt (slower)
+     }, totalDealTime); // After all cards are dealt (dynamic based on difficulty)
   }
 
   /**
@@ -466,6 +512,17 @@ class AxesMundiApp {
       // Use setTargetPosition like layoutHand (same logic)
       card.setTargetPosition(x, y);
     });
+    
+    logger.debug({
+      scope: 'renderer/layout',
+      msg: 'opponent hand layout updated',
+      meta: { 
+        cardCount: this.opponentHand.length,
+        scale: this.scale,
+        cardSpacing,
+        totalWidth
+      }
+    });
   }
 
   /**
@@ -479,11 +536,29 @@ class AxesMundiApp {
     }
   }
 
+
+
+  /**
+   * Get difficulty-based timer duration
+   */
+  private getDifficultyTimer(): number {
+    switch (this.gameDifficulty) {
+      case 'easy':
+        return 30;
+      case 'medium':
+        return 20;
+      case 'hard':
+        return 10;
+      default:
+        return 10;
+    }
+  }
+
   /**
    * Start turn timer
    */
   private startTurnTimer(): void {
-    this.turnTimer = 10; // Reset to 10 seconds
+    this.turnTimer = this.getDifficultyTimer();
     this.updateTurnText();
     
     this.turnTimerInterval = window.setInterval(() => {
@@ -1353,8 +1428,8 @@ class AxesMundiApp {
        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
        ctx.fillRect(timerBarX, timerBarY, timerBarWidth, timerBarHeight);
        
-       // Progress bar
-               const progress = this.turnTimer / 10;
+               // Progress bar
+        const progress = this.turnTimer / this.getDifficultyTimer();
        const progressWidth = timerBarWidth * progress;
        
        // Color based on time remaining
@@ -1500,47 +1575,50 @@ class AxesMundiApp {
     ctx.fillText(`${this.remainingCards.length}`, deckX + cardWidth / 2, deckY + cardHeight + 25 * this.scale);
    }
 
-   /**
-    * Draw hand position indicators (single gray box per hand)
-    */
-   private drawHandPositionIndicators(ctx: CanvasRenderingContext2D): void {
-     const cardWidth = 200 * this.scale;
-     const cardHeight = 300 * this.scale;
-     const cardSpacing = 220 * this.scale;
-     
-     // Draw player hand area (bottom) - single large box
-     const playerTotalWidth = 5 * cardSpacing - 20 * this.scale;
-     const playerStartX = (this.gameCanvas.width - playerTotalWidth) / 2;
-     const playerY = this.gameCanvas.height - 320 * this.scale;
-     
-     ctx.fillStyle = 'rgba(128, 128, 128, 0.2)'; // Semi-transparent gray
-     ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
-     ctx.lineWidth = 2;
-     
-     // Single box covering entire player hand area
-     this.roundRect(ctx, playerStartX - 10 * this.scale, playerY - 10 * this.scale, 
-                   playerTotalWidth + 20 * this.scale, cardHeight + 20 * this.scale, 12);
-     ctx.fill();
-     ctx.stroke();
-     
-     // Draw opponent hand area (top) - single large box
-     const opponentTotalWidth = 5 * cardSpacing - 20 * this.scale;
-     const opponentStartX = (this.gameCanvas.width - opponentTotalWidth) / 2;
-     const opponentY = 20 * this.scale;
-     
-     // Single box covering entire opponent hand area
-     this.roundRect(ctx, opponentStartX - 10 * this.scale, opponentY - 10 * this.scale, 
-                   opponentTotalWidth + 20 * this.scale, cardHeight + 20 * this.scale, 12);
-     ctx.fill();
-     ctx.stroke();
-     
-     // Draw labels
-     ctx.fillStyle = '#ffffff';
-     ctx.font = `${14 * this.scale}px Arial`;
-     ctx.textAlign = 'center';
-     ctx.fillText('Player Hand', this.gameCanvas.width / 2, playerY - 20 * this.scale);
-     ctx.fillText('Opponent Hand', this.gameCanvas.width / 2, opponentY + cardHeight + 40 * this.scale);
-   }
+       /**
+     * Draw hand position indicators (single gray box per hand)
+     */
+    private drawHandPositionIndicators(ctx: CanvasRenderingContext2D): void {
+      const cardWidth = 200 * this.scale;
+      const cardHeight = 300 * this.scale;
+      const cardSpacing = 220 * this.scale;
+      
+      // Calculate opponent card count for dynamic sizing
+      const opponentCardCount = this.getOpponentCardCount();
+      
+      // Draw player hand area (bottom) - single large box
+      const playerTotalWidth = 5 * cardSpacing - 20 * this.scale;
+      const playerStartX = (this.gameCanvas.width - playerTotalWidth) / 2;
+      const playerY = this.gameCanvas.height - 320 * this.scale;
+      
+      ctx.fillStyle = 'rgba(128, 128, 128, 0.2)'; // Semi-transparent gray
+      ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
+      ctx.lineWidth = 2;
+      
+      // Single box covering entire player hand area
+      this.roundRect(ctx, playerStartX - 10 * this.scale, playerY - 10 * this.scale, 
+                    playerTotalWidth + 20 * this.scale, cardHeight + 20 * this.scale, 12);
+      ctx.fill();
+      ctx.stroke();
+      
+      // Draw opponent hand area (top) - single large box (dynamic based on difficulty)
+      const opponentTotalWidth = opponentCardCount * cardSpacing - 20 * this.scale;
+      const opponentStartX = (this.gameCanvas.width - opponentTotalWidth) / 2;
+      const opponentY = 20 * this.scale;
+      
+      // Single box covering entire opponent hand area
+      this.roundRect(ctx, opponentStartX - 10 * this.scale, opponentY - 10 * this.scale, 
+                    opponentTotalWidth + 20 * this.scale, cardHeight + 20 * this.scale, 12);
+      ctx.fill();
+      ctx.stroke();
+      
+      // Draw labels
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `${14 * this.scale}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.fillText('Player Hand', this.gameCanvas.width / 2, playerY - 20 * this.scale);
+      ctx.fillText('Opponent Hand', this.gameCanvas.width / 2, opponentY + cardHeight + 40 * this.scale);
+    }
 
    /**
     * Draw Axes Mundi Logo using the actual image
