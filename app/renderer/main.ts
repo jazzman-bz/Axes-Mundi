@@ -27,6 +27,7 @@ class AxesMundiApp {
   private graveyard: GameCard[] = []; // Cards that were placed incorrectly
   private score: number = 0;
   private remainingCards: CardData[] = [];
+  private deck: any = null; // Deck data for image folder reference
   private gameWon: boolean = false; // Track if player has won
   private gameLost: boolean = false; // Track if player has lost
   private snapThreshold: number = 80; // px distance to axis
@@ -39,6 +40,7 @@ class AxesMundiApp {
   private turnText: string = ''; // Display turn information
   private turnTimer: number = 10; // 10 seconds per turn
   private turnTimerInterval: number | null = null; // Timer interval ID
+  private isAITurnInProgress: boolean = false; // Prevent multiple AI turns
 
   constructor() {
     this.loadingElement = document.getElementById('loading') as HTMLElement;
@@ -179,10 +181,10 @@ class AxesMundiApp {
     try {
       // Load deck from localStorage
       const selectedDeck = localStorage.getItem('selectedDeck') || 'space-height-de';
-      const deck = await loadDeck(selectedDeck);
+      this.deck = await loadDeck(selectedDeck);
       
       // Initialize remaining cards from deck and shuffle them
-      this.remainingCards = [...deck.cards];
+      this.remainingCards = [...this.deck.cards];
       this.shuffleDeck();
       
       // Ensure scale is calculated with correct canvas dimensions
@@ -192,6 +194,7 @@ class AxesMundiApp {
       const boardCardData = this.remainingCards.shift()!;
       this.boardCard = new GameCard(
         boardCardData,
+        this.deck,
         50 * this.scale, // Start at deck position
         this.gameCanvas.height - 320 * this.scale, // Deck Y position (same as player hand)
         this.scale
@@ -365,6 +368,7 @@ class AxesMundiApp {
       const cardData = this.remainingCards.shift()!;
       const card = new GameCard(
         cardData,
+        this.deck,
         50 * this.scale, // Start at deck position
         this.gameCanvas.height - 320 * this.scale, // Deck Y position (same as player hand)
         this.scale
@@ -396,6 +400,7 @@ class AxesMundiApp {
       const cardData = this.remainingCards.shift()!;
       const card = new GameCard(
         cardData,
+        this.deck,
         50 * this.scale, // Start at deck position
         this.gameCanvas.height - 320 * this.scale, // Deck Y position (same as player hand)
         this.scale
@@ -519,8 +524,8 @@ class AxesMundiApp {
       this.currentTurn++;
       this.updateTurnText();
       
-      // Let AI play immediately
-      if (this.opponentHand.length > 0) {
+      // Let AI play immediately (only if not already in progress)
+      if (this.opponentHand.length > 0 && !this.isAITurnInProgress) {
         setTimeout(() => {
           this.playAITurn();
         }, 500);
@@ -542,6 +547,18 @@ class AxesMundiApp {
     * Play AI turn - simulates player drag mechanics
     */
    private playAITurn(): void {
+     // Prevent multiple AI turns from running simultaneously
+     if (this.isAITurnInProgress) {
+       logger.warn({
+         scope: 'renderer/ai',
+         msg: 'AI turn already in progress, skipping duplicate call',
+         meta: { opponentHandSize: this.opponentHand.length }
+       });
+       return;
+     }
+     
+     this.isAITurnInProgress = true;
+     
      logger.info({
        scope: 'renderer/ai',
        msg: 'playAITurn called',
@@ -558,6 +575,7 @@ class AxesMundiApp {
        
        // Switch back to player turn
        this.isPlayerTurn = true;
+       this.isAITurnInProgress = false; // Reset flag
        this.startTurnTimer(); // Start timer for player turn
        return;
      }
@@ -725,6 +743,7 @@ class AxesMundiApp {
       // Switch back to player turn
       this.isPlayerTurn = true;
       this.currentTurn++;
+      this.isAITurnInProgress = false; // Reset AI turn flag
       this.startTurnTimer(); // Start timer for player turn
       
       // Check for AI win
@@ -812,6 +831,7 @@ class AxesMundiApp {
       // Switch back to player turn
       this.isPlayerTurn = true;
       this.currentTurn++;
+      this.isAITurnInProgress = false; // Reset AI turn flag
       this.startTurnTimer(); // Start timer for player turn
       
       // Check for AI win
@@ -1105,7 +1125,7 @@ class AxesMundiApp {
            this.checkForWin();
            
            // 8. AI TURN: If game not over and AI has cards, let AI play
-           if (!this.gameWon && !this.gameLost && this.opponentHand.length > 0) {
+           if (!this.gameWon && !this.gameLost && this.opponentHand.length > 0 && !this.isAITurnInProgress) {
              setTimeout(() => {
                this.playAITurn();
              }, 1000); // 1 second delay
@@ -1334,7 +1354,7 @@ class AxesMundiApp {
        ctx.fillRect(timerBarX, timerBarY, timerBarWidth, timerBarHeight);
        
        // Progress bar
-       const progress = this.turnTimer / 10;
+               const progress = this.turnTimer / 10;
        const progressWidth = timerBarWidth * progress;
        
        // Color based on time remaining
@@ -1409,6 +1429,7 @@ class AxesMundiApp {
        const newCardData = this.remainingCards.shift()!;
        const newCard = new GameCard(
          newCardData,
+         this.deck,
          50 * this.scale, // Start position at deck (left)
          this.gameCanvas.height / 2 + 20 * this.scale, // Deck Y position
          this.scale
@@ -1849,7 +1870,7 @@ class AxesMundiApp {
      this.currentTurn = 0;
      this.isPlayerTurn = true;
      this.turnText = '';
-     this.turnTimer = 10;
+     this.turnTimer = 30;
      
      // Reload the game
      this.loadGame();

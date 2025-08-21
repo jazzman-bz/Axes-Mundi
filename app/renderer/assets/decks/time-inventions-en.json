@@ -1,0 +1,1001 @@
+{
+  "id": "time-inventions-en",
+  "name": "Time - Inventions & Discoveries",
+  "axis": "time",
+  "theme": "history",
+  "locale": "en",
+  "version": "1.0.0",
+  "description": "A chronological journey through human inventions and discoveries from prehistoric times to modern era",
+  "cards": [
+    {
+      "id": "fire-taming",
+      "title": "The Taming of Fire",
+      "axis": "time",
+      "value": -450000,
+      "unit": "BC",
+      "displayValue": "450,000 BC",
+      "image": "The Taming of Fire - 450000bc",
+      "facts": [
+        "First controlled use of fire by early humans",
+        "Enabled cooking, warmth, and protection",
+        "Marked the beginning of human technological advancement"
+      ],
+      "sources": [
+        {
+          "label": "Archaeological Evidence",
+          "url": "https://www.britannica.com/science/fire"
+        }
+      ],
+      "difficulty": "easy",
+      "category": "prehistoric"
+    },
+    {
+      "id": "cave-paintings",
+      "title": "Cave Paintings",
+      "axis": "time",
+      "value": -30000,
+      "unit": "BC",
+      "displayValue": "30,000 BC",
+      "image": "Cave Paintings - 30000bc",
+      "facts": [
+        "Earliest known form of human artistic expression",
+        "Found in caves across Europe and Asia",
+        "Depict animals, hunting scenes, and human figures"
+      ],
+      "sources": [
+        {
+          "label": "UNESCO",
+          "url": "https://whc.unesco.org/en/list/925"
+        }
+      ],
+      "difficulty": "easy",
+      "category": "prehistoric"
+    },
+    {
+      "id": "agriculture",
+      "title": "The Invention of Agriculture",
+      "axis": "time",
+      "value": -8000,
+      "unit": "BC",
+      "displayValue": "8,000 BC",
+      "image": "The Invention of Agriculture - 8000bc",
+      "facts": [
+        "Transition from hunter-gatherer to farming societies",
+        "First domesticated crops: wheat, barley, rice",
+        "Led to permanent settlements and civilization"
+      ],
+      "sources": [
+        {
+          "label": "National Geographic",
+          "url": "https://www.nationalgeographic.org/article/development-agriculture/"
+        }
+      ],
+      "difficulty": "easy",
+      "category": "agriculture"
+    },
+    {
+      "id": "ceramics",
+      "title": "The Introduction of Ceramics",
+      "axis": "time",
+      "value": -9000,
+      "unit": "BC",
+      "displayValue": "9,000 BC",
+      "image": "The Introduction of Ceramics - 9000bc",
+      "facts": [
+        "First fired clay pottery and vessels",
+        "Used for storage, cooking, and ritual purposes",
+        "Marked the beginning of material science"
+      ],
+      "sources": [
+        {
+          "label": "Archaeological Institute of America",
+          "url": "https://www.archaeological.org/"
+        }
+      ],
+      "difficulty": "easy",
+      "category": "materials"
+    },
+    {
+      "id": "brick",
+      "title": "The Invention of the Brick",
+      "axis": "time",
+      "value": -7000,
+      "unit": "BC",
+      "displayValue": "7,000 BC",
+      "image": "The Invention of the Brick - 7000bc",
+      "facts": [
+        "First fired clay bricks for construction",
+        "Enabled permanent building structures",
+        "Revolutionized architecture and urban planning"
+      ],
+      "sources": [
+        {
+          "label": "Construction History Society",
+          "url": "https://www.constructionhistory.co.uk/"
+        }
+      ],
+      "difficulty": "easy",
+      "category": "construction"
+    },
+    {
+      "id": "navigation",
+      "title": "The Beginning of Navigation",
+      "axis": "time",
+      "value": -4000,
+      "unit": "BC",
+      "displayValue": "4,000 BC",
+      "image": "The Beginning of Navigation  - 4000bc",
+      "facts": [
+        "First systematic sea travel and exploration",
+        "Used stars, currents, and landmarks",
+        "Enabled trade and cultural exchange across seas"
+      ],
+      "sources": [
+        {
+          "label": "Maritime History",
+          "url": "https://www.maritimehistory.org/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "transportation"
+    },
+    {
+      "id": "writing",
+      "title": "The Introduction of Writing",
+      "axis": "time",
+      "value": -3400,
+      "unit": "BC",
+      "displayValue": "3,400 BC",
+      "image": "The Introduction of Writing - 3400bc",
+      "facts": [
+        "First cuneiform writing system in Mesopotamia",
+        "Enabled record-keeping and literature",
+        "Marked the transition from prehistory to history"
+      ],
+      "sources": [
+        {
+          "label": "British Museum",
+          "url": "https://www.britishmuseum.org/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "communication"
+    },
+    {
+      "id": "wheel",
+      "title": "The Invention of the Wheel",
+      "axis": "time",
+      "value": -3500,
+      "unit": "BC",
+      "displayValue": "3,500 BC",
+      "image": "The Invention of the Wheel - 3500bc",
+      "facts": [
+        "First wheeled vehicles and pottery wheels",
+        "Revolutionized transportation and manufacturing",
+        "One of the most important inventions in human history"
+      ],
+      "sources": [
+        {
+          "label": "Smithsonian Institution",
+          "url": "https://www.si.edu/"
+        }
+      ],
+      "difficulty": "easy",
+      "category": "transportation"
+    },
+    {
+      "id": "bronze",
+      "title": "The Discovery of Bronze",
+      "axis": "time",
+      "value": -2200,
+      "unit": "BC",
+      "displayValue": "2,200 BC",
+      "image": "The Discovery of Bronze - 2200bc",
+      "facts": [
+        "First alloy of copper and tin",
+        "Harder and more durable than pure metals",
+        "Marked the beginning of the Bronze Age"
+      ],
+      "sources": [
+        {
+          "label": "Archaeological Institute of America",
+          "url": "https://www.archaeological.org/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "materials"
+    },
+    {
+      "id": "paper",
+      "title": "The Invention of Paper",
+      "axis": "time",
+      "value": -200,
+      "unit": "BC",
+      "displayValue": "200 BC",
+      "image": "The Invention of Paper - 200bc",
+      "facts": [
+        "First paper made from plant fibers in China",
+        "Replaced expensive materials like silk and bamboo",
+        "Enabled widespread literacy and knowledge sharing"
+      ],
+      "sources": [
+        {
+          "label": "Chinese Historical Society",
+          "url": "https://www.chinesehistoricalsociety.org/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "materials"
+    },
+    {
+      "id": "crossbow",
+      "title": "The Invention of the Crossbow",
+      "axis": "time",
+      "value": -400,
+      "unit": "BC",
+      "displayValue": "400 BC",
+      "image": "The Invention of the Crossbow - 400bc",
+      "facts": [
+        "First mechanical projectile weapon",
+        "More powerful and accurate than bows",
+        "Revolutionized warfare and hunting"
+      ],
+      "sources": [
+        {
+          "label": "Military History Museum",
+          "url": "https://www.militaryhistorymuseum.org/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "weapons"
+    },
+    {
+      "id": "catapult",
+      "title": "The Invention of the Catapult",
+      "axis": "time",
+      "value": -397,
+      "unit": "BC",
+      "displayValue": "397 BC",
+      "image": "The Invention of the Catapult - 397bc",
+      "facts": [
+        "First mechanical siege weapon",
+        "Used torsion power to launch projectiles",
+        "Changed the nature of siege warfare"
+      ],
+      "sources": [
+        {
+          "label": "Ancient History Encyclopedia",
+          "url": "https://www.ancient.eu/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "weapons"
+    },
+    {
+      "id": "screw",
+      "title": "The Invention of the Screw",
+      "axis": "time",
+      "value": -250,
+      "unit": "BC",
+      "displayValue": "250 BC",
+      "image": "The Invention of the Screw - 250bc",
+      "facts": [
+        "First mechanical fastener and simple machine",
+        "Used for holding materials together",
+        "Basis for many modern mechanical devices"
+      ],
+      "sources": [
+        {
+          "label": "Engineering History",
+          "url": "https://www.engineeringhistory.org/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "mechanics"
+    },
+    {
+      "id": "cannon",
+      "title": "The Invention of the Cannon",
+      "axis": "time",
+      "value": 1313,
+      "unit": "AD",
+      "displayValue": "1313",
+      "image": "The Invention of the Cannon - 1313",
+      "facts": [
+        "First gunpowder artillery weapon",
+        "Revolutionized siege warfare and naval combat",
+        "Marked the beginning of the age of gunpowder weapons"
+      ],
+      "sources": [
+        {
+          "label": "Military History Museum",
+          "url": "https://www.militaryhistorymuseum.org/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "weapons"
+    },
+    {
+      "id": "compass",
+      "title": "The Invention of the Compass",
+      "axis": "time",
+      "value": 1090,
+      "unit": "AD",
+      "displayValue": "1090",
+      "image": "The Invention of the Compass - 1090",
+      "facts": [
+        "First magnetic navigation device",
+        "Enabled accurate sea navigation",
+        "Revolutionized exploration and trade"
+      ],
+      "sources": [
+        {
+          "label": "Maritime History",
+          "url": "https://www.maritimehistory.org/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "navigation"
+    },
+    {
+      "id": "windmill",
+      "title": "The Invention of the Windmill (Europe)",
+      "axis": "time",
+      "value": 825,
+      "unit": "AD",
+      "displayValue": "825",
+      "image": "The Invention of the Windmill (Europe) - 825",
+      "facts": [
+        "First wind-powered mechanical device in Europe",
+        "Used for grinding grain and pumping water",
+        "Early example of renewable energy technology"
+      ],
+      "sources": [
+        {
+          "label": "Engineering History",
+          "url": "https://www.engineeringhistory.org/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "energy"
+    },
+    {
+      "id": "hourglass",
+      "title": "The Invention of the Hourglass",
+      "axis": "time",
+      "value": 900,
+      "unit": "AD",
+      "displayValue": "900",
+      "image": "The Invention of the Hourglass - 900",
+      "facts": [
+        "First accurate timekeeping device",
+        "Used for navigation, cooking, and religious ceremonies",
+        "Precursor to modern time measurement"
+      ],
+      "sources": [
+        {
+          "label": "Time Museum",
+          "url": "https://www.timemuseum.org/"
+        }
+      ],
+      "difficulty": "easy",
+      "category": "timekeeping"
+    },
+    {
+      "id": "gunpowder",
+      "title": "The Invention of Gunpowder",
+      "axis": "time",
+      "value": 630,
+      "unit": "AD",
+      "displayValue": "630",
+      "image": "The Invention of Gunpowder - 630",
+      "facts": [
+        "First explosive chemical mixture",
+        "Used for fireworks, weapons, and mining",
+        "Changed the course of human history"
+      ],
+      "sources": [
+        {
+          "label": "Chinese Historical Society",
+          "url": "https://www.chinesehistoricalsociety.org/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "chemistry"
+    },
+    {
+      "id": "terrestrial-globe",
+      "title": "The Invention of the Terrestrial Globe",
+      "axis": "time",
+      "value": 1492,
+      "unit": "AD",
+      "displayValue": "1492",
+      "image": "The Invention of the Terrestrial Globe - 1492",
+      "facts": [
+        "First spherical representation of Earth",
+        "Enabled accurate navigation and mapping",
+        "Revolutionized geography and exploration"
+      ],
+      "sources": [
+        {
+          "label": "National Geographic",
+          "url": "https://www.nationalgeographic.org/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "navigation"
+    },
+    {
+      "id": "steam-engine",
+      "title": "The Invention of the Steam Engine",
+      "axis": "time",
+      "value": 1712,
+      "unit": "AD",
+      "displayValue": "1712",
+      "image": "The Invention of the Steam Engine - 1712",
+      "facts": [
+        "First practical steam-powered machine",
+        "Powered the Industrial Revolution",
+        "Enabled factories, trains, and ships"
+      ],
+      "sources": [
+        {
+          "label": "Science Museum",
+          "url": "https://www.sciencemuseum.org.uk/"
+        }
+      ],
+      "difficulty": "hard",
+      "category": "energy"
+    },
+    {
+      "id": "thermometer",
+      "title": "The Invention of the Thermometer",
+      "axis": "time",
+      "value": 1612,
+      "unit": "AD",
+      "displayValue": "1612",
+      "image": "The Invention of the Thermometer - 1612",
+      "facts": [
+        "First accurate temperature measurement device",
+        "Used mercury or alcohol in sealed glass",
+        "Revolutionized science and medicine"
+      ],
+      "sources": [
+        {
+          "label": "Science Museum",
+          "url": "https://www.sciencemuseum.org.uk/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "measurement"
+    },
+    {
+      "id": "telescope",
+      "title": "The Invention of the Telescope",
+      "axis": "time",
+      "value": 1609,
+      "unit": "AD",
+      "displayValue": "1609",
+      "image": "The Invention of the Telescope - 1609",
+      "facts": [
+        "First optical instrument for distant observation",
+        "Revolutionized astronomy and navigation",
+        "Enabled discovery of planets and stars"
+      ],
+      "sources": [
+        {
+          "label": "NASA",
+          "url": "https://www.nasa.gov/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "optics"
+    },
+    {
+      "id": "printing-press",
+      "title": "The Invention of the Printing Press",
+      "axis": "time",
+      "value": 1437,
+      "unit": "AD",
+      "displayValue": "1437",
+      "image": "The Invention of the Printing Press - 1437",
+      "facts": [
+        "First movable type printing system",
+        "Enabled mass production of books",
+        "Revolutionized education and knowledge sharing"
+      ],
+      "sources": [
+        {
+          "label": "Gutenberg Museum",
+          "url": "https://www.gutenberg-museum.de/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "communication"
+    },
+    {
+      "id": "watch",
+      "title": "The Invention of the Watch",
+      "axis": "time",
+      "value": 1504,
+      "unit": "AD",
+      "displayValue": "1504",
+      "image": "The Invention of the Watch - 1504",
+      "facts": [
+        "First portable timekeeping device",
+        "Used spring mechanism for power",
+        "Enabled personal time management"
+      ],
+      "sources": [
+        {
+          "label": "Time Museum",
+          "url": "https://www.timemuseum.org/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "timekeeping"
+    },
+    {
+      "id": "violin",
+      "title": "The Invention of the Violin",
+      "axis": "time",
+      "value": 1523,
+      "unit": "AD",
+      "displayValue": "1523",
+      "image": "The Invention of the Violin - 1523",
+      "facts": [
+        "First modern string instrument",
+        "Combined features of various medieval instruments",
+        "Became central to classical music"
+      ],
+      "sources": [
+        {
+          "label": "Music History Society",
+          "url": "https://www.musichistory.org/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "music"
+    },
+    {
+      "id": "microscope",
+      "title": "The Invention of the Microscope",
+      "axis": "time",
+      "value": 1590,
+      "unit": "AD",
+      "displayValue": "1590",
+      "image": "The Invention of the Microscope - 1590",
+      "facts": [
+        "First optical instrument for small objects",
+        "Revolutionized biology and medicine",
+        "Enabled discovery of microorganisms"
+      ],
+      "sources": [
+        {
+          "label": "Science Museum",
+          "url": "https://www.sciencemuseum.org.uk/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "optics"
+    },
+    {
+      "id": "sign-language",
+      "title": "The Invention of Sign Language",
+      "axis": "time",
+      "value": 1593,
+      "unit": "AD",
+      "displayValue": "1593",
+      "image": "The Invention of Sign Language - 1593",
+      "facts": [
+        "First systematic sign language system",
+        "Enabled communication for deaf individuals",
+        "Developed into modern sign languages"
+      ],
+      "sources": [
+        {
+          "label": "Deaf History Society",
+          "url": "https://www.deafhistory.org/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "communication"
+    },
+    {
+      "id": "newspaper",
+      "title": "The Invention of the Newspaper",
+      "axis": "time",
+      "value": 1605,
+      "unit": "AD",
+      "displayValue": "1605",
+      "image": "The Invention of the Newspaper - 1605",
+      "facts": [
+        "First regular printed news publication",
+        "Enabled mass communication of current events",
+        "Basis for modern journalism"
+      ],
+      "sources": [
+        {
+          "label": "Journalism History",
+          "url": "https://www.journalismhistory.org/"
+        }
+      ],
+      "difficulty": "easy",
+      "category": "communication"
+    },
+    {
+      "id": "barometer",
+      "title": "The Invention of the Barometer",
+      "axis": "time",
+      "value": 1643,
+      "unit": "AD",
+      "displayValue": "1643",
+      "image": "The Invention of the Barometer - 1643",
+      "facts": [
+        "First atmospheric pressure measurement device",
+        "Used mercury column for measurement",
+        "Revolutionized meteorology and weather prediction"
+      ],
+      "sources": [
+        {
+          "label": "Science Museum",
+          "url": "https://www.sciencemuseum.org.uk/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "measurement"
+    },
+    {
+      "id": "sextant",
+      "title": "The Invention of the Sextant",
+      "axis": "time",
+      "value": 1730,
+      "unit": "AD",
+      "displayValue": "1730",
+      "image": "The Invention of the Sextant - 1730",
+      "facts": [
+        "First accurate celestial navigation instrument",
+        "Used for determining latitude at sea",
+        "Revolutionized maritime navigation"
+      ],
+      "sources": [
+        {
+          "label": "Maritime History",
+          "url": "https://www.maritimehistory.org/"
+        }
+      ],
+      "difficulty": "hard",
+      "category": "navigation"
+    },
+    {
+      "id": "lightning-rod",
+      "title": "The Invention of the Lightning Rod",
+      "axis": "time",
+      "value": 1752,
+      "unit": "AD",
+      "displayValue": "1752",
+      "image": "The Invention of the Lightning Rod - 1752",
+      "facts": [
+        "First lightning protection device",
+        "Used metal rod to safely conduct lightning",
+        "Protected buildings and saved lives"
+      ],
+      "sources": [
+        {
+          "label": "Franklin Institute",
+          "url": "https://www.fi.edu/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "safety"
+    },
+    {
+      "id": "railroad",
+      "title": "The Invention of the Railroad",
+      "axis": "time",
+      "value": 1763,
+      "unit": "AD",
+      "displayValue": "1763",
+      "image": "The Invention of the Railroad - 1763",
+      "facts": [
+        "First iron railway track system",
+        "Used horse-drawn wagons on rails",
+        "Precursor to steam-powered trains"
+      ],
+      "sources": [
+        {
+          "label": "Railway History Society",
+          "url": "https://www.railwayhistory.org/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "transportation"
+    },
+    {
+      "id": "hot-air-balloon",
+      "title": "The Invention of the Hot Air Balloon",
+      "axis": "time",
+      "value": 1783,
+      "unit": "AD",
+      "displayValue": "1783",
+      "image": "The Invention of the Hot Air Baloon - 1783",
+      "facts": [
+        "First human flight vehicle",
+        "Used heated air for lift",
+        "Marked the beginning of aviation"
+      ],
+      "sources": [
+        {
+          "label": "Aviation History Museum",
+          "url": "https://www.aviationmuseum.org/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "aviation"
+    },
+    {
+      "id": "locomotive",
+      "title": "The Invention of the Locomotive",
+      "axis": "time",
+      "value": 1804,
+      "unit": "AD",
+      "displayValue": "1804",
+      "image": "The Invention of the Locomotive - 1804",
+      "facts": [
+        "First steam-powered railway vehicle",
+        "Revolutionized transportation and industry",
+        "Enabled rapid movement of goods and people"
+      ],
+      "sources": [
+        {
+          "label": "Railway History Society",
+          "url": "https://www.railwayhistory.org/"
+        }
+      ],
+      "difficulty": "hard",
+      "category": "transportation"
+    },
+    {
+      "id": "bicycle",
+      "title": "The Invention of the Bicycle",
+      "axis": "time",
+      "value": 1817,
+      "unit": "AD",
+      "displayValue": "1817",
+      "image": "The Invention of the Bicycle - 1817",
+      "facts": [
+        "First human-powered two-wheeled vehicle",
+        "Used balance and pedaling for movement",
+        "Revolutionized personal transportation"
+      ],
+      "sources": [
+        {
+          "label": "Bicycle History Museum",
+          "url": "https://www.bicyclemuseum.org/"
+        }
+      ],
+      "difficulty": "easy",
+      "category": "transportation"
+    },
+    {
+      "id": "telegraph",
+      "title": "The Invention of the Telegraph",
+      "axis": "time",
+      "value": 1837,
+      "unit": "AD",
+      "displayValue": "1837",
+      "image": "The Invention of the Telegraph - 1837",
+      "facts": [
+        "First electrical communication system",
+        "Used Morse code for messages",
+        "Revolutionized long-distance communication"
+      ],
+      "sources": [
+        {
+          "label": "Communication History Museum",
+          "url": "https://www.communicationmuseum.org/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "communication"
+    },
+    {
+      "id": "rubber-band",
+      "title": "The Invention of the Rubber Band",
+      "axis": "time",
+      "value": 1845,
+      "unit": "AD",
+      "displayValue": "1845",
+      "image": "The Invention of the Rubber Band - 1845",
+      "facts": [
+        "First elastic rubber fastener",
+        "Used vulcanized rubber for elasticity",
+        "Simple but essential everyday item"
+      ],
+      "sources": [
+        {
+          "label": "Rubber Industry History",
+          "url": "https://www.rubberindustry.org/"
+        }
+      ],
+      "difficulty": "easy",
+      "category": "materials"
+    },
+    {
+      "id": "telephone",
+      "title": "The Invention of the Telephone",
+      "axis": "time",
+      "value": 1876,
+      "unit": "AD",
+      "displayValue": "1876",
+      "image": "The Invention of the Telephone - 1876",
+      "facts": [
+        "First device for electrical voice communication",
+        "Transmitted sound over electrical wires",
+        "Revolutionized personal and business communication"
+      ],
+      "sources": [
+        {
+          "label": "Bell Labs",
+          "url": "https://www.bell-labs.com/"
+        }
+      ],
+      "difficulty": "hard",
+      "category": "communication"
+    },
+    {
+      "id": "light-bulb",
+      "title": "The Invention of the Light Bulb",
+      "axis": "time",
+      "value": 1879,
+      "unit": "AD",
+      "displayValue": "1879",
+      "image": "The Invention of the Light Bulp - 1879",
+      "facts": [
+        "First practical electric light source",
+        "Used incandescent filament in vacuum",
+        "Revolutionized indoor lighting and extended productive hours"
+      ],
+      "sources": [
+        {
+          "label": "Edison Museum",
+          "url": "https://www.edisonmuseum.org/"
+        }
+      ],
+      "difficulty": "hard",
+      "category": "energy"
+    },
+    {
+      "id": "airplane",
+      "title": "The Invention of the Airplane",
+      "axis": "time",
+      "value": 1903,
+      "unit": "AD",
+      "displayValue": "1903",
+      "image": "The Invention of the Airplane - 1903",
+      "facts": [
+        "First powered, controlled, sustained flight",
+        "Used internal combustion engine and propeller",
+        "Revolutionized transportation and warfare"
+      ],
+      "sources": [
+        {
+          "label": "Smithsonian National Air and Space Museum",
+          "url": "https://airandspace.si.edu/"
+        }
+      ],
+      "difficulty": "hard",
+      "category": "aviation"
+    },
+    {
+      "id": "television",
+      "title": "The Invention of Television",
+      "axis": "time",
+      "value": 1925,
+      "unit": "AD",
+      "displayValue": "1925",
+      "image": "The Invention of Television - 1925",
+      "facts": [
+        "First electronic image transmission system",
+        "Used mechanical scanning and cathode ray tubes",
+        "Revolutionized entertainment and information sharing"
+      ],
+      "sources": [
+        {
+          "label": "Television History Museum",
+          "url": "https://www.televisionmuseum.org/"
+        }
+      ],
+      "difficulty": "hard",
+      "category": "communication"
+    },
+    {
+      "id": "atomic-bomb",
+      "title": "The Invention of the Atomic Bomb",
+      "axis": "time",
+      "value": 1945,
+      "unit": "AD",
+      "displayValue": "1945",
+      "image": "The Invention of the Atomic Bomb - 1945",
+      "facts": [
+        "First nuclear weapon using fission",
+        "Developed during World War II",
+        "Changed the nature of warfare and international relations"
+      ],
+      "sources": [
+        {
+          "label": "Atomic Heritage Foundation",
+          "url": "https://www.atomicheritage.org/"
+        }
+      ],
+      "difficulty": "hard",
+      "category": "weapons"
+    },
+    {
+      "id": "satellites",
+      "title": "The Invention of Satellites",
+      "axis": "time",
+      "value": 1957,
+      "unit": "AD",
+      "displayValue": "1957",
+      "image": "The Invention of Satellites - 1957",
+      "facts": [
+        "First artificial satellite (Sputnik 1)",
+        "Used rocket propulsion to reach orbit",
+        "Revolutionized communication, navigation, and science"
+      ],
+      "sources": [
+        {
+          "label": "NASA",
+          "url": "https://www.nasa.gov/"
+        }
+      ],
+      "difficulty": "hard",
+      "category": "space"
+    },
+    {
+      "id": "computer-mouse",
+      "title": "The Invention of the Computer Mouse",
+      "axis": "time",
+      "value": 1963,
+      "unit": "AD",
+      "displayValue": "1963",
+      "image": "The Invention of the Computer Mouse - 1963",
+      "facts": [
+        "First computer pointing device",
+        "Used mechanical tracking and buttons",
+        "Revolutionized computer user interface"
+      ],
+      "sources": [
+        {
+          "label": "Computer History Museum",
+          "url": "https://www.computerhistory.org/"
+        }
+      ],
+      "difficulty": "medium",
+      "category": "computing"
+    },
+    {
+      "id": "laptop-computer",
+      "title": "The Invention of the Laptop Computer",
+      "axis": "time",
+      "value": 1981,
+      "unit": "AD",
+      "displayValue": "1981",
+      "image": "The Invention of the Laptop Computer - 1981",
+      "facts": [
+        "First portable personal computer",
+        "Combined display, keyboard, and computer in one unit",
+        "Revolutionized mobile computing and work"
+      ],
+      "sources": [
+        {
+          "label": "Computer History Museum",
+          "url": "https://www.computerhistory.org/"
+        }
+      ],
+      "difficulty": "hard",
+      "category": "computing"
+    }
+  ]
+}

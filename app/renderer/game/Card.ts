@@ -10,6 +10,7 @@ export class GameCard {
   public width: number;
   public height: number;
   public card: CardData;
+  public deck: Deck; // Add deck reference for image folder
   public isSelected: boolean = false;
   public isDragging: boolean = false;
   public dragOffsetX: number = 0;
@@ -34,8 +35,9 @@ export class GameCard {
   private originalX: number | null = null; // Store original position before preview
   private originalY: number | null = null;
 
-  constructor(card: CardData, x: number, y: number, scale: number = 1) {
+  constructor(card: CardData, deck: Deck, x: number, y: number, scale: number = 1) {
     this.card = card;
+    this.deck = deck;
     this.x = x;
     this.y = y;
     this.width = 180 * scale;
@@ -69,15 +71,68 @@ export class GameCard {
         });
       };
       
-      // Load from assets folder - handle different deck types
+      // Load from assets folder using deck's imageFolder property
+      // Try both .jpg and .png extensions since we have mixed formats
+      // Handle cases where image name already contains file extension
       let imagePath: string;
-      if (this.card.axis === 'time') {
-        imagePath = `./assets/Time JPG/${this.card.image}.jpg`;
+      const imageName = this.card.image;
+      
+      // URL encode the image name to handle special characters like apostrophes
+      const encodedImageName = encodeURIComponent(imageName);
+      
+      // Check if image name already has an extension
+      // Look for actual file extensions, not just dots in the name
+      const hasExtension = imageName.toLowerCase().endsWith('.jpg') || 
+                          imageName.toLowerCase().endsWith('.png') || 
+                          imageName.toLowerCase().endsWith('.jpeg');
+      
+      if (this.deck.imageFolder && this.deck.imageFolder.trim() !== '') {
+        if (hasExtension) {
+          imagePath = `./assets/${this.deck.imageFolder}/${encodedImageName}`;
+        } else {
+          imagePath = `./assets/${this.deck.imageFolder}/${encodedImageName}.jpg`;
+        }
       } else {
-        // For other decks, try to load from general assets
-        imagePath = `./assets/${this.card.image}.jpg`;
+        if (hasExtension) {
+          imagePath = `./assets/${encodedImageName}`;
+        } else {
+          imagePath = `./assets/${encodedImageName}.jpg`;
+        }
       }
+      
+      // Try to load the image, if it fails, try .png extension
       this.imageElement.src = imagePath;
+      
+      // Add fallback for .png files
+      let triedPng = false;
+      this.imageElement.onerror = () => {
+        if (!triedPng) {
+          // Try .png extension if .jpg failed
+          let pngPath: string;
+          if (imagePath.includes('.jpg')) {
+            pngPath = imagePath.replace('.jpg', '.png');
+          } else if (imagePath.includes('.jpeg')) {
+            pngPath = imagePath.replace('.jpeg', '.png');
+          } else {
+            // If no extension found, try adding .png
+            pngPath = imagePath.replace(/(\.[^.]*)?$/, '.png');
+          }
+          
+          triedPng = true;
+          logger.debug({
+            scope: 'game/card',
+            msg: 'trying .png extension as fallback',
+            meta: { cardId: this.card.id, originalPath: imagePath, pngPath }
+          });
+          this.imageElement.src = pngPath;
+        } else {
+          logger.warn({
+            scope: 'game/card',
+            msg: 'failed to load card image (both .jpg and .png)',
+            meta: { cardId: this.card.id, image: this.card.image }
+          });
+        }
+      };
     } catch (error) {
       logger.error({
         scope: 'game/card',
@@ -449,7 +504,8 @@ export class GameCard {
   }
 
   /**
-   * Draw image maintaining aspect ratio
+   * Draw image maintaining aspect ratio with improved quality
+   * For narrow images, scale to square width for better presentation
    */
   private drawImageMaintainingAspectRatio(
     ctx: CanvasRenderingContext2D, 
@@ -464,19 +520,20 @@ export class GameCard {
     
     let drawWidth = maxWidth;
     let drawHeight = maxHeight;
-    let drawX = x;
-    let drawY = y;
+         let drawX = x;
+     let drawY = y;
+     
+     // Make all images square by stretching width to fill the available space
+     drawWidth = maxWidth; // Use full available width
+     drawHeight = maxWidth; // Make it square (same as width)
+     drawX = x; // Start from left edge
+     drawY = y + (maxHeight - drawHeight) / 2; // Center vertically
     
-    if (imgAspect > targetAspect) {
-      // Image is wider than target area
-      drawHeight = maxWidth / imgAspect;
-      drawY = y + (maxHeight - drawHeight) / 2;
-    } else {
-      // Image is taller than target area
-      drawWidth = maxHeight * imgAspect;
-      drawX = x + (maxWidth - drawWidth) / 2;
-    }
+    // Enable image smoothing for better quality
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     
+    // Draw the image with proper scaling
     ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
   }
 

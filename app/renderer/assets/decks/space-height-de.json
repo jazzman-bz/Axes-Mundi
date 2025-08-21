@@ -1,0 +1,766 @@
+{
+  "id": "space-height-de",
+  "name": "Raumfahrt – Höhe",
+  "axis": "height",
+  "theme": "tech",
+  "locale": "de",
+  "version": "1.0.0",
+  "cards": [
+    {
+      "id": "saturn-v",
+      "title": "Saturn V",
+      "axis": "height",
+      "value": 110.6,
+      "unit": "m",
+      "displayValue": "110,6 m",
+      "image": "saturn_v",
+      "facts": ["Trug Apollo 11 zum Mond."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "iss",
+      "title": "ISS",
+      "axis": "height",
+      "value": 408,
+      "unit": "km",
+      "displayValue": "408 km",
+      "image": "iss",
+      "facts": ["Internationale Raumstation in der Erdumlaufbahn."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "hubble",
+      "title": "Hubble",
+      "axis": "height",
+      "value": 547,
+      "unit": "km",
+      "displayValue": "547 km",
+      "image": "hubble",
+      "facts": ["Weltraumteleskop für astronomische Beobachtungen."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "vostok-1",
+      "title": "Vostok 1",
+      "axis": "height",
+      "value": 327,
+      "unit": "km",
+      "displayValue": "327 km",
+      "image": "vostok_1",
+      "facts": ["Erster bemannter Weltraumflug mit Juri Gagarin."],
+      "sources": [
+        { "label": "Roscosmos", "url": "https://www.roscosmos.ru/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "apollo-11",
+      "title": "Apollo 11",
+      "axis": "height",
+      "value": 384400,
+      "unit": "km",
+      "displayValue": "384.400 km",
+      "image": "apollo_11",
+      "facts": ["Erste bemannte Mondlandung."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "mars-rover",
+      "title": "Mars Rover",
+      "axis": "height",
+      "value": 225000000,
+      "unit": "km",
+      "displayValue": "225 Mio km",
+      "image": "mars_rover",
+      "facts": ["Durchschnittliche Entfernung zum Mars."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "voyager-1",
+      "title": "Voyager 1",
+      "axis": "height",
+      "value": 24000000000,
+      "unit": "km",
+      "displayValue": "24 Mrd km",
+      "image": "voyager_1",
+      "facts": ["Am weitesten entferntes von Menschen gebautes Objekt."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "space-shuttle",
+      "title": "Space Shuttle",
+      "axis": "height",
+      "value": 56.1,
+      "unit": "m",
+      "displayValue": "56,1 m",
+      "image": "space_shuttle",
+      "facts": ["Wiederverwendbares Raumfahrzeug der NASA."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "soyuz",
+      "title": "Sojus",
+      "axis": "height",
+      "value": 49.5,
+      "unit": "m",
+      "displayValue": "49,5 m",
+      "image": "soyuz",
+      "facts": ["Russisches Raumschiff für bemannte Missionen."],
+      "sources": [
+        { "label": "Roscosmos", "url": "https://www.roscosmos.ru/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "falcon-9",
+      "title": "Falcon 9",
+      "axis": "height",
+      "value": 70,
+      "unit": "m",
+      "displayValue": "70 m",
+      "image": "falcon_9",
+      "facts": ["Wiederverwendbare Rakete von SpaceX."],
+      "sources": [
+        { "label": "SpaceX", "url": "https://www.spacex.com/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "sputnik-1",
+      "title": "Sputnik 1",
+      "axis": "height",
+      "value": 0.58,
+      "unit": "m",
+      "displayValue": "0,58 m",
+      "image": "sputnik_1",
+      "facts": ["Erster künstlicher Satellit im Weltraum."],
+      "sources": [
+        { "label": "Roscosmos", "url": "https://www.roscosmos.ru/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "ariane-5",
+      "title": "Ariane 5",
+      "axis": "height",
+      "value": 53,
+      "unit": "m",
+      "displayValue": "53 m",
+      "image": "ariane_5",
+      "facts": ["Europäische Trägerrakete."],
+      "sources": [
+        { "label": "ESA", "url": "https://www.esa.int/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "atlas-v",
+      "title": "Atlas V",
+      "axis": "height",
+      "value": 58.3,
+      "unit": "m",
+      "displayValue": "58,3 m",
+      "image": "atlas_v",
+      "facts": ["Amerikanische Trägerrakete."],
+      "sources": [
+        { "label": "ULA", "url": "https://www.ulalaunch.com/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "delta-iv",
+      "title": "Delta IV",
+      "axis": "height",
+      "value": 72,
+      "unit": "m",
+      "displayValue": "72 m",
+      "image": "delta_iv",
+      "facts": ["Schwere Trägerrakete der USA."],
+      "sources": [
+        { "label": "ULA", "url": "https://www.ulalaunch.com/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "proton",
+      "title": "Proton",
+      "axis": "height",
+      "value": 58.2,
+      "unit": "m",
+      "displayValue": "58,2 m",
+      "image": "proton",
+      "facts": ["Russische Trägerrakete."],
+      "sources": [
+        { "label": "Roscosmos", "url": "https://www.roscosmos.ru/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "long-march-5",
+      "title": "Long March 5",
+      "axis": "height",
+      "value": 57,
+      "unit": "m",
+      "displayValue": "57 m",
+      "image": "long_march_5",
+      "facts": ["Chinesische Schwerlastrakete."],
+      "sources": [
+        { "label": "CNSA", "url": "http://www.cnsa.gov.cn/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "electron",
+      "title": "Electron",
+      "axis": "height",
+      "value": 18,
+      "unit": "m",
+      "displayValue": "18 m",
+      "image": "electron",
+      "facts": ["Kleine Rakete von Rocket Lab."],
+      "sources": [
+        { "label": "Rocket Lab", "url": "https://www.rocketlabusa.com/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "new-shepard",
+      "title": "New Shepard",
+      "axis": "height",
+      "value": 18.3,
+      "unit": "m",
+      "displayValue": "18,3 m",
+      "image": "new_shepard",
+      "facts": ["Suborbitale Rakete von Blue Origin."],
+      "sources": [
+        { "label": "Blue Origin", "url": "https://www.blueorigin.com/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "starship",
+      "title": "Starship",
+      "axis": "height",
+      "value": 120,
+      "unit": "m",
+      "displayValue": "120 m",
+      "image": "starship",
+      "facts": ["Größte Rakete von SpaceX."],
+      "sources": [
+        { "label": "SpaceX", "url": "https://www.spacex.com/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "sls",
+      "title": "SLS",
+      "axis": "height",
+      "value": 98,
+      "unit": "m",
+      "displayValue": "98 m",
+      "image": "sls",
+      "facts": ["Space Launch System der NASA."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "geostationary-orbit",
+      "title": "Geostationärer Orbit",
+      "axis": "height",
+      "value": 35786,
+      "unit": "km",
+      "displayValue": "35.786 km",
+      "image": "geostationary_orbit",
+      "facts": ["Orbit für Kommunikationssatelliten."],
+      "sources": [
+        { "label": "ESA", "url": "https://www.esa.int/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "low-earth-orbit",
+      "title": "Niedriger Erdorbit",
+      "axis": "height",
+      "value": 400,
+      "unit": "km",
+      "displayValue": "400 km",
+      "image": "low_earth_orbit",
+      "facts": ["Typische Höhe für Satelliten."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "moon-distance",
+      "title": "Mond",
+      "axis": "height",
+      "value": 384400,
+      "unit": "km",
+      "displayValue": "384.400 km",
+      "image": "moon",
+      "facts": ["Durchschnittliche Entfernung zum Mond."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "venus-distance",
+      "title": "Venus",
+      "axis": "height",
+      "value": 38000000,
+      "unit": "km",
+      "displayValue": "38 Mio km",
+      "image": "venus",
+      "facts": ["Nächster Planet zur Erde."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "jupiter-distance",
+      "title": "Jupiter",
+      "axis": "height",
+      "value": 628000000,
+      "unit": "km",
+      "displayValue": "628 Mio km",
+      "image": "jupiter",
+      "facts": ["Größter Planet im Sonnensystem."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "saturn-distance",
+      "title": "Saturn",
+      "axis": "height",
+      "value": 1200000000,
+      "unit": "km",
+      "displayValue": "1,2 Mrd km",
+      "image": "saturn",
+      "facts": ["Planet mit den charakteristischen Ringen."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "uranus-distance",
+      "title": "Uranus",
+      "axis": "height",
+      "value": 2720000000,
+      "unit": "km",
+      "displayValue": "2,72 Mrd km",
+      "image": "uranus",
+      "facts": ["Eisriese im äußeren Sonnensystem."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "neptune-distance",
+      "title": "Neptun",
+      "axis": "height",
+      "value": 4350000000,
+      "unit": "km",
+      "displayValue": "4,35 Mrd km",
+      "image": "neptune",
+      "facts": ["Äußerster Planet im Sonnensystem."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "pluto-distance",
+      "title": "Pluto",
+      "axis": "height",
+      "value": 5900000000,
+      "unit": "km",
+      "displayValue": "5,9 Mrd km",
+      "image": "pluto",
+      "facts": ["Zwergplanet im Kuipergürtel."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "voyager-2",
+      "title": "Voyager 2",
+      "axis": "height",
+      "value": 20000000000,
+      "unit": "km",
+      "displayValue": "20 Mrd km",
+      "image": "voyager_2",
+      "facts": ["Raumsonde im interstellaren Raum."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "pioneer-10",
+      "title": "Pioneer 10",
+      "axis": "height",
+      "value": 18000000000,
+      "unit": "km",
+      "displayValue": "18 Mrd km",
+      "image": "pioneer_10",
+      "facts": ["Erste Sonde zum Jupiter."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "pioneer-11",
+      "title": "Pioneer 11",
+      "axis": "height",
+      "value": 16000000000,
+      "unit": "km",
+      "displayValue": "16 Mrd km",
+      "image": "pioneer_11",
+      "facts": ["Sonde zu Saturn und darüber hinaus."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "new-horizons",
+      "title": "New Horizons",
+      "axis": "height",
+      "value": 8000000000,
+      "unit": "km",
+      "displayValue": "8 Mrd km",
+      "image": "new_horizons",
+      "facts": ["Sonde zu Pluto und dem Kuipergürtel."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "cassini",
+      "title": "Cassini",
+      "axis": "height",
+      "value": 1400000000,
+      "unit": "km",
+      "displayValue": "1,4 Mrd km",
+      "image": "cassini",
+      "facts": ["Sonde zur Erforschung des Saturn."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "galileo",
+      "title": "Galileo",
+      "axis": "height",
+      "value": 628000000,
+      "unit": "km",
+      "displayValue": "628 Mio km",
+      "image": "galileo",
+      "facts": ["Sonde zur Erforschung des Jupiter."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "mariner-10",
+      "title": "Mariner 10",
+      "axis": "height",
+      "value": 38000000,
+      "unit": "km",
+      "displayValue": "38 Mio km",
+      "image": "mariner_10",
+      "facts": ["Erste Sonde zur Venus."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "viking-1",
+      "title": "Viking 1",
+      "axis": "height",
+      "value": 225000000,
+      "unit": "km",
+      "displayValue": "225 Mio km",
+      "image": "viking_1",
+      "facts": ["Erste erfolgreiche Marslandung."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "pathfinder",
+      "title": "Pathfinder",
+      "axis": "height",
+      "value": 225000000,
+      "unit": "km",
+      "displayValue": "225 Mio km",
+      "image": "pathfinder",
+      "facts": ["Mars-Rover mit Sojourner."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "opportunity",
+      "title": "Opportunity",
+      "axis": "height",
+      "value": 225000000,
+      "unit": "km",
+      "displayValue": "225 Mio km",
+      "image": "opportunity",
+      "facts": ["Mars-Rover mit langer Missionsdauer."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "spirit",
+      "title": "Spirit",
+      "axis": "height",
+      "value": 225000000,
+      "unit": "km",
+      "displayValue": "225 Mio km",
+      "image": "spirit",
+      "facts": ["Mars-Rover der NASA."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "curiosity",
+      "title": "Curiosity",
+      "axis": "height",
+      "value": 225000000,
+      "unit": "km",
+      "displayValue": "225 Mio km",
+      "image": "curiosity",
+      "facts": ["Größter Mars-Rover."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "perseverance",
+      "title": "Perseverance",
+      "axis": "height",
+      "value": 225000000,
+      "unit": "km",
+      "displayValue": "225 Mio km",
+      "image": "perseverance",
+      "facts": ["Neuester Mars-Rover mit Hubschrauber."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "tianwen-1",
+      "title": "Tianwen-1",
+      "axis": "height",
+      "value": 225000000,
+      "unit": "km",
+      "displayValue": "225 Mio km",
+      "image": "tianwen_1",
+      "facts": ["Chinesische Mars-Mission."],
+      "sources": [
+        { "label": "CNSA", "url": "http://www.cnsa.gov.cn/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "hope-mars",
+      "title": "Hope Mars",
+      "axis": "height",
+      "value": 225000000,
+      "unit": "km",
+      "displayValue": "225 Mio km",
+      "image": "hope_mars",
+      "facts": ["Erste arabische Mars-Mission."],
+      "sources": [
+        { "label": "UAESA", "url": "https://www.space.gov.ae/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "kepler",
+      "title": "Kepler",
+      "axis": "height",
+      "value": 547,
+      "unit": "km",
+      "displayValue": "547 km",
+      "image": "kepler",
+      "facts": ["Weltraumteleskop zur Exoplaneten-Suche."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "tess",
+      "title": "TESS",
+      "axis": "height",
+      "value": 547,
+      "unit": "km",
+      "displayValue": "547 km",
+      "image": "tess",
+      "facts": ["Transiting Exoplanet Survey Satellite."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "james-webb",
+      "title": "James Webb",
+      "axis": "height",
+      "value": 1500000,
+      "unit": "km",
+      "displayValue": "1,5 Mio km",
+      "image": "james_webb",
+      "facts": ["Größtes Weltraumteleskop."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "chandra",
+      "title": "Chandra",
+      "axis": "height",
+      "value": 547,
+      "unit": "km",
+      "displayValue": "547 km",
+      "image": "chandra",
+      "facts": ["Röntgen-Weltraumteleskop."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "spitzer",
+      "title": "Spitzer",
+      "axis": "height",
+      "value": 547,
+      "unit": "km",
+      "displayValue": "547 km",
+      "image": "spitzer",
+      "facts": ["Infrarot-Weltraumteleskop."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "compton",
+      "title": "Compton",
+      "axis": "height",
+      "value": 547,
+      "unit": "km",
+      "displayValue": "547 km",
+      "image": "compton",
+      "facts": ["Gamma-Strahlung-Teleskop."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "gaia",
+      "title": "Gaia",
+      "axis": "height",
+      "value": 1500000,
+      "unit": "km",
+      "displayValue": "1,5 Mio km",
+      "image": "gaia",
+      "facts": ["Europäisches Astrometrie-Teleskop."],
+      "sources": [
+        { "label": "ESA", "url": "https://www.esa.int/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "cheops",
+      "title": "CHEOPS",
+      "axis": "height",
+      "value": 700,
+      "unit": "km",
+      "displayValue": "700 km",
+      "image": "cheops",
+      "facts": ["Europäisches Exoplaneten-Teleskop."],
+      "sources": [
+        { "label": "ESA", "url": "https://www.esa.int/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "plato",
+      "title": "PLATO",
+      "axis": "height",
+      "value": 1500000,
+      "unit": "km",
+      "displayValue": "1,5 Mio km",
+      "image": "plato",
+      "facts": ["Zukünftiges Exoplaneten-Teleskop."],
+      "sources": [
+        { "label": "ESA", "url": "https://www.esa.int/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "euclid",
+      "title": "Euclid",
+      "axis": "height",
+      "value": 1500000,
+      "unit": "km",
+      "displayValue": "1,5 Mio km",
+      "image": "euclid",
+      "facts": ["Europäisches Dunkle-Materie-Teleskop."],
+      "sources": [
+        { "label": "ESA", "url": "https://www.esa.int/" }
+      ],
+      "difficulty": "hard"
+    }
+  ]
+}

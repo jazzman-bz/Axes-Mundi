@@ -5,6 +5,7 @@
   "theme": "tech",
   "locale": "de",
   "version": "1.0.0",
+  "imageFolder": "Space JPG",
   "cards": [
     {
       "id": "saturn-v",

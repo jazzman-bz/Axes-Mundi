@@ -27,6 +27,7 @@ export interface Deck {
   theme: string;
   locale: string;
   version: string;
+  imageFolder: string; // Folder name for images (e.g., "Buildings JPG", "Time JPG")
   cards: Card[];
 }
 

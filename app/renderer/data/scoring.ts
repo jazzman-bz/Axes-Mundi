@@ -94,7 +94,7 @@ export function evaluatePlacement(
 }
 
 /**
- * Convert value to meters for comparison
+ * Convert value to comparable units for sorting
  */
 function convertToMeters(value: number, unit: string): number {
   switch (unit.toLowerCase()) {
@@ -106,8 +106,14 @@ function convertToMeters(value: number, unit: string): number {
       return value / 100;
     case 'mm':
       return value / 1000;
+    case 'bc':
+      // BC values are already negative, so they sort correctly (older = smaller)
+      return value;
+    case 'ad':
+      // AD values are positive, so they sort correctly (newer = larger)
+      return value;
     default:
-      // Assume meters if unknown unit
+      // For unknown units, assume they're already in comparable format
       return value;
   }
 }
