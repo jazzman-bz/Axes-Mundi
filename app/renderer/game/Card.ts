@@ -34,6 +34,9 @@ export class GameCard {
   private previewY: number | null = null;
   private originalX: number | null = null; // Store original position before preview
   private originalY: number | null = null;
+  
+  // Weiter button bounds for learning mode
+  public weiterButtonBounds: { x: number; y: number; width: number; height: number } | null = null;
 
   constructor(card: CardData, deck: Deck, x: number, y: number, scale: number = 1) {
     this.card = card;

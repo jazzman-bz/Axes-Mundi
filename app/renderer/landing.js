@@ -531,6 +531,7 @@ class LandingPageController {
       
       localStorage.setItem('axesMundiGameConfig', JSON.stringify(fullConfig));
       localStorage.setItem('selectedDeck', deckId);
+      localStorage.setItem('selectedGameType', this.gameConfig.type);
       
       logger.info({ 
         scope: 'landing/storage', 

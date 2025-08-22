@@ -56,7 +56,7 @@
       "value": 6000,
       "unit": "°C",
       "displayValue": "6.000 °C",
-      "image": "Lichbogen (Schweissen) - 6000",
+      "image": "Lichtbogen (Schweissen) - 6000",
       "facts": ["Temperatur eines elektrischen Lichtbogens beim Schweißen."],
       "sources": [
         { "label": "American Welding Society", "url": "https://www.aws.org/" }
@@ -112,7 +112,7 @@
       "value": 3100,
       "unit": "°C",
       "displayValue": "3.100 °C",
-      "image": "Schweissbrenner - 3100",
+      "image": "Schweißbrenner - 3100",
       "facts": ["Temperatur einer Acetylen-Sauerstoff-Flamme beim Schweißen."],
       "sources": [
         { "label": "American Welding Society", "url": "https://www.aws.org/" }

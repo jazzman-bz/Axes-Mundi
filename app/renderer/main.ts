@@ -44,6 +44,15 @@ class AxesMundiApp {
   private gameDifficulty: 'easy' | 'medium' | 'hard'; // Current game difficulty
   private turnTimerInterval: number | null = null; // Timer interval ID
   private isAITurnInProgress: boolean = false; // Prevent multiple AI turns
+  
+     // Learning mode state
+   private isLearningMode: boolean = false; // Track if we're in learning mode
+   private hoveredCard: GameCard | null = null; // Track which card is being hovered for tooltip
+   private tooltipCard: GameCard | null = null; // Track which card shows tooltip
+   private tooltipVisible: boolean = false; // Track if tooltip is visible
+   private weiterButtonBounds: { x: number; y: number; width: number; height: number } | null = null; // Global button bounds
+   private clearBoardButtonBounds: { x: number; y: number; width: number; height: number } | null = null; // Clear board button bounds
+   private resetGameButtonBounds: { x: number; y: number; width: number; height: number } | null = null; // Reset game button bounds
 
 
   constructor() {
@@ -55,10 +64,18 @@ class AxesMundiApp {
     const savedDifficulty = localStorage.getItem('selectedDifficulty') as 'easy' | 'medium' | 'hard';
     this.gameDifficulty = savedDifficulty || 'medium';
     
+    // Initialize learning mode from localStorage
+    const savedGameType = localStorage.getItem('selectedGameType');
+    this.isLearningMode = savedGameType === 'educational';
+    
     logger.info({ 
       scope: 'renderer/app', 
-      msg: 'game difficulty initialized', 
-      meta: { difficulty: this.gameDifficulty, timer: this.getDifficultyTimer() } 
+      msg: 'game initialized', 
+      meta: { 
+        difficulty: this.gameDifficulty, 
+        timer: this.getDifficultyTimer(),
+        isLearningMode: this.isLearningMode
+      } 
     });
 
     this.initCanvas();
@@ -336,12 +353,22 @@ class AxesMundiApp {
         msg: 'starting dealCardsToPlayers immediately',
         meta: { remainingCards: this.remainingCards.length }
       });
-      this.dealCardsToPlayers();
+      
+      // In learning mode, deal more cards to player and no opponent
+      if (this.isLearningMode) {
+        this.dealCardsToPlayersLearningMode();
+      } else {
+        this.dealCardsToPlayers();
+      }
       
       logger.info({ 
         scope: 'renderer/game', 
         msg: 'game loaded successfully', 
-        meta: { boardCard: boardCardData.title, remainingCards: this.remainingCards.length } 
+        meta: { 
+          boardCard: boardCardData.title, 
+          remainingCards: this.remainingCards.length,
+          isLearningMode: this.isLearningMode
+        } 
       });
     } catch (error) {
       logger.error({ 
@@ -634,6 +661,12 @@ class AxesMundiApp {
    * Update turn text display
    */
   private updateTurnText(): void {
+    // In learning mode, don't show turn text
+    if (this.isLearningMode) {
+      this.turnText = '';
+      return;
+    }
+    
     if (this.isPlayerTurn) {
       this.turnText = `Your Turn (${this.playerHand.length} cards) - ${this.turnTimer}s`;
     } else {
@@ -642,6 +675,46 @@ class AxesMundiApp {
   }
 
 
+
+  /**
+   * Deal cards to player only (learning mode)
+   */
+  private dealCardsToPlayersLearningMode(): void {
+    try {
+      // Deal 5 cards to player (more cards for learning)
+      const playerCards = this.remainingCards.splice(0, 5);
+      this.playerHand = playerCards.map((card, index) => 
+        new GameCard(card, this.deck, 50 + index * 120, 500, this.scale)
+      );
+      
+      // No opponent cards in learning mode
+      this.opponentHand = [];
+      
+      // Layout only player hand
+      this.layoutHand();
+      
+      // Set player turn immediately (no timer in learning mode)
+      this.isPlayerTurn = true;
+      
+      logger.info({ 
+        scope: 'renderer/game', 
+        msg: 'cards dealt to player (learning mode)', 
+        meta: { 
+          playerCards: this.playerHand.length, 
+          opponentCards: 0,
+          remainingCards: this.remainingCards.length,
+          isLearningMode: true
+        } 
+      });
+      
+    } catch (error) {
+      logger.error({ 
+        scope: 'renderer/game', 
+        msg: 'failed to deal cards to player (learning mode)', 
+        err: { message: error.message, stack: error.stack } 
+      });
+    }
+  }
 
   /**
    * Get difficulty-based timer duration
@@ -663,6 +736,11 @@ class AxesMundiApp {
    * Start turn timer
    */
   private startTurnTimer(): void {
+    // In learning mode, no timer
+    if (this.isLearningMode) {
+      return;
+    }
+    
     this.turnTimer = this.getDifficultyTimer();
     this.updateTurnText();
     
@@ -691,6 +769,16 @@ class AxesMundiApp {
    */
   private endTurn(): void {
     this.stopTurnTimer();
+    
+    // In learning mode, don't end turns
+    if (this.isLearningMode) {
+      logger.info({
+        scope: 'renderer/timer',
+        msg: 'turn end skipped in learning mode',
+        meta: { isLearningMode: true }
+      });
+      return;
+    }
     
     if (this.isPlayerTurn) {
       // Player's time ran out - switch to AI turn
@@ -727,6 +815,16 @@ class AxesMundiApp {
     * Play AI turn - simulates player drag mechanics
     */
    private playAITurn(): void {
+     // Don't play AI turn in learning mode
+     if (this.isLearningMode) {
+       logger.info({
+         scope: 'renderer/ai',
+         msg: 'AI turn skipped in learning mode',
+         meta: { isLearningMode: true }
+       });
+       return;
+     }
+     
      // Prevent multiple AI turns from running simultaneously
      if (this.isAITurnInProgress) {
        logger.warn({
@@ -1033,7 +1131,8 @@ class AxesMundiApp {
    */
   private handleMouseDown(event: MouseEvent): void {
     // Only allow interaction during player turn
-    if (!this.isPlayerTurn || this.gameWon || this.gameLost) {
+    // In learning mode, ignore win/lose conditions
+    if (!this.isPlayerTurn || (!this.isLearningMode && (this.gameWon || this.gameLost))) {
       return;
     }
     
@@ -1101,6 +1200,11 @@ class AxesMundiApp {
           break;
         }
       }
+      
+      // Learning mode: handle tooltip hover for placed cards
+      if (this.isLearningMode) {
+        this.handleTooltipHover(x, y);
+      }
     }
   }
 
@@ -1140,6 +1244,80 @@ class AxesMundiApp {
       // Hide preview by restoring original positions
       this.hideAxisPreview();
     }
+  }
+
+     /**
+    * Handle tooltip hover for learning mode
+    */
+   private handleTooltipHover(mouseX: number, mouseY: number): void {
+     // Check if hovering over placed cards (left or right side)
+     let hoveredCard: GameCard | null = null;
+     
+     // Check left side cards
+     for (const card of this.placedLeft) {
+       if (card.containsPoint(mouseX, mouseY)) {
+         hoveredCard = card;
+         break;
+       }
+     }
+     
+     // Check right side cards
+     if (!hoveredCard) {
+       for (const card of this.placedRight) {
+         if (card.containsPoint(mouseX, mouseY)) {
+           hoveredCard = card;
+           break;
+         }
+       }
+     }
+     
+     // Check center board card
+     if (!hoveredCard && this.boardCard && this.boardCard.containsPoint(mouseX, mouseY)) {
+       hoveredCard = this.boardCard;
+     }
+     
+     // Update hover state ONLY if we don't have a permanent tooltip for an incorrect card
+     if (hoveredCard !== this.hoveredCard) {
+       // If we have a permanent tooltip for an incorrect card, don't change it
+       const hasIncorrectCard = this.placedLeft.find(card => card.isCorrect === false) ||
+                                this.placedRight.find(card => card.isCorrect === false) ||
+                                (this.boardCard && this.boardCard.isCorrect === false);
+       
+       if (!hasIncorrectCard) {
+         this.hoveredCard = hoveredCard;
+         this.tooltipCard = hoveredCard;
+         this.tooltipVisible = !!hoveredCard;
+       }
+       
+       logger.debug({
+         scope: 'renderer/tooltip',
+         msg: 'tooltip hover state changed',
+         meta: { 
+           cardTitle: hoveredCard?.card.title,
+           tooltipVisible: this.tooltipVisible,
+           isLearningMode: this.isLearningMode,
+           hasIncorrectCard: !!hasIncorrectCard
+         }
+       });
+     }
+   }
+  
+  /**
+   * Show tooltip for incorrect card automatically
+   */
+  private showTooltipForIncorrectCard(card: GameCard): void {
+    this.hoveredCard = card;
+    this.tooltipCard = card;
+    this.tooltipVisible = true;
+    
+    logger.debug({
+      scope: 'renderer/tooltip',
+      msg: 'tooltip shown automatically for incorrect card',
+      meta: { 
+        cardTitle: card.card.title,
+        isLearningMode: this.isLearningMode
+      }
+    });
   }
 
   /**
@@ -1236,13 +1414,19 @@ class AxesMundiApp {
    */
   private handleCanvasClick(event: MouseEvent): void {
     // Only allow navigation during player turn
-    if (!this.isPlayerTurn || this.gameWon || this.gameLost) {
+    // In learning mode, ignore win/lose conditions
+    if (!this.isPlayerTurn || (!this.isLearningMode && (this.gameWon || this.gameLost))) {
       return;
     }
     
     const rect = this.gameCanvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
+    
+    // Learning mode: handle card clicks for removal
+    if (this.isLearningMode) {
+      this.handleLearningModeClick(x, y);
+    }
     
     // Check if click is on navigation arrows
     const totalBoardCards = (this.boardCard ? 1 : 0) + this.placedLeft.length + this.placedRight.length;
@@ -1273,6 +1457,239 @@ class AxesMundiApp {
         return;
       }
     }
+  }
+
+     /**
+    * Handle learning mode clicks for card removal and buttons
+    */
+   private handleLearningModeClick(x: number, y: number): void {
+     // Check if click is on the "Clear Board" button first
+     if (this.clearBoardButtonBounds) {
+       const button = this.clearBoardButtonBounds;
+       if (x >= button.x && x <= button.x + button.width && 
+           y >= button.y && y <= button.y + button.height) {
+         this.clearBoard();
+         return; // Button click handled, don't process further
+       }
+     }
+     
+     // Check if click is on the "Reset Game" button
+     if (this.resetGameButtonBounds) {
+       const button = this.resetGameButtonBounds;
+       if (x >= button.x && x <= button.x + button.width && 
+           y >= button.y && y <= button.y + button.height) {
+         this.resetLearningGame();
+         return; // Button click handled, don't process further
+       }
+     }
+     
+     // Check if click is on the "Weiter" button
+     if (this.weiterButtonBounds) {
+       const button = this.weiterButtonBounds;
+       if (x >= button.x && x <= button.x + button.width && 
+           y >= button.y && y <= button.y + button.height) {
+         // Find the incorrect card to remove
+         const incorrectCard = this.placedLeft.find(card => card.isCorrect === false) ||
+                              this.placedRight.find(card => card.isCorrect === false) ||
+                              (this.boardCard && this.boardCard.isCorrect === false ? this.boardCard : null);
+         
+         if (incorrectCard) {
+           // Clicked on "Weiter" button - remove card
+           this.removeCardFromBoard(incorrectCard);
+           
+           logger.info({
+             scope: 'renderer/learning',
+             msg: 'incorrect card removed by weiter button click',
+             meta: { 
+               cardTitle: incorrectCard.card.title,
+               isLearningMode: this.isLearningMode
+             }
+           });
+         }
+         return; // Button click handled, don't process further
+       }
+     }
+     
+     // Check if clicking on a placed card
+     let clickedCard: GameCard | null = null;
+     
+     // Check left side cards
+     for (const card of this.placedLeft) {
+       if (card.containsPoint(x, y)) {
+         clickedCard = card;
+         break;
+       }
+     }
+     
+     // Check right side cards
+     if (!clickedCard) {
+       for (const card of this.placedRight) {
+         if (card.containsPoint(x, y)) {
+           clickedCard = card;
+           break;
+         }
+       }
+     }
+     
+     // Check center board card
+     if (!clickedCard && this.boardCard && this.boardCard.containsPoint(x, y)) {
+       clickedCard = this.boardCard;
+     }
+     
+     // If clicking on an incorrect card directly (not the button)
+     if (clickedCard && clickedCard.isCorrect === false) {
+       // Could add additional functionality here if needed
+       logger.debug({
+         scope: 'renderer/learning',
+         msg: 'incorrect card clicked directly',
+         meta: { 
+           cardTitle: clickedCard.card.title,
+           isLearningMode: this.isLearningMode
+         }
+       });
+     }
+   }
+
+     /**
+    * Clear all cards from board and move them to graveyard
+    */
+   private clearBoard(): void {
+     logger.info({
+       scope: 'renderer/learning',
+       msg: 'clearing board - moving all cards to graveyard',
+       meta: { 
+         boardCards: (this.boardCard ? 1 : 0) + this.placedLeft.length + this.placedRight.length,
+         isLearningMode: this.isLearningMode
+       }
+     });
+     
+     // Move board card to graveyard if it exists
+     if (this.boardCard) {
+       this.graveyard.push(this.boardCard);
+       this.animateCardToGraveyard(this.boardCard);
+       this.boardCard = null;
+     }
+     
+     // Move all placed left cards to graveyard
+     for (const card of this.placedLeft) {
+       this.graveyard.push(card);
+       this.animateCardToGraveyard(card);
+     }
+     this.placedLeft = [];
+     
+     // Move all placed right cards to graveyard
+     for (const card of this.placedRight) {
+       this.graveyard.push(card);
+       this.animateCardToGraveyard(card);
+     }
+     this.placedRight = [];
+     
+     // Clear all button bounds
+     this.weiterButtonBounds = null;
+     this.clearBoardButtonBounds = null;
+     this.resetGameButtonBounds = null;
+     
+     // Hide tooltip
+     this.tooltipVisible = false;
+     this.tooltipCard = null;
+     this.hoveredCard = null;
+     
+     // Give player new cards if hand is empty
+     if (this.playerHand.length === 0 && this.remainingCards.length > 0) {
+       const cardsToGive = Math.min(5, this.remainingCards.length);
+       for (let i = 0; i < cardsToGive; i++) {
+         this.giveNewCard();
+       }
+       
+       logger.info({
+         scope: 'renderer/learning',
+         msg: 'gave new cards after clearing board',
+         meta: { 
+           cardsGiven: cardsToGive,
+           remainingCards: this.remainingCards.length
+         }
+       });
+     }
+   }
+   
+   /**
+    * Reset the learning game with the same deck
+    */
+   private resetLearningGame(): void {
+     logger.info({
+       scope: 'renderer/learning',
+       msg: 'resetting learning game',
+       meta: { 
+         isLearningMode: this.isLearningMode
+       }
+     });
+     
+     // Stop any running timer
+     this.stopTurnTimer();
+     
+     // Clear all button bounds
+     this.weiterButtonBounds = null;
+     this.clearBoardButtonBounds = null;
+     this.resetGameButtonBounds = null;
+     
+     // Hide tooltip
+     this.tooltipVisible = false;
+     this.tooltipCard = null;
+     this.hoveredCard = null;
+     
+     // Reset game state
+     this.gameWon = false;
+     this.gameLost = false;
+     this.score = 0;
+     this.playerHand = [];
+     this.opponentHand = [];
+     this.placedLeft = [];
+     this.placedRight = [];
+     this.graveyard = [];
+     this.selectedCard = null;
+     this.isDragging = false;
+     this.isPreviewActive = false;
+     this.isGameStarted = false;
+     this.currentTurn = 0;
+     this.isPlayerTurn = true;
+     this.turnText = '';
+     this.turnTimer = 30;
+     
+     // Reload the game
+     this.loadGame();
+   }
+
+   /**
+    * Remove card from board and move to graveyard
+    */
+   private removeCardFromBoard(card: GameCard): void {
+    // Remove from appropriate side
+    this.placedLeft = this.placedLeft.filter(c => c !== card);
+    this.placedRight = this.placedRight.filter(c => c !== card);
+    
+    // If it's the board card, clear it
+    if (this.boardCard === card) {
+      this.boardCard = null;
+    }
+    
+         // Clear global weiter button bounds
+     this.weiterButtonBounds = null;
+    
+    // Add to graveyard and animate
+    this.graveyard.push(card);
+    this.animateCardToGraveyard(card);
+    
+    // Re-center remaining cards
+    this.layoutAxisCards();
+    
+    // Hide tooltip if this card was showing it
+    if (this.tooltipCard === card) {
+      this.tooltipVisible = false;
+      this.tooltipCard = null;
+    }
+    
+    // Give player a new card (only when removing via "Weiter" button)
+    this.giveNewCard();
   }
 
   /**
@@ -1382,6 +1799,24 @@ class AxesMundiApp {
         // Remove from hand immediately after snap
         this.playerHand = this.playerHand.filter((c) => c !== releasedCard);
         this.layoutHand();
+        
+        // In learning mode, check if hand is empty and give more cards
+        if (this.isLearningMode && this.playerHand.length === 0 && this.remainingCards.length > 0) {
+          // Give more cards to keep learning going
+          const cardsToGive = Math.min(5, this.remainingCards.length);
+          for (let i = 0; i < cardsToGive; i++) {
+            this.giveNewCard();
+          }
+          
+          logger.info({
+            scope: 'renderer/game',
+            msg: 'hand empty in learning mode, giving more cards',
+            meta: { 
+              cardsGiven: cardsToGive,
+              remainingCards: this.remainingCards.length
+            }
+          });
+        }
 
         // Clear any preview positions
         this.hideAxisPreview();
@@ -1406,30 +1841,54 @@ class AxesMundiApp {
 
         if (isCorrect) {
           // 4. STAY: Correct placement - card stays and turns green
-          this.score += getScore(releasedCard.card);
+          // In learning mode, don't track score
+          if (!this.isLearningMode) {
+            this.score += getScore(releasedCard.card);
+          }
           releasedCard.setCorrect();
+          
+                     // Clear global weiter button bounds for correct cards
+           this.weiterButtonBounds = null;
           
           // 5. CENTER: Center the axis immediately after correct placement
           this.layoutAxisCards();
           
-                     // 6. TURN-BASED: Switch turns
-           this.isPlayerTurn = false;
-           this.currentTurn++;
-           this.stopTurnTimer(); // Stop player timer
-           
-           // 7. CHECK FOR WIN: Check if player has won
-           this.checkForWin();
-           
-           // 8. AI TURN: If game not over and AI has cards, let AI play
-           if (!this.gameWon && !this.gameLost && this.opponentHand.length > 0 && !this.isAITurnInProgress) {
-             setTimeout(() => {
-               this.playAITurn();
-             }, 1000); // 1 second delay
-           } else {
-             // Keep player turn if AI has no cards
-             this.isPlayerTurn = true;
-             this.startTurnTimer(); // Start timer for player turn
-           }
+          // In learning mode, give a new card for correct placement
+          if (this.isLearningMode) {
+            this.giveNewCard();
+          }
+          
+                     // 6. TURN-BASED: Switch turns (disabled in learning mode)
+                     if (!this.isLearningMode) {
+                       this.isPlayerTurn = false;
+                       this.currentTurn++;
+                       this.stopTurnTimer(); // Stop player timer
+                       
+                       // 7. CHECK FOR WIN: Check if player has won
+                       this.checkForWin();
+                       
+                       // 8. AI TURN: If game not over and AI has cards, let AI play
+                       if (!this.gameWon && !this.gameLost && this.opponentHand.length > 0 && !this.isAITurnInProgress) {
+                         setTimeout(() => {
+                           this.playAITurn();
+                         }, 1000); // 1 second delay
+                       } else {
+                         // Keep player turn if AI has no cards
+                         this.isPlayerTurn = true;
+                         this.startTurnTimer(); // Start timer for player turn
+                       }
+                     } else {
+                       // Learning mode: keep player turn, no timer, no opponent
+                       this.isPlayerTurn = true;
+                       logger.info({
+                         scope: 'renderer/game',
+                         msg: 'learning mode: keeping player turn',
+                         meta: { 
+                           cardTitle: releasedCard.card.title,
+                           isLearningMode: true
+                         }
+                       });
+                     }
           
           logger.info({
             scope: 'renderer/game',
@@ -1441,24 +1900,16 @@ class AxesMundiApp {
             }
           });
         } else {
-          // 4. REMOVE: Incorrect placement - card turns red and will be moved to graveyard
+          // 4. STAY: Incorrect placement - card turns red and stays on board
           releasedCard.setIncorrect();
           
-          // Give player a new card from the deck
-          this.giveNewCard();
-
-          // Move card to graveyard after 2 seconds with animation
-          setTimeout(() => {
-            this.placedLeft = this.placedLeft.filter((c) => c !== releasedCard);
-            this.placedRight = this.placedRight.filter((c) => c !== releasedCard);
-            
-            // Add to graveyard and animate to graveyard position
-            this.graveyard.push(releasedCard);
-            this.animateCardToGraveyard(releasedCard);
-            
-            // 5. CENTER: Re-center after removal
-            this.layoutAxisCards();
-          }, 2000);
+                     // In learning mode, show tooltip automatically for incorrect card
+           if (this.isLearningMode) {
+             this.showTooltipForIncorrectCard(releasedCard);
+           }
+          
+                     // 5. CENTER: Center the axis only after "Weiter" button is clicked (not immediately)
+           // this.layoutAxisCards(); // Moved to removeCardFromBoard
 
           logger.info({
             scope: 'renderer/game',
@@ -1623,23 +2074,31 @@ class AxesMundiApp {
       ctx.globalAlpha = 1; // Reset alpha
     }
     
-    // Draw score and turn information
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `${18 * this.scale}px Arial`;
-    ctx.textAlign = 'left';
-    ctx.fillText(`Score: ${this.score}`, 20 * this.scale, 40 * this.scale);
-    ctx.fillText(`Turn: ${this.currentTurn}`, 20 * this.scale, 65 * this.scale);
+    // Draw score and turn information (only in normal mode)
+    if (!this.isLearningMode) {
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `${18 * this.scale}px Arial`;
+      ctx.textAlign = 'left';
+      ctx.fillText(`Score: ${this.score}`, 20 * this.scale, 40 * this.scale);
+      ctx.fillText(`Turn: ${this.currentTurn}`, 20 * this.scale, 65 * this.scale);
+    } else {
+      // Learning mode: show learning mode indicator
+      ctx.fillStyle = '#4caf50';
+      ctx.font = `bold ${18 * this.scale}px Arial`;
+      ctx.textAlign = 'left';
+      ctx.fillText('📚 Lernmodus', 20 * this.scale, 40 * this.scale);
+    }
     
-         // Draw turn text
-     if (this.turnText) {
+         // Draw turn text (only in normal mode)
+     if (this.turnText && !this.isLearningMode) {
        ctx.fillStyle = this.isPlayerTurn ? '#4caf50' : '#ff9800';
        ctx.font = `bold ${20 * this.scale}px Arial`;
        ctx.textAlign = 'left';
        ctx.fillText(this.turnText, 20 * this.scale, 90 * this.scale);
      }
      
-     // Draw timer bar
-     if (this.turnTimer > 0) {
+     // Draw timer bar (only in normal mode)
+     if (!this.isLearningMode && this.turnTimer > 0) {
        const timerBarWidth = 200 * this.scale;
        const timerBarHeight = 8 * this.scale;
        const timerBarX = 20 * this.scale;
@@ -1676,6 +2135,12 @@ class AxesMundiApp {
     // Draw hand position indicators (gray boxes)
     this.drawHandPositionIndicators(ctx);
     
+         // Draw learning mode buttons (if needed)
+     if (this.isLearningMode) {
+       this.drawWeiterButton(ctx);
+       this.drawLearningModeButtons(ctx);
+     }
+    
     // Draw graveyard cards
     for (const card of this.graveyard) {
       card.render(ctx);
@@ -1689,8 +2154,8 @@ class AxesMundiApp {
       ctx.fillText('Graveyard', this.gameCanvas.width - 150 * this.scale + 60 * this.scale, 30 * this.scale);
     }
     
-    // Draw win overlay if game is won
-    if (this.gameWon) {
+    // Draw win overlay if game is won (not in learning mode)
+    if (this.gameWon && !this.isLearningMode) {
       // Semi-transparent overlay
       ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
       ctx.fillRect(0, 0, this.gameCanvas.width, this.gameCanvas.height);
@@ -1718,6 +2183,11 @@ class AxesMundiApp {
 
     // Draw navigation arrows if more than 5 cards on board
     this.drawNavigationArrows(ctx);
+    
+    // Learning mode: draw tooltips for placed cards
+    if (this.isLearningMode && this.tooltipVisible && this.tooltipCard) {
+      this.drawTooltip(ctx, this.tooltipCard);
+    }
   }
 
      /**
@@ -1737,22 +2207,26 @@ class AxesMundiApp {
        // Animate card from deck to hand (same as initial hand cards)
        this.animateCardToHand(newCard);
        
-               // Switch to opponent turn after giving new card
-        this.isPlayerTurn = false;
-        this.stopTurnTimer(); // Stop player timer
-        
-        // Let AI play after a short delay
-        setTimeout(() => {
-          this.playAITurn();
-        }, 1000);
+       // In learning mode, don't switch turns
+       if (!this.isLearningMode) {
+         // Switch to opponent turn after giving new card
+         this.isPlayerTurn = false;
+         this.stopTurnTimer(); // Stop player timer
+         
+         // Let AI play after a short delay
+         setTimeout(() => {
+           this.playAITurn();
+         }, 1000);
+       }
        
        logger.info({
          scope: 'renderer/game',
-         msg: 'new card given to player (turn-based)',
+         msg: 'new card given to player',
          meta: { 
            cardTitle: newCardData.title, 
            remainingCards: this.remainingCards.length,
-           turn: this.currentTurn
+           turn: this.currentTurn,
+           isLearningMode: this.isLearningMode
          }
        });
      }
@@ -1826,23 +2300,192 @@ class AxesMundiApp {
       ctx.stroke();
       
       // Draw opponent hand area (top) - single large box (dynamic based on difficulty)
-      const opponentTotalWidth = opponentCardCount * cardSpacing - 20 * this.scale;
-      const opponentStartX = (this.gameCanvas.width - opponentTotalWidth) / 2;
-      const opponentY = 20 * this.scale;
-      
-      // Single box covering entire opponent hand area
-      this.roundRect(ctx, opponentStartX - 10 * this.scale, opponentY - 10 * this.scale, 
-                    opponentTotalWidth + 20 * this.scale, cardHeight + 20 * this.scale, 12);
-      ctx.fill();
-      ctx.stroke();
-      
-      // Draw labels
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `${14 * this.scale}px Arial`;
-      ctx.textAlign = 'center';
-      ctx.fillText('Player Hand', this.gameCanvas.width / 2, playerY - 20 * this.scale);
-      ctx.fillText('Opponent Hand', this.gameCanvas.width / 2, opponentY + cardHeight + 40 * this.scale);
+      // In learning mode, don't draw opponent hand area
+      if (!this.isLearningMode) {
+        const opponentTotalWidth = opponentCardCount * cardSpacing - 20 * this.scale;
+        const opponentStartX = (this.gameCanvas.width - opponentTotalWidth) / 2;
+        const opponentY = 20 * this.scale;
+        
+        // Single box covering entire opponent hand area
+        this.roundRect(ctx, opponentStartX - 10 * this.scale, opponentY - 10 * this.scale, 
+                      opponentTotalWidth + 20 * this.scale, cardHeight + 20 * this.scale, 12);
+        ctx.fill();
+        ctx.stroke();
+        
+        // Draw labels
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `${14 * this.scale}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText('Player Hand', this.gameCanvas.width / 2, playerY - 20 * this.scale);
+        ctx.fillText('Opponent Hand', this.gameCanvas.width / 2, opponentY + cardHeight + 40 * this.scale);
+      } else {
+        // Learning mode: only draw player hand label
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `${14 * this.scale}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText('Player Hand', this.gameCanvas.width / 2, playerY - 20 * this.scale);
+      }
     }
+
+     /**
+    * Draw learning mode buttons (Clear Board and Reset Game)
+    */
+   private drawLearningModeButtons(ctx: CanvasRenderingContext2D): void {
+     const buttonWidth = 150 * this.scale;
+     const buttonHeight = 50 * this.scale;
+     const buttonSpacing = 20 * this.scale;
+     
+     // Position buttons above the board, centered horizontally
+     const totalWidth = buttonWidth * 2 + buttonSpacing;
+     const startX = (this.gameCanvas.width - totalWidth) / 2;
+     const buttonY = 150 * this.scale; // Above the board area
+     
+     // Clear Board Button (left)
+     const clearButtonX = startX;
+     
+     // Button background
+     ctx.fillStyle = '#f44336'; // Red color
+     this.drawRoundedRect(ctx, clearButtonX, buttonY, buttonWidth, buttonHeight, 8 * this.scale);
+     
+     // Button text
+     ctx.fillStyle = '#ffffff';
+     ctx.font = `bold ${16 * this.scale}px Arial`;
+     ctx.textAlign = 'center';
+     ctx.textBaseline = 'middle';
+     ctx.fillText('Clear Board', clearButtonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+     
+     // Reset Game Button (right)
+     const resetButtonX = startX + buttonWidth + buttonSpacing;
+     
+     // Button background
+     ctx.fillStyle = '#2196f3'; // Blue color
+     this.drawRoundedRect(ctx, resetButtonX, buttonY, buttonWidth, buttonHeight, 8 * this.scale);
+     
+     // Button text
+     ctx.fillStyle = '#ffffff';
+     ctx.font = `bold ${16 * this.scale}px Arial`;
+     ctx.textAlign = 'center';
+     ctx.textBaseline = 'middle';
+     ctx.fillText('Reset Game', resetButtonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+     
+     // Store button positions globally for click detection
+     this.clearBoardButtonBounds = { x: clearButtonX, y: buttonY, width: buttonWidth, height: buttonHeight };
+     this.resetGameButtonBounds = { x: resetButtonX, y: buttonY, width: buttonWidth, height: buttonHeight };
+   }
+
+   /**
+    * Draw "Weiter" button for learning mode (positioned next to player hand)
+    */
+   private drawWeiterButton(ctx: CanvasRenderingContext2D): void {
+    // Find any incorrect card on the board to show the button
+    const incorrectCard = this.placedLeft.find(card => card.isCorrect === false) ||
+                         this.placedRight.find(card => card.isCorrect === false) ||
+                         (this.boardCard && this.boardCard.isCorrect === false ? this.boardCard : null);
+    
+    // Only draw if we have an incorrect card that needs the button
+    if (!incorrectCard) return;
+    
+    const cardWidth = 200 * this.scale;
+    const cardHeight = 300 * this.scale;
+    const cardSpacing = 220 * this.scale;
+    
+    // Calculate player hand area position
+    const playerTotalWidth = 5 * cardSpacing - 20 * this.scale;
+    const playerStartX = (this.gameCanvas.width - playerTotalWidth) / 2;
+    const playerY = this.gameCanvas.height - 320 * this.scale;
+    
+    // Position button to the right of player hand area
+    const buttonWidth = 120 * this.scale; // Larger button
+    const buttonHeight = 40 * this.scale; // Larger button
+    const buttonX = playerStartX + playerTotalWidth + 20 * this.scale; // Right of hand area
+    const buttonY = playerY + cardHeight / 2 - buttonHeight / 2; // Vertically centered with hand
+    
+    // Button background
+    ctx.fillStyle = '#ff9800';
+    this.drawRoundedRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 8 * this.scale);
+    
+    // Button text
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold ${16 * this.scale}px Arial`; // Larger font
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Weiter', buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+    
+         // Store button position globally for click detection
+     this.weiterButtonBounds = { x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight };
+  }
+
+  /**
+   * Draw tooltip for learning mode
+   */
+  private drawTooltip(ctx: CanvasRenderingContext2D, card: GameCard): void {
+    if (!card.card.facts || card.card.facts.length === 0) return;
+    
+    const tooltipText = card.card.facts[0];
+    const tooltipWidth = 300 * this.scale;
+    const tooltipHeight = 80 * this.scale;
+    const tooltipPadding = 10 * this.scale;
+    
+    // Position tooltip above the card
+    const tooltipX = card.x + card.width / 2 - tooltipWidth / 2;
+    const tooltipY = card.y - tooltipHeight - 20 * this.scale;
+    
+    // Draw tooltip background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+    ctx.strokeStyle = '#4caf50';
+    ctx.lineWidth = 2 * this.scale;
+    
+    // Rounded rectangle for tooltip
+    this.drawRoundedRect(ctx, tooltipX, tooltipY, tooltipWidth, tooltipHeight, 8 * this.scale);
+    ctx.stroke();
+    
+    // Draw tooltip text
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `${14 * this.scale}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // Wrap text if needed
+    const maxWidth = tooltipWidth - tooltipPadding * 2;
+    const lines = this.wrapText(tooltipText, maxWidth, ctx);
+    
+    const lineHeight = 18 * this.scale;
+    const startY = tooltipY + tooltipHeight / 2 - (lines.length - 1) * lineHeight / 2;
+    
+    lines.forEach((line, index) => {
+      const y = startY + index * lineHeight;
+      ctx.fillText(line, tooltipX + tooltipWidth / 2, y);
+    });
+    
+    // Note: "Weiter" button is now drawn separately outside the tooltip
+  }
+
+  /**
+   * Wrap text to fit within specified width
+   */
+  private wrapText(text: string, maxWidth: number, ctx: CanvasRenderingContext2D): string[] {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+    
+    for (const word of words) {
+      const testLine = currentLine + (currentLine ? ' ' : '') + word;
+      const metrics = ctx.measureText(testLine);
+      
+      if (metrics.width > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+    
+    return lines;
+  }
 
     /**
      * Draw navigation arrows when more than 5 cards are on the board
@@ -2134,6 +2777,11 @@ class AxesMundiApp {
    * Check if player has won the game (turn-based)
    */
   private checkForWin(): void {
+    // In learning mode, no win/lose conditions
+    if (this.isLearningMode) {
+      return;
+    }
+    
     // Check for player win (hand empty)
     if (this.playerHand.length === 0 && !this.gameLost) {
       this.gameWon = true;
