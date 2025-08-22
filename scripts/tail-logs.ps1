@@ -25,3 +25,4 @@ Write-Host "Press Ctrl+C to stop" -ForegroundColor Gray
 Get-Content -Path $logFile -Wait -Tail $Lines
 
 
+

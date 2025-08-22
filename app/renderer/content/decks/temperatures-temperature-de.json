@@ -1,0 +1,710 @@
+{
+  "id": "temperatures-temperature-de",
+  "name": "Temperaturen – Von kalt bis heiß",
+  "axis": "temperature",
+  "theme": "science",
+  "locale": "de",
+  "version": "1.0.0",
+  "imageFolder": "Temperatures JPG",
+  "cards": [
+    {
+      "id": "plasma-fusionsreaktor",
+      "title": "Plasma im Fusionsreaktor",
+      "axis": "temperature",
+      "value": 100000000,
+      "unit": "°C",
+      "displayValue": "100.000.000 °C",
+      "image": "Plasma im Fusionsreaktor - 100000000",
+      "facts": ["Temperatur im Kern eines Fusionsreaktors, wo Wasserstoff zu Helium verschmilzt."],
+      "sources": [
+        { "label": "ITER", "url": "https://www.iter.org/" }
+      ],
+      "difficulty": "expert"
+    },
+    {
+      "id": "sonnenkern",
+      "title": "Sonnenkern",
+      "axis": "temperature",
+      "value": 15000000,
+      "unit": "°C",
+      "displayValue": "15.000.000 °C",
+      "image": "Sonnenkern - 15000000",
+      "facts": ["Temperatur im Zentrum der Sonne, wo Kernfusion stattfindet."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "expert"
+    },
+    {
+      "id": "blitzkanal",
+      "title": "Blitzkanal",
+      "axis": "temperature",
+      "value": 30000,
+      "unit": "°C",
+      "displayValue": "30.000 °C",
+      "image": "Blitzkanal - 30000",
+      "facts": ["Temperatur in einem Blitzkanal, heißer als die Sonnenoberfläche."],
+      "sources": [
+        { "label": "National Weather Service", "url": "https://www.weather.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "lichtbogen-schweissen",
+      "title": "Lichtbogen beim Schweißen",
+      "axis": "temperature",
+      "value": 6000,
+      "unit": "°C",
+      "displayValue": "6.000 °C",
+      "image": "Lichbogen (Schweissen) - 6000",
+      "facts": ["Temperatur eines elektrischen Lichtbogens beim Schweißen."],
+      "sources": [
+        { "label": "American Welding Society", "url": "https://www.aws.org/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "sonnenoberflaeche",
+      "title": "Sonnenoberfläche",
+      "axis": "temperature",
+      "value": 5500,
+      "unit": "°C",
+      "displayValue": "5.500 °C",
+      "image": "Sonnenoberfläche - 5500",
+      "facts": ["Temperatur der sichtbaren Oberfläche der Sonne (Photosphäre)."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "weisser-zwerg",
+      "title": "Weißer Zwerg",
+      "axis": "temperature",
+      "value": 10000,
+      "unit": "°C",
+      "displayValue": "10.000 °C",
+      "image": "Weisser Zwerg - 10000",
+      "facts": ["Temperatur der Oberfläche eines weißen Zwergsterns."],
+      "sources": [
+        { "label": "European Space Agency", "url": "https://www.esa.int/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "gluehfaden-gluehbirne",
+      "title": "Glühfaden Glühbirne",
+      "axis": "temperature",
+      "value": 2500,
+      "unit": "°C",
+      "displayValue": "2.500 °C",
+      "image": "Glühfaden Glühbirne - 2500",
+      "facts": ["Temperatur des Wolfram-Glühfadens in einer Glühbirne."],
+      "sources": [
+        { "label": "General Electric", "url": "https://www.ge.com/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "schweissbrenner",
+      "title": "Schweißbrenner",
+      "axis": "temperature",
+      "value": 3100,
+      "unit": "°C",
+      "displayValue": "3.100 °C",
+      "image": "Schweissbrenner - 3100",
+      "facts": ["Temperatur einer Acetylen-Sauerstoff-Flamme beim Schweißen."],
+      "sources": [
+        { "label": "American Welding Society", "url": "https://www.aws.org/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "vulkanlava-hawaii",
+      "title": "Vulkanlava (Hawaii)",
+      "axis": "temperature",
+      "value": 1150,
+      "unit": "°C",
+      "displayValue": "1.150 °C",
+      "image": "Vulkanlava (Hawaii) - 1150",
+      "facts": ["Temperatur von basaltischer Lava bei hawaiianischen Vulkanen."],
+      "sources": [
+        { "label": "USGS", "url": "https://www.usgs.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "schmelzpunkt-eisen",
+      "title": "Schmelzpunkt Eisen",
+      "axis": "temperature",
+      "value": 1538,
+      "unit": "°C",
+      "displayValue": "1.538 °C",
+      "image": "Schmelzpunkt Eisen - 1538",
+      "facts": ["Temperatur, bei der reines Eisen schmilzt."],
+      "sources": [
+        { "label": "NIST", "url": "https://www.nist.gov/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "schmelzpunkt-gold",
+      "title": "Schmelzpunkt Gold",
+      "axis": "temperature",
+      "value": 1064,
+      "unit": "°C",
+      "displayValue": "1.064 °C",
+      "image": "Schmelzpunkt Gold - 1064",
+      "facts": ["Temperatur, bei der reines Gold schmilzt."],
+      "sources": [
+        { "label": "NIST", "url": "https://www.nist.gov/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "motor-zylinderinnenraum",
+      "title": "Motor Zylinderinnenraum",
+      "axis": "temperature",
+      "value": 1200,
+      "unit": "°C",
+      "displayValue": "1.200 °C",
+      "image": "Motor Zylinderinnenraum - 1200",
+      "facts": ["Temperatur im Brennraum eines Verbrennungsmotors während der Verbrennung."],
+      "sources": [
+        { "label": "SAE International", "url": "https://www.sae.org/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "aluminium-schmelzpunkt",
+      "title": "Aluminium Schmelzpunkt",
+      "axis": "temperature",
+      "value": 660,
+      "unit": "°C",
+      "displayValue": "660 °C",
+      "image": "Aluminium Schmelzpunkt - 660",
+      "facts": ["Temperatur, bei der reines Aluminium schmilzt."],
+      "sources": [
+        { "label": "NIST", "url": "https://www.nist.gov/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "neutronenstern",
+      "title": "Neutronenstern",
+      "axis": "temperature",
+      "value": 600000,
+      "unit": "°C",
+      "displayValue": "600.000 °C",
+      "image": "Neutronenstern - 600000",
+      "facts": ["Temperatur der Oberfläche eines jungen Neutronensterns."],
+      "sources": [
+        { "label": "European Space Agency", "url": "https://www.esa.int/" }
+      ],
+      "difficulty": "expert"
+    },
+    {
+      "id": "oberflaeche-venus",
+      "title": "Oberfläche Venus (Durchschnitt)",
+      "axis": "temperature",
+      "value": 464,
+      "unit": "°C",
+      "displayValue": "464 °C",
+      "image": "Oberfläche Venus (Durchschnitt) - 464",
+      "facts": ["Durchschnittliche Oberflächentemperatur der Venus, heißester Planet im Sonnensystem."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "oberflaeche-erde",
+      "title": "Oberfläche Erde (Durchschnitt)",
+      "axis": "temperature",
+      "value": 14,
+      "unit": "°C",
+      "displayValue": "14 °C",
+      "image": "Oberfläche Erde (Durchschnitt) - 14",
+      "facts": ["Durchschnittliche globale Oberflächentemperatur der Erde."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "oberflaeche-mars",
+      "title": "Oberfläche Mars (Durchschnitt)",
+      "axis": "temperature",
+      "value": -63,
+      "unit": "°C",
+      "displayValue": "-63 °C",
+      "image": "Oberfläche Mars Durchschnitt - -63",
+      "facts": ["Durchschnittliche Oberflächentemperatur des Mars."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "antarktis-winter",
+      "title": "Antarktis Winter",
+      "axis": "temperature",
+      "value": -60,
+      "unit": "°C",
+      "displayValue": "-60 °C",
+      "facts": ["Typische Wintertemperatur in der Antarktis."],
+      "sources": [
+        { "label": "British Antarctic Survey", "url": "https://www.bas.ac.uk/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "erde-tiefste-temperatur",
+      "title": "Erde Tiefste (gemessene) Temperatur",
+      "axis": "temperature",
+      "value": -89.2,
+      "unit": "°C",
+      "displayValue": "-89,2 °C",
+      "image": "Erde Tiefste (gemessene) Temperatur - -89.2",
+      "facts": ["Niedrigste jemals auf der Erde gemessene Temperatur in der Antarktis."],
+      "sources": [
+        { "label": "World Meteorological Organization", "url": "https://public.wmo.int/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "pluto-oberflaeche",
+      "title": "Pluto Oberfläche",
+      "axis": "temperature",
+      "value": -229,
+      "unit": "°C",
+      "displayValue": "-229 °C",
+      "image": "Pluto Oberfläche - -229",
+      "facts": ["Durchschnittliche Oberflächentemperatur des Zwergplaneten Pluto."],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "fluessiger-stickstoff",
+      "title": "Flüssiger Stickstoff",
+      "axis": "temperature",
+      "value": -196,
+      "unit": "°C",
+      "displayValue": "-196 °C",
+      "image": "Flüssiger Stickstoff - -196",
+      "facts": ["Siedetemperatur von flüssigem Stickstoff bei Normaldruck."],
+      "sources": [
+        { "label": "NIST", "url": "https://www.nist.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "fluessiges-ammoniak",
+      "title": "Flüssiges Ammoniak",
+      "axis": "temperature",
+      "value": -33,
+      "unit": "°C",
+      "displayValue": "-33 °C",
+      "image": "Flüssiges Ammoniak - -33",
+      "facts": ["Siedetemperatur von flüssigem Ammoniak bei Normaldruck."],
+      "sources": [
+        { "label": "NIST", "url": "https://www.nist.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "gefriertruhe",
+      "title": "Gefriertruhe",
+      "axis": "temperature",
+      "value": -18,
+      "unit": "°C",
+      "displayValue": "-18 °C",
+      "image": "Gefriertruhe - -18",
+      "facts": ["Standardtemperatur einer Haushaltsgefriertruhe."],
+      "sources": [
+        { "label": "DIN EN 62552", "url": "https://www.din.de/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "wasser-gefrierpunkt",
+      "title": "Wasser Gefrierpunkt",
+      "axis": "temperature",
+      "value": 0,
+      "unit": "°C",
+      "displayValue": "0 °C",
+      "image": "Wasser Gefrierpunkt - 0",
+      "facts": ["Temperatur, bei der Wasser bei Normaldruck gefriert."],
+      "sources": [
+        { "label": "NIST", "url": "https://www.nist.gov/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "kuehlschrank",
+      "title": "Kühlschrank",
+      "axis": "temperature",
+      "value": 4,
+      "unit": "°C",
+      "displayValue": "4 °C",
+      "image": "Kühlschrank - 4",
+      "facts": ["Standardtemperatur eines Haushaltskühlschranks."],
+      "sources": [
+        { "label": "DIN EN 62552", "url": "https://www.din.de/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "blutbanklagerung",
+      "title": "Blutbanklagerung",
+      "axis": "temperature",
+      "value": 4,
+      "unit": "°C",
+      "displayValue": "4 °C",
+      "image": "Blutbanklagerung - 4",
+      "facts": ["Lagerungstemperatur für Vollblut in Blutbanken."],
+      "sources": [
+        { "label": "WHO", "url": "https://www.who.int/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "raumtemperatur",
+      "title": "Raumtemperatur (normiert)",
+      "axis": "temperature",
+      "value": 20,
+      "unit": "°C",
+      "displayValue": "20 °C",
+      "image": "Raumtemperatur(normiert) - 20",
+      "facts": ["Normierte Raumtemperatur nach internationalen Standards."],
+      "sources": [
+        { "label": "ISO 7730", "url": "https://www.iso.org/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "butter-schmelzpunkt",
+      "title": "Butter Schmelzpunkt",
+      "axis": "temperature",
+      "value": 32,
+      "unit": "°C",
+      "displayValue": "32 °C",
+      "image": "Butter Schmelzpunkt - 32",
+      "facts": ["Temperatur, bei der Butter zu schmelzen beginnt."],
+      "sources": [
+        { "label": "Food Standards Agency", "url": "https://www.food.gov.uk/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "mensch-koerpertemperatur",
+      "title": "Mensch Körpertemperatur",
+      "axis": "temperature",
+      "value": 36.6,
+      "unit": "°C",
+      "displayValue": "36,6 °C",
+      "image": "Mensch Körpertemperatur - 36.6",
+      "facts": ["Normale Körpertemperatur eines gesunden Menschen."],
+      "sources": [
+        { "label": "WHO", "url": "https://www.who.int/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "koerpertemperatur-hund",
+      "title": "Körpertemperatur Hund",
+      "axis": "temperature",
+      "value": 38.5,
+      "unit": "°C",
+      "displayValue": "38,5 °C",
+      "image": "Körpertemperatur Hund - 38.5",
+      "facts": ["Normale Körpertemperatur eines gesunden Hundes."],
+      "sources": [
+        { "label": "American Veterinary Medical Association", "url": "https://www.avma.org/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "mensch-fiebergrenze",
+      "title": "Mensch Fiebergrenze",
+      "axis": "temperature",
+      "value": 38,
+      "unit": "°C",
+      "displayValue": "38 °C",
+      "image": "Mensch Fiebergrenze - 38",
+      "facts": ["Temperatur, ab der bei Menschen Fieber diagnostiziert wird."],
+      "sources": [
+        { "label": "WHO", "url": "https://www.who.int/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "badewasser",
+      "title": "Badewasser",
+      "axis": "temperature",
+      "value": 39,
+      "unit": "°C",
+      "displayValue": "39 °C",
+      "image": "Badewasser - 39",
+      "facts": ["Angenehme Temperatur für ein warmes Bad."],
+      "sources": [
+        { "label": "DIN EN 806", "url": "https://www.din.de/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "koerpertemperatur-vogel",
+      "title": "Körpertemperatur Vogel",
+      "axis": "temperature",
+      "value": 42,
+      "unit": "°C",
+      "displayValue": "42 °C",
+      "image": "Körpertemperatur Vogel - 42",
+      "facts": ["Typische Körpertemperatur von Vögeln."],
+      "sources": [
+        { "label": "American Ornithological Society", "url": "https://americanornithology.org/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "siedepunkt-aceton",
+      "title": "Siedepunkt Aceton",
+      "axis": "temperature",
+      "value": 56,
+      "unit": "°C",
+      "displayValue": "56 °C",
+      "image": "Siedepunkt Aceton - 56",
+      "facts": ["Siedetemperatur von Aceton bei Normaldruck."],
+      "sources": [
+        { "label": "NIST", "url": "https://www.nist.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "trockeneis",
+      "title": "Trockeneis (CO2)",
+      "axis": "temperature",
+      "value": -78,
+      "unit": "°C",
+      "displayValue": "-78 °C",
+      "image": "Trockeneis(CO2) - -78",
+      "facts": ["Sublimationstemperatur von Trockeneis (festes Kohlendioxid)."],
+      "sources": [
+        { "label": "NIST", "url": "https://www.nist.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "quecksilber-schmelzpunkt",
+      "title": "Quecksilber Schmelzpunkt",
+      "axis": "temperature",
+      "value": -38.8,
+      "unit": "°C",
+      "displayValue": "-38,8 °C",
+      "image": "Quecksilber Schmelzpunkt - -38.8",
+      "facts": ["Temperatur, bei der Quecksilber bei Normaldruck gefriert."],
+      "sources": [
+        { "label": "NIST", "url": "https://www.nist.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "fluessiges-helium",
+      "title": "Flüssiges Helium (1atm)",
+      "axis": "temperature",
+      "value": -269,
+      "unit": "°C",
+      "displayValue": "-269 °C",
+      "image": "Flüssiges Helium (1atm) - -269",
+      "facts": ["Siedetemperatur von flüssigem Helium bei Normaldruck."],
+      "sources": [
+        { "label": "NIST", "url": "https://www.nist.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "kosmischer-mikrowellenhintergrund",
+      "title": "Kosmischer Mikrowellenhintergrund",
+      "axis": "temperature",
+      "value": -270.4,
+      "unit": "°C",
+      "displayValue": "-270,4 °C",
+      "image": "Kosmischer Mikrowellenhintergrund - -270.4",
+      "facts": ["Temperatur der kosmischen Hintergrundstrahlung, Überrest des Urknalls."],
+      "sources": [
+        { "label": "European Space Agency", "url": "https://www.esa.int/" }
+      ],
+      "difficulty": "expert"
+    },
+    {
+      "id": "warmhalteplatte-kaffeemaschine",
+      "title": "Warmhalteplatte Kaffeemaschine",
+      "axis": "temperature",
+      "value": 80,
+      "unit": "°C",
+      "displayValue": "80 °C",
+      "image": "Warmhalteplatte Kaffeemaschine - 80",
+      "facts": ["Temperatur der Warmhalteplatte einer Kaffeemaschine."],
+      "sources": [
+        { "label": "DIN EN 60335", "url": "https://www.din.de/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "kaffee-serviertemperatur",
+      "title": "Kaffee Serviertemperatur",
+      "axis": "temperature",
+      "value": 70,
+      "unit": "°C",
+      "displayValue": "70 °C",
+      "image": "Kaffee Serviertemperatur - 70",
+      "facts": ["Optimale Serviertemperatur für Kaffee."],
+      "sources": [
+        { "label": "Specialty Coffee Association", "url": "https://sca.coffee/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "teewasser",
+      "title": "Teewasser",
+      "axis": "temperature",
+      "value": 70,
+      "unit": "°C",
+      "displayValue": "70 °C",
+      "image": "Teewasser - 70",
+      "facts": ["Optimale Temperatur für grünen und weißen Tee."],
+      "sources": [
+        { "label": "International Tea Committee", "url": "https://www.internationalteacommittee.org/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "microwelle-essen-entnahme",
+      "title": "Microwelle Essen bei Entnahme",
+      "axis": "temperature",
+      "value": 85,
+      "unit": "°C",
+      "displayValue": "85 °C",
+      "image": "Microwelle Essen bei Entnahme - 85",
+      "facts": ["Temperatur von Essen direkt nach dem Erhitzen in der Mikrowelle."],
+      "sources": [
+        { "label": "DIN EN 60335", "url": "https://www.din.de/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "ethanol-siedepunkt",
+      "title": "Ethanol Siedepunkt",
+      "axis": "temperature",
+      "value": 78.4,
+      "unit": "°C",
+      "displayValue": "78,4 °C",
+      "image": "Ethanol Siedepunkt - 78.4",
+      "facts": ["Siedetemperatur von reinem Ethanol bei Normaldruck."],
+      "sources": [
+        { "label": "NIST", "url": "https://www.nist.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "wasser-siedepunkt",
+      "title": "Wasser Siedepunkt",
+      "axis": "temperature",
+      "value": 100,
+      "unit": "°C",
+      "displayValue": "100 °C",
+      "image": "Wasser Siedepunkt - 100",
+      "facts": ["Siedetemperatur von Wasser bei Normaldruck."],
+      "sources": [
+        { "label": "NIST", "url": "https://www.nist.gov/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "zucker-schmelzpunkt",
+      "title": "Zucker Schmelzpunkt",
+      "axis": "temperature",
+      "value": 160,
+      "unit": "°C",
+      "displayValue": "160 °C",
+      "image": "Zucker Schmelzpunkt - 160",
+      "facts": ["Temperatur, bei der Zucker zu schmelzen beginnt."],
+      "sources": [
+        { "label": "Food Standards Agency", "url": "https://www.food.gov.uk/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "frittieroel-standard",
+      "title": "Frittieröl (standard)",
+      "axis": "temperature",
+      "value": 180,
+      "unit": "°C",
+      "displayValue": "180 °C",
+      "image": "Frittieröl (standard) - 180",
+      "facts": ["Standardtemperatur für Frittieröl beim Kochen."],
+      "sources": [
+        { "label": "Food Standards Agency", "url": "https://www.food.gov.uk/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "backofen-pizza",
+      "title": "Backofen (Pizza)",
+      "axis": "temperature",
+      "value": 250,
+      "unit": "°C",
+      "displayValue": "250 °C",
+      "image": "Backofen (Pizza) - 250",
+      "facts": ["Optimale Temperatur zum Backen von Pizza."],
+      "sources": [
+        { "label": "Associazione Verace Pizza Napoletana", "url": "https://www.pizzanapoletana.org/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "zuendtemperatur-benzin",
+      "title": "Zündtemperatur Benzin",
+      "axis": "temperature",
+      "value": 246,
+      "unit": "°C",
+      "displayValue": "246 °C",
+      "image": "Zündtemperatur Benzin - 246",
+      "facts": ["Temperatur, bei der Benzin sich selbst entzündet."],
+      "sources": [
+        { "label": "NFPA", "url": "https://www.nfpa.org/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "papier-zuendpunkt",
+      "title": "Papier Entzündungspunkt",
+      "axis": "temperature",
+      "value": 233,
+      "unit": "°C",
+      "displayValue": "233 °C",
+      "image": "Papier Entzündungspunkt - 233",
+      "facts": ["Temperatur, bei der Papier sich selbst entzündet."],
+      "sources": [
+        { "label": "NFPA", "url": "https://www.nfpa.org/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "halz-brennt",
+      "title": "Halz brennt",
+      "axis": "temperature",
+      "value": 300,
+      "unit": "°C",
+      "displayValue": "300 °C",
+      "image": "Halz brennt - 300",
+      "facts": ["Temperatur, bei der Holz zu brennen beginnt."],
+      "sources": [
+        { "label": "NFPA", "url": "https://www.nfpa.org/" }
+      ],
+      "difficulty": "medium"
+    }
+  ]
+}

@@ -863,8 +863,8 @@ class AxesMundiApp {
     
     // Sort by axis value to find correct order
     const sortedCards = cardsWithNew.sort((a, b) => {
-      const aValue = this.convertToMeters(a.card.value, a.card.unit);
-      const bValue = this.convertToMeters(b.card.value, b.card.unit);
+      const aValue = this.convertToComparable(a.card.value, a.card.unit);
+      const bValue = this.convertToComparable(b.card.value, b.card.unit);
       return aValue - bValue;
     });
     
@@ -957,8 +957,8 @@ class AxesMundiApp {
     
     // Sort by axis value to find correct position
     const sortedCards = cardsWithNew.sort((a, b) => {
-      const aValue = this.convertToMeters(a.card.value, a.card.unit);
-      const bValue = this.convertToMeters(b.card.value, b.card.unit);
+      const aValue = this.convertToComparable(a.card.value, a.card.unit);
+      const bValue = this.convertToComparable(b.card.value, b.card.unit);
       return aValue - bValue;
     });
     
@@ -2295,10 +2295,11 @@ class AxesMundiApp {
   }
 
   /**
-   * Convert value to meters for comparison
+   * Convert value to comparable units for comparison
    */
-  private convertToMeters(value: number, unit: string): number {
+  private convertToComparable(value: number, unit: string): number {
     switch (unit.toLowerCase()) {
+      // Height units
       case 'm':
         return value;
       case 'km':
@@ -2307,6 +2308,13 @@ class AxesMundiApp {
         return value / 100;
       case 'mm':
         return value / 1000;
+      
+      // Temperature units
+      case '°c':
+      case 'c':
+        // Celsius values are already comparable (colder = smaller, hotter = larger)
+        return value;
+      
       default:
         return value;
     }

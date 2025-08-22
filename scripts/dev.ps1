@@ -32,3 +32,4 @@ Write-Host "Starting Vite dev server and Electron..." -ForegroundColor Cyan
 npm run dev
 
 
+

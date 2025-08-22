@@ -10,10 +10,10 @@ export function isAxisCorrectlySorted(allCards: Card[]): boolean {
       return true; // Single card or no cards is always "sorted"
     }
     
-    // Convert all values to meters for comparison
+    // Convert all values to comparable units for comparison
     const cardValues = allCards.map(card => ({
       card,
-      value: convertToMeters(card.value, card.unit)
+      value: convertToComparable(card.value, card.unit)
     }));
     
     // Check if values are in ascending order
@@ -61,9 +61,9 @@ export function evaluatePlacement(
   isLeft: boolean
 ): boolean {
   try {
-    // Convert all values to meters for comparison
-    const placedValue = convertToMeters(placedCard.value, placedCard.unit);
-    const centerValue = convertToMeters(centerCard.value, centerCard.unit);
+    // Convert all values to comparable units for comparison
+    const placedValue = convertToComparable(placedCard.value, placedCard.unit);
+    const centerValue = convertToComparable(centerCard.value, centerCard.unit);
     
     const isCorrect = isLeft 
       ? placedValue <= centerValue  // Left should be smaller/equal
@@ -96,8 +96,9 @@ export function evaluatePlacement(
 /**
  * Convert value to comparable units for sorting
  */
-function convertToMeters(value: number, unit: string): number {
+function convertToComparable(value: number, unit: string): number {
   switch (unit.toLowerCase()) {
+    // Height units
     case 'm':
       return value;
     case 'km':
@@ -106,12 +107,21 @@ function convertToMeters(value: number, unit: string): number {
       return value / 100;
     case 'mm':
       return value / 1000;
+    
+    // Time units
     case 'bc':
       // BC values are already negative, so they sort correctly (older = smaller)
       return value;
     case 'ad':
       // AD values are positive, so they sort correctly (newer = larger)
       return value;
+    
+    // Temperature units
+    case '°c':
+    case 'c':
+      // Celsius values are already comparable (colder = smaller, hotter = larger)
+      return value;
+    
     default:
       // For unknown units, assume they're already in comparable format
       return value;
