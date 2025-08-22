@@ -112,7 +112,7 @@
       "value": 3100,
       "unit": "°C",
       "displayValue": "3.100 °C",
-      "image": "Schweißbrenner - 3100",
+      "image": "Schweissbrenner - 3100",
       "facts": ["Temperatur einer Acetylen-Sauerstoff-Flamme beim Schweißen."],
       "sources": [
         { "label": "American Welding Society", "url": "https://www.aws.org/" }
@@ -252,6 +252,7 @@
       "value": -60,
       "unit": "°C",
       "displayValue": "-60 °C",
+      "image": "Antarktis Winter - -60",
       "facts": ["Typische Wintertemperatur in der Antarktis."],
       "sources": [
         { "label": "British Antarctic Survey", "url": "https://www.bas.ac.uk/" }
@@ -500,10 +501,10 @@
       "id": "quecksilber-schmelzpunkt",
       "title": "Quecksilber Schmelzpunkt",
       "axis": "temperature",
-      "value": -38.8,
+      "value": 38.8,
       "unit": "°C",
-      "displayValue": "-38,8 °C",
-      "image": "Quecksilber Schmelzpunkt - -38.8",
+      "displayValue": "38,8 °C",
+      "image": "Quecksilber Schmelzpunkt - 38.8",
       "facts": ["Temperatur, bei der Quecksilber bei Normaldruck gefriert."],
       "sources": [
         { "label": "NIST", "url": "https://www.nist.gov/" }
