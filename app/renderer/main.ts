@@ -1610,6 +1610,9 @@ class AxesMundiApp {
          }
        });
      }
+     
+     // Re-center the board after clearing (important for next card placement)
+     this.layoutAxisCards();
    }
    
    /**
@@ -1810,20 +1813,36 @@ class AxesMundiApp {
         const snapX = releasedCard.x + releasedCard.width / 2; // Use the exact X position where card was dropped
         const snapY = axisY - releasedCard.height / 2;
         
-        // Determine if it's left or right of center for array placement
-        const boardCenterX = this.boardCard ? (this.boardCard.x + this.boardCard.width / 2) : this.gameCanvas.width / 2;
-        const isLeft = snapX < boardCenterX;
-        
-        // Set the exact position where the card was dropped
-        releasedCard.setTargetPosition(snapX - releasedCard.width / 2, snapY);
-        
-        // Add to appropriate array based on position relative to center
-        if (isLeft) {
-          this.placedLeft.push(releasedCard);
+        // SPECIAL CASE: If this is the first card after clearing the board, make it the boardCard
+        if (!this.boardCard) {
+          this.boardCard = releasedCard;
           releasedCard.isInHand = false;
+          
+          // Center the first card on the axis
+          const centerX = this.gameCanvas.width / 2 - releasedCard.width / 2;
+          releasedCard.setTargetPosition(centerX, snapY);
+          
+          logger.info({
+            scope: 'renderer/game',
+            msg: 'first card after clear board set as boardCard',
+            meta: { cardTitle: releasedCard.card.title }
+          });
         } else {
-          this.placedRight.push(releasedCard);
-          releasedCard.isInHand = false;
+          // Normal case: Determine if it's left or right of center for array placement
+          const boardCenterX = this.boardCard.x + this.boardCard.width / 2;
+          const isLeft = snapX < boardCenterX;
+          
+          // Set the exact position where the card was dropped
+          releasedCard.setTargetPosition(snapX - releasedCard.width / 2, snapY);
+          
+          // Add to appropriate array based on position relative to center
+          if (isLeft) {
+            this.placedLeft.push(releasedCard);
+            releasedCard.isInHand = false;
+          } else {
+            this.placedRight.push(releasedCard);
+            releasedCard.isInHand = false;
+          }
         }
 
         // Remove from hand immediately after snap
