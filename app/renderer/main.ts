@@ -1729,6 +1729,36 @@ class AxesMundiApp {
   }
 
   /**
+   * Move a card to graveyard (for normal mode incorrect cards)
+   */
+  private moveCardToGraveyard(card: GameCard): void {
+    // Remove from appropriate side
+    this.placedLeft = this.placedLeft.filter(c => c !== card);
+    this.placedRight = this.placedRight.filter(c => c !== card);
+    
+    // If it's the board card, clear it
+    if (this.boardCard === card) {
+      this.boardCard = null;
+    }
+    
+    // Add to graveyard and animate
+    this.graveyard.push(card);
+    this.animateCardToGraveyard(card);
+    
+    // Give player a new card
+    this.giveNewCard();
+    
+    logger.info({
+      scope: 'renderer/game',
+      msg: 'incorrect card moved to graveyard',
+      meta: { 
+        cardTitle: card.card.title,
+        graveyardSize: this.graveyard.length
+      }
+    });
+  }
+
+  /**
    * Move all board cards one card width to the right
    */
   private moveBoardCardsRight(): void {
@@ -1903,22 +1933,35 @@ class AxesMundiApp {
           // 4. STAY: Incorrect placement - card turns red and stays on board
           releasedCard.setIncorrect();
           
-                     // In learning mode, show tooltip automatically for incorrect card
-           if (this.isLearningMode) {
-             this.showTooltipForIncorrectCard(releasedCard);
-           }
-          
-                     // 5. CENTER: Center the axis only after "Weiter" button is clicked (not immediately)
-           // this.layoutAxisCards(); // Moved to removeCardFromBoard
-
-          logger.info({
-            scope: 'renderer/game',
-            msg: 'card placed incorrectly, turned red, will be moved to graveyard in 2 seconds',
-            meta: { 
-              cardTitle: releasedCard.card.title,
-              turn: this.currentTurn
-            }
-          });
+          if (this.isLearningMode) {
+            // LEARNING MODE: Show tooltip automatically for incorrect card
+            this.showTooltipForIncorrectCard(releasedCard);
+            // Card stays on board until "Weiter" button is clicked
+            logger.info({
+              scope: 'renderer/game',
+              msg: 'learning mode: incorrect card stays on board until weiter button clicked',
+              meta: { 
+                cardTitle: releasedCard.card.title,
+                turn: this.currentTurn
+              }
+            });
+          } else {
+            // NORMAL MODE: Move card to graveyard after 2 seconds (old logic)
+            setTimeout(() => {
+              this.moveCardToGraveyard(releasedCard);
+              // Center the axis after card is moved
+              this.layoutAxisCards();
+            }, 2000);
+            
+            logger.info({
+              scope: 'renderer/game',
+              msg: 'normal mode: incorrect card will be moved to graveyard in 2 seconds',
+              meta: { 
+                cardTitle: releasedCard.card.title,
+                turn: this.currentTurn
+              }
+            });
+          }
         }
         
         logger.info({
