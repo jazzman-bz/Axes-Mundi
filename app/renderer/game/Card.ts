@@ -512,25 +512,13 @@ export class GameCard {
       ctx.fillRect(cardX, cardY, this.width, this.height);
     }
     
-    // Draw card title (below image) - centered with line breaks
-    const titleY = topSectionY + topSectionHeight + 16 * this.scale;
+    // Draw card title (in the gray section) - perfectly centered vertically with line breaks and bold
     ctx.fillStyle = '#000000';
     ctx.font = `bold ${16 * this.scale}px Arial`;
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
+    ctx.textBaseline = 'middle';
     const maxTitleWidth = (this.baseWidth - 16) * this.scale;
-    this.drawWrappedTextCentered(ctx, this.card.title, cardX + this.width / 2, titleY, maxTitleWidth, 22 * this.scale);
-    
-    // Draw card description/facts (in gray section) - centered with line breaks
-    if (this.card.facts && this.card.facts.length > 0) {
-      ctx.fillStyle = '#333333';
-      ctx.font = `${14 * this.scale}px Arial`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const factText = this.card.facts[0];
-      const maxWidth = (this.baseWidth - 16) * this.scale; // Leave some margin
-      this.drawWrappedTextCentered(ctx, factText, cardX + this.width / 2, bottomSectionY + bottomSectionHeight / 2 + 8 * this.scale, maxWidth, 18 * this.scale);
-    }
+    this.drawWrappedTextCentered(ctx, this.card.title, cardX + this.width / 2, bottomSectionY + bottomSectionHeight / 2, maxTitleWidth, 18 * this.scale);
     
     // Draw measurement value centered on the card (only when not in hand)
     if (!this.isInHand) {
