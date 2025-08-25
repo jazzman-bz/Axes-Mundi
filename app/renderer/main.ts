@@ -81,7 +81,7 @@ class AxesMundiApp {
     this.isLearningMode = savedGameType === 'educational';
     this.isHotseatMode = savedGameType === 'hotseat';
     
-    // Load player data for hotseat mode
+    // Load player data for hotseat mode and singleplayer modes
     if (this.isHotseatMode) {
       try {
         const player1DataStr = localStorage.getItem('axesMundiPlayer1Data');
@@ -107,6 +107,28 @@ class AxesMundiApp {
       } catch (error) {
         logger.error({ 
           scope: 'renderer/hotseat', 
+          msg: 'failed to load player data', 
+          err: { message: (error as Error).message } 
+        });
+      }
+    } else {
+      // Load player data for singleplayer modes
+      try {
+        const playerDataStr = localStorage.getItem('axesMundiPlayer');
+        
+        if (playerDataStr) {
+          const playerData = JSON.parse(playerDataStr);
+          this.player1Data = playerData;
+          
+          logger.info({ 
+            scope: 'renderer/singleplayer', 
+            msg: 'singleplayer mode initialized', 
+            meta: { player1: this.player1Data } 
+          });
+        }
+      } catch (error) {
+        logger.error({ 
+          scope: 'renderer/singleplayer', 
           msg: 'failed to load player data', 
           err: { message: (error as Error).message } 
         });
@@ -2819,8 +2841,27 @@ class AxesMundiApp {
         ctx.fillStyle = '#ffffff';
         ctx.font = `${14 * this.scale}px Arial`;
         ctx.textAlign = 'center';
-        ctx.fillText('Player Hand', this.gameCanvas.width / 2, playerY - 20 * this.scale);
-        ctx.fillText('Opponent Hand', this.gameCanvas.width / 2, opponentY + cardHeight + 40 * this.scale);
+        
+        // Use player names in hotseat mode, player name in singleplayer modes
+        if (this.isHotseatMode) {
+          const player1Name = this.player1Data?.name || 'Spieler 1';
+          const player2Name = this.player2Data?.name || 'Spieler 2';
+          
+          // In hotseat mode: current player is at bottom, next player is at top
+          const currentPlayerName = this.currentPlayerIndex === 0 ? player1Name : player2Name;
+          const nextPlayerName = this.currentPlayerIndex === 0 ? player2Name : player1Name;
+          
+          ctx.fillText(`${currentPlayerName} Hand`, this.gameCanvas.width / 2, playerY - 20 * this.scale);
+          ctx.fillText(`${nextPlayerName} Hand`, this.gameCanvas.width / 2, opponentY + cardHeight + 40 * this.scale);
+        } else if (this.player1Data?.name) {
+          // All singleplayer modes: player name at bottom, "Opponent" at top
+          const playerName = this.player1Data.name;
+          ctx.fillText(`${playerName} Hand`, this.gameCanvas.width / 2, playerY - 20 * this.scale);
+          ctx.fillText('Opponent Hand', this.gameCanvas.width / 2, opponentY + cardHeight + 40 * this.scale);
+        } else {
+          ctx.fillText('Player Hand', this.gameCanvas.width / 2, playerY - 20 * this.scale);
+          ctx.fillText('Opponent Hand', this.gameCanvas.width / 2, opponentY + cardHeight + 40 * this.scale);
+        }
       } else {
         // Learning mode: only draw player hand label
         ctx.fillStyle = '#ffffff';
