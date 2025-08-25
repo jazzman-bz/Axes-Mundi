@@ -158,11 +158,10 @@
                     <p class="section-description">Wie möchtest du mit Freunden spielen?</p>
                     
                     <div class="option-grid">
-                        <div class="option-card coming-soon" data-option="hotseat">
+                        <div class="option-card" data-option="hotseat">
                             <div class="option-icon">🪑</div>
                             <h3 class="option-title">Hot Seat</h3>
                             <p class="option-description">Am gleichen Computer abwechselnd spielen</p>
-                            <span class="coming-soon-badge">Coming Soon</span>
                         </div>
                         
                         <div class="option-card coming-soon" data-option="lan">
@@ -172,6 +171,55 @@
                             <span class="coming-soon-badge">Coming Soon</span>
                         </div>
                     </div>
+                    
+                    <button class="btn btn-secondary back-btn">← Zurück</button>
+                </div>
+            </section>
+
+            <!-- Second Player Setup Section -->
+            <section id="second-player-setup" class="section">
+                <div class="section-content">
+                    <h2 class="section-title">Zweiter Spieler</h2>
+                    <p class="section-description">Erstelle das Profil für den zweiten Spieler.</p>
+                    
+                    <form id="second-player-form" class="player-form">
+                        <div class="form-group">
+                            <label for="second-player-name" class="form-label">Name des zweiten Spielers</label>
+                            <input type="text" id="second-player-name" class="form-input" placeholder="Gib den Namen ein" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Wähle den Avatar</label>
+                            <div class="avatar-grid">
+                                <div class="avatar-option" data-avatar="1">
+                                    <div class="avatar-circle">👨‍🚀</div>
+                                    <span class="avatar-name">Astronaut</span>
+                                </div>
+                                <div class="avatar-option" data-avatar="2">
+                                    <div class="avatar-circle">🧙‍♂️</div>
+                                    <span class="avatar-name">Magier</span>
+                                </div>
+                                <div class="avatar-option" data-avatar="3">
+                                    <div class="avatar-circle">🏴‍☠️</div>
+                                    <span class="avatar-name">Pirat</span>
+                                </div>
+                                <div class="avatar-option" data-avatar="4">
+                                    <div class="avatar-circle">🦄</div>
+                                    <span class="avatar-name">Einhorn</span>
+                                </div>
+                                <div class="avatar-option" data-avatar="5">
+                                    <div class="avatar-circle">🤖</div>
+                                    <span class="avatar-name">Roboter</span>
+                                </div>
+                                <div class="avatar-option" data-avatar="6">
+                                    <div class="avatar-circle">🐉</div>
+                                    <span class="avatar-name">Drache</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">Weiter</button>
+                    </form>
                     
                     <button class="btn btn-secondary back-btn">← Zurück</button>
                 </div>

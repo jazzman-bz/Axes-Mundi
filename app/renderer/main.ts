@@ -54,6 +54,18 @@ class AxesMundiApp {
    private clearBoardButtonBounds: { x: number; y: number; width: number; height: number } | null = null; // Clear board button bounds
    private resetGameButtonBounds: { x: number; y: number; width: number; height: number } | null = null; // Reset game button bounds
 
+   // Hotseat mode state
+   private isHotseatMode: boolean = false; // Track if we're in hotseat mode
+   private player1Data: { name: string; avatar: string } | null = null; // First player data
+   private player2Data: { name: string; avatar: string } | null = null; // Second player data
+   private currentPlayerIndex: number = 0; // 0 = player1, 1 = player2
+   private player1Hand: GameCard[] = []; // First player's hand
+   private player2Hand: GameCard[] = []; // Second player's hand
+   private currentPlayerHand: GameCard[] = []; // Current active player's hand
+   private nextPlayerHand: GameCard[] = []; // Next player's hand (shows card backs)
+   private playerSwitchOverlayVisible: boolean = false; // Track if player switch overlay is visible
+   private playerSwitchOverlayBounds: { x: number; y: number; width: number; height: number } | null = null; // Player switch overlay bounds
+
 
   constructor() {
     this.loadingElement = document.getElementById('loading') as HTMLElement;
@@ -64,9 +76,42 @@ class AxesMundiApp {
     const savedDifficulty = localStorage.getItem('selectedDifficulty') as 'easy' | 'medium' | 'hard';
     this.gameDifficulty = savedDifficulty || 'medium';
     
-    // Initialize learning mode from localStorage
+    // Initialize learning mode and hotseat mode from localStorage
     const savedGameType = localStorage.getItem('selectedGameType');
     this.isLearningMode = savedGameType === 'educational';
+    this.isHotseatMode = savedGameType === 'hotseat';
+    
+    // Load player data for hotseat mode
+    if (this.isHotseatMode) {
+      try {
+        const player1DataStr = localStorage.getItem('axesMundiPlayer1Data');
+        const player2DataStr = localStorage.getItem('axesMundiPlayer2Data');
+        
+        if (player1DataStr && player2DataStr) {
+          this.player1Data = JSON.parse(player1DataStr);
+          this.player2Data = JSON.parse(player2DataStr);
+          
+          // Randomly determine starting player
+          this.currentPlayerIndex = Math.random() < 0.5 ? 0 : 1;
+          
+          logger.info({ 
+            scope: 'renderer/hotseat', 
+            msg: 'hotseat mode initialized', 
+            meta: { 
+              player1: this.player1Data, 
+              player2: this.player2Data, 
+              startingPlayer: this.currentPlayerIndex 
+            } 
+          });
+        }
+      } catch (error) {
+        logger.error({ 
+          scope: 'renderer/hotseat', 
+          msg: 'failed to load player data', 
+          err: { message: (error as Error).message } 
+        });
+      }
+    }
     
     logger.info({ 
       scope: 'renderer/app', 
@@ -354,9 +399,11 @@ class AxesMundiApp {
         meta: { remainingCards: this.remainingCards.length }
       });
       
-      // In learning mode, deal more cards to player and no opponent
+      // Deal cards based on game mode
       if (this.isLearningMode) {
         this.dealCardsToPlayersLearningMode();
+      } else if (this.isHotseatMode) {
+        this.dealCardsToPlayersHotseat();
       } else {
         this.dealCardsToPlayers();
       }
@@ -667,6 +714,15 @@ class AxesMundiApp {
       return;
     }
     
+    // In hotseat mode, show current player name
+    if (this.isHotseatMode) {
+      const currentPlayerName = this.currentPlayerIndex === 0 ? 
+        (this.player1Data?.name || 'Spieler 1') : 
+        (this.player2Data?.name || 'Spieler 2');
+      this.turnText = `🎮 ${currentPlayerName} ist am Zug`;
+      return;
+    }
+    
     if (this.isPlayerTurn) {
       this.turnText = `Your Turn (${this.playerHand.length} cards) - ${this.turnTimer}s`;
     } else {
@@ -711,9 +767,162 @@ class AxesMundiApp {
       logger.error({ 
         scope: 'renderer/game', 
         msg: 'failed to deal cards to player (learning mode)', 
-        err: { message: error.message, stack: error.stack } 
+        err: { message: (error as Error).message, stack: (error as Error).stack } 
       });
     }
+  }
+
+  /**
+   * Deal cards to players (hotseat mode)
+   */
+  private dealCardsToPlayersHotseat(): void {
+    try {
+      logger.info({
+        scope: 'renderer/game',
+        msg: 'dealCardsToPlayersHotseat called',
+        meta: { 
+          remainingCards: this.remainingCards.length,
+          currentPlayerIndex: this.currentPlayerIndex
+        }
+      });
+      
+      // Deal 5 cards to player 1 with delay (like AI mode)
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+          this.dealCardToPlayer1();
+        }, i * 200); // 200ms delay between each card
+      }
+      
+      // Deal 5 cards to player 2 with delay, starting after player 1
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+          this.dealCardToPlayer2();
+        }, 1200 + i * 200); // Start after player 1 cards
+      }
+      
+      // Set current player hand based on starting player immediately
+      this.currentPlayerHand = this.currentPlayerIndex === 0 ? this.player1Hand : this.player2Hand;
+      this.nextPlayerHand = this.currentPlayerIndex === 0 ? this.player2Hand : this.player1Hand;
+      
+      // Layout hands immediately to ensure correct positioning
+      this.layoutHotseatHands();
+      
+      // Set player turn after all cards are dealt (like AI mode)
+      const totalDealTime = 1200 + 5 * 200 + 5 * 200; // Player 1 cards + player 2 cards
+      setTimeout(() => {
+        this.isPlayerTurn = true;
+        this.updateTurnText();
+        
+        logger.info({
+          scope: 'renderer/game',
+          msg: 'hotseat game started, player turn',
+          meta: { 
+            currentPlayerIndex: this.currentPlayerIndex,
+            player1Cards: this.player1Hand.length,
+            player2Cards: this.player2Hand.length,
+            remainingCards: this.remainingCards.length,
+            isHotseatMode: true
+          }
+        });
+      }, totalDealTime);
+      
+    } catch (error) {
+      logger.error({ 
+        scope: 'renderer/game', 
+        msg: 'failed to deal cards to players (hotseat mode)', 
+        err: { message: (error as Error).message, stack: (error as Error).stack } 
+      });
+    }
+  }
+
+
+
+  /**
+   * Deal a card to player 1 (hotseat mode)
+   */
+  private dealCardToPlayer1(): void {
+    if (this.remainingCards.length > 0) {
+      const cardData = this.remainingCards.shift()!;
+      const card = new GameCard(
+        cardData,
+        this.deck,
+        50 * this.scale, // Start at deck position (bottom left)
+        this.gameCanvas.height - 320 * this.scale, // Start at bottom left
+        this.scale
+      );
+      
+      // Add to hand and animate to position
+      this.player1Hand.push(card);
+      this.layoutPlayer1Hand();
+      
+      logger.info({
+        scope: 'renderer/game',
+        msg: 'card dealt to player 1',
+        meta: { cardTitle: cardData.title, handSize: this.player1Hand.length }
+      });
+    }
+  }
+
+  /**
+   * Deal a card to player 2 (hotseat mode)
+   */
+  private dealCardToPlayer2(): void {
+    if (this.remainingCards.length > 0) {
+      const cardData = this.remainingCards.shift()!;
+      const card = new GameCard(
+        cardData,
+        this.deck,
+        50 * this.scale, // Start at deck position (bottom left)
+        this.gameCanvas.height - 320 * this.scale, // Start at bottom left (same as player 1)
+        this.scale
+      );
+      
+      // Add to hand and animate to position
+      this.player2Hand.push(card);
+      this.layoutPlayer2Hand();
+      
+      logger.info({
+        scope: 'renderer/game',
+        msg: 'card dealt to player 2',
+        meta: { cardTitle: cardData.title, handSize: this.player2Hand.length }
+      });
+    }
+  }
+
+  /**
+   * Layout player 1 hand (position depends on current player)
+   */
+  private layoutPlayer1Hand(): void {
+    const cardSpacing = 220 * this.scale;
+    const totalWidth = this.player1Hand.length * cardSpacing - 20 * this.scale;
+    const startX = (this.gameCanvas.width - totalWidth) / 2;
+    
+    this.player1Hand.forEach((card, index) => {
+      const x = startX + index * cardSpacing;
+      // Position depends on whether player 1 is the current player
+      const y = this.currentPlayerIndex === 0 
+        ? this.gameCanvas.height - 320 * this.scale  // Bottom position (current player)
+        : 20 * this.scale;                           // Top position (next player)
+      card.setTargetPosition(x, y);
+    });
+  }
+
+  /**
+   * Layout player 2 hand (position depends on current player)
+   */
+  private layoutPlayer2Hand(): void {
+    const cardSpacing = 220 * this.scale;
+    const totalWidth = this.player2Hand.length * cardSpacing - 20 * this.scale;
+    const startX = (this.gameCanvas.width - totalWidth) / 2;
+    
+    this.player2Hand.forEach((card, index) => {
+      const x = startX + index * cardSpacing;
+      // Position depends on whether player 2 is the current player
+      const y = this.currentPlayerIndex === 1 
+        ? this.gameCanvas.height - 320 * this.scale  // Bottom position (current player)
+        : 20 * this.scale;                           // Top position (next player)
+      card.setTargetPosition(x, y);
+    });
   }
 
   /**
@@ -736,8 +945,8 @@ class AxesMundiApp {
    * Start turn timer
    */
   private startTurnTimer(): void {
-    // In learning mode, no timer
-    if (this.isLearningMode) {
+    // In learning mode or hotseat mode, no timer
+    if (this.isLearningMode || this.isHotseatMode) {
       return;
     }
     
@@ -1143,13 +1352,27 @@ class AxesMundiApp {
     console.log('handleMouseDown called:', { x, y, handSize: this.playerHand.length });
     
     // Check player hand cards
-    for (const card of this.playerHand) {
-      if (card.containsPoint(x, y)) {
-        console.log('Card selected:', card.card.title);
-        this.selectedCard = card;
-        card.startDrag(x, y);
-        this.isDragging = true;
-        break;
+    if (this.isHotseatMode) {
+      // Check current player hand in hotseat mode
+      for (const card of this.currentPlayerHand) {
+        if (card.containsPoint(x, y)) {
+          console.log('Card selected:', card.card.title);
+          this.selectedCard = card;
+          card.startDrag(x, y);
+          this.isDragging = true;
+          break;
+        }
+      }
+    } else {
+      // Check standard player hand in normal mode
+      for (const card of this.playerHand) {
+        if (card.containsPoint(x, y)) {
+          console.log('Card selected:', card.card.title);
+          this.selectedCard = card;
+          card.startDrag(x, y);
+          this.isDragging = true;
+          break;
+        }
       }
     }
     
@@ -1191,13 +1414,28 @@ class AxesMundiApp {
       for (const c of this.placedRight) c.isHovered = false;
       
       // Reset hover on hand
-      for (const c of this.playerHand) c.isHovered = false;
-      
-      // Set hover for hand card under mouse
-      for (const card of this.playerHand) {
-        if (card.containsPoint(x, y)) {
-          card.isHovered = true;
-          break;
+      if (this.isHotseatMode) {
+        // Reset hover on hotseat hands
+        for (const c of this.currentPlayerHand) c.isHovered = false;
+        for (const c of this.nextPlayerHand) c.isHovered = false;
+        
+        // Set hover for current player hand card under mouse
+        for (const card of this.currentPlayerHand) {
+          if (card.containsPoint(x, y)) {
+            card.isHovered = true;
+            break;
+          }
+        }
+      } else {
+        // Reset hover on standard hand
+        for (const c of this.playerHand) c.isHovered = false;
+        
+        // Set hover for hand card under mouse
+        for (const card of this.playerHand) {
+          if (card.containsPoint(x, y)) {
+            card.isHovered = true;
+            break;
+          }
         }
       }
       
@@ -1413,15 +1651,25 @@ class AxesMundiApp {
    * Handle canvas click for arrow navigation
    */
   private handleCanvasClick(event: MouseEvent): void {
-    // Only allow navigation during player turn
-    // In learning mode, ignore win/lose conditions
-    if (!this.isPlayerTurn || (!this.isLearningMode && (this.gameWon || this.gameLost))) {
+    // Allow clicks if player turn is active OR if hotseat overlay is visible
+    // In learning mode or hotseat mode, ignore win/lose conditions
+    if ((!this.isPlayerTurn && !this.playerSwitchOverlayVisible) || (!this.isLearningMode && !this.isHotseatMode && (this.gameWon || this.gameLost))) {
       return;
     }
     
     const rect = this.gameCanvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
+    
+    // Hotseat mode: handle player switch overlay clicks
+    if (this.isHotseatMode && this.playerSwitchOverlayVisible && this.playerSwitchOverlayBounds) {
+      const bounds = this.playerSwitchOverlayBounds;
+      if (x >= bounds.x && x <= bounds.x + bounds.width && 
+          y >= bounds.y && y <= bounds.y + bounds.height) {
+        this.switchPlayer();
+        return;
+      }
+    }
     
     // Learning mode: handle card clicks for removal
     if (this.isLearningMode) {
@@ -1846,8 +2094,18 @@ class AxesMundiApp {
         }
 
         // Remove from hand immediately after snap
-        this.playerHand = this.playerHand.filter((c) => c !== releasedCard);
-        this.layoutHand();
+        if (this.isHotseatMode) {
+          // Remove from the actual player hand (not just the reference)
+          if (this.currentPlayerIndex === 0) {
+            this.player1Hand = this.player1Hand.filter((c) => c !== releasedCard);
+          } else {
+            this.player2Hand = this.player2Hand.filter((c) => c !== releasedCard);
+          }
+          this.layoutHotseatHands();
+        } else {
+          this.playerHand = this.playerHand.filter((c) => c !== releasedCard);
+          this.layoutHand();
+        }
         
         // In learning mode, check if hand is empty and give more cards
         if (this.isLearningMode && this.playerHand.length === 0 && this.remainingCards.length > 0) {
@@ -1896,48 +2154,82 @@ class AxesMundiApp {
           }
           releasedCard.setCorrect();
           
-                     // Clear global weiter button bounds for correct cards
-           this.weiterButtonBounds = null;
+          // Clear global weiter button bounds for correct cards
+          this.weiterButtonBounds = null;
           
-          // 5. CENTER: Center the axis immediately after correct placement
+          // Center the axis immediately after correct placement
           this.layoutAxisCards();
           
-          // In learning mode, give a new card for correct placement
-          if (this.isLearningMode) {
-            this.giveNewCard();
+          // 6. TURN-BASED: Switch turns (disabled in learning mode and hotseat mode)
+          if (!this.isLearningMode && !this.isHotseatMode) {
+            this.isPlayerTurn = false;
+            this.currentTurn++;
+            this.stopTurnTimer(); // Stop player timer
+            
+            // 7. CHECK FOR WIN: Check if player has won
+            this.checkForWin();
+            
+            // 8. AI TURN: If game not over and AI has cards, let AI play
+            if (!this.gameWon && !this.gameLost && this.opponentHand.length > 0 && !this.isAITurnInProgress) {
+              setTimeout(() => {
+                this.playAITurn();
+              }, 1000); // 1 second delay
+            } else {
+              // Keep player turn if AI has no cards
+              this.isPlayerTurn = true;
+              this.startTurnTimer(); // Start timer for player turn
+            }
+          } else if (this.isHotseatMode) {
+            // Hotseat mode: check for win, then show player switch overlay after 2 seconds
+            logger.info({
+              scope: 'renderer/game',
+              msg: 'hotseat mode: scheduling player switch overlay in 2 seconds',
+              meta: { 
+                cardTitle: releasedCard.card.title,
+                currentPlayerIndex: this.currentPlayerIndex
+              }
+            });
+            
+            setTimeout(() => {
+              logger.info({
+                scope: 'renderer/game',
+                msg: 'hotseat mode: 2 seconds passed, now checking win',
+                meta: { 
+                  cardTitle: releasedCard.card.title,
+                  currentPlayerIndex: this.currentPlayerIndex
+                }
+              });
+              
+              // Check for win condition
+              this.checkForWin();
+              
+              // Only show player switch if game is not won
+              if (!this.gameWon) {
+                // Show player switch overlay
+                this.showPlayerSwitchOverlay();
+                logger.info({
+                  scope: 'renderer/game',
+                  msg: 'hotseat mode: showing player switch overlay after correct card',
+                  meta: { 
+                    cardTitle: releasedCard.card.title,
+                    currentPlayerIndex: this.currentPlayerIndex
+                  }
+                });
+              }
+            }, 2000);
+          } else {
+            // Learning mode: keep player turn, no timer, no opponent, give new card
+            this.isPlayerTurn = true;
+            this.giveNewCard(); // Give new card after correct placement
+            logger.info({
+              scope: 'renderer/game',
+              msg: 'learning mode: keeping player turn and giving new card',
+              meta: { 
+                cardTitle: releasedCard.card.title,
+                isLearningMode: true
+              }
+            });
           }
-          
-                     // 6. TURN-BASED: Switch turns (disabled in learning mode)
-                     if (!this.isLearningMode) {
-                       this.isPlayerTurn = false;
-                       this.currentTurn++;
-                       this.stopTurnTimer(); // Stop player timer
-                       
-                       // 7. CHECK FOR WIN: Check if player has won
-                       this.checkForWin();
-                       
-                       // 8. AI TURN: If game not over and AI has cards, let AI play
-                       if (!this.gameWon && !this.gameLost && this.opponentHand.length > 0 && !this.isAITurnInProgress) {
-                         setTimeout(() => {
-                           this.playAITurn();
-                         }, 1000); // 1 second delay
-                       } else {
-                         // Keep player turn if AI has no cards
-                         this.isPlayerTurn = true;
-                         this.startTurnTimer(); // Start timer for player turn
-                       }
-                     } else {
-                       // Learning mode: keep player turn, no timer, no opponent
-                       this.isPlayerTurn = true;
-                       logger.info({
-                         scope: 'renderer/game',
-                         msg: 'learning mode: keeping player turn',
-                         meta: { 
-                           cardTitle: releasedCard.card.title,
-                           isLearningMode: true
-                         }
-                       });
-                     }
           
           logger.info({
             scope: 'renderer/game',
@@ -1952,13 +2244,47 @@ class AxesMundiApp {
           // 4. STAY: Incorrect placement - card turns red and stays on board
           releasedCard.setIncorrect();
           
+          // Center the axis immediately after incorrect placement
+          this.layoutAxisCards();
+          
           if (this.isLearningMode) {
             // LEARNING MODE: Show tooltip automatically for incorrect card
             this.showTooltipForIncorrectCard(releasedCard);
             // Card stays on board until "Weiter" button is clicked
+            // NO new card here - will be given when "Weiter" button is clicked
             logger.info({
               scope: 'renderer/game',
               msg: 'learning mode: incorrect card stays on board until weiter button clicked',
+              meta: { 
+                cardTitle: releasedCard.card.title,
+                turn: this.currentTurn
+              }
+            });
+          } else if (this.isHotseatMode) {
+            // HOTSEAT MODE: Move card to graveyard after 2 seconds, then switch player
+            setTimeout(() => {
+              this.moveCardToGraveyard(releasedCard);
+              // Center the axis after card is moved to graveyard
+              this.layoutAxisCards();
+              
+              // Wait 2 seconds before showing player switch overlay
+              setTimeout(() => {
+                // Show player switch overlay
+                this.showPlayerSwitchOverlay();
+                logger.info({
+                  scope: 'renderer/game',
+                  msg: 'hotseat mode: showing player switch overlay after incorrect card',
+                  meta: { 
+                    cardTitle: releasedCard.card.title,
+                    currentPlayerIndex: this.currentPlayerIndex
+                  }
+                });
+              }, 2000);
+            }, 2000);
+            
+            logger.info({
+              scope: 'renderer/game',
+              msg: 'hotseat mode: incorrect card will be moved to graveyard in 2 seconds, then switch player',
               meta: { 
                 cardTitle: releasedCard.card.title,
                 turn: this.currentTurn
@@ -1999,7 +2325,11 @@ class AxesMundiApp {
         this.hideAxisPreview();
         
         // Return card to hand by re-layouting
-        this.layoutHand();
+        if (this.isHotseatMode) {
+          this.layoutHotseatHands();
+        } else {
+          this.layoutHand();
+        }
         
         logger.info({
           scope: 'renderer/game',
@@ -2045,12 +2375,32 @@ class AxesMundiApp {
     if (this.boardCard) {
       this.boardCard.tick?.();
     }
+    
+    // Tick standard hands (for AI mode)
     for (const c of this.playerHand) {
       c.tick?.();
     }
     for (const c of this.opponentHand) {
       c.tick?.();
     }
+    
+    // Tick hotseat hands (for hotseat mode)
+    if (this.isHotseatMode) {
+      for (const c of this.player1Hand) {
+        c.tick?.();
+      }
+      for (const c of this.player2Hand) {
+        c.tick?.();
+      }
+      for (const c of this.currentPlayerHand) {
+        c.tick?.();
+      }
+      for (const c of this.nextPlayerHand) {
+        c.tick?.();
+      }
+    }
+    
+    // Tick placed cards and graveyard
     for (const c of this.placedLeft) {
       c.tick?.();
     }
@@ -2105,16 +2455,42 @@ class AxesMundiApp {
     }
     
     // Draw player hand cards
-    for (const card of this.playerHand) {
-      card.render(ctx);
-    }
+    if (this.isHotseatMode) {
+      // Draw current player hand (bottom) - show card fronts
+      if (this.currentPlayerIndex === 0) {
+        // Player 1 is current player - show player1Hand at bottom
+        for (const card of this.player1Hand) {
+          card.render(ctx);
+        }
+        // Player 2 is next player - show player2Hand at top as card backs
+        for (const card of this.player2Hand) {
+          this.drawOpponentCardBack(ctx, card);
+        }
+      } else {
+        // Player 2 is current player - show player2Hand at bottom
+        for (const card of this.player2Hand) {
+          card.render(ctx);
+        }
+        // Player 1 is next player - show player1Hand at top as card backs
+        for (const card of this.player1Hand) {
+          this.drawOpponentCardBack(ctx, card);
+        }
+      }
+      
+      // DEBUG: Draw position information for Hotseat mode
+      this.drawHotseatDebugInfo();
+    } else {
+      // Normal mode
+      for (const card of this.playerHand) {
+        card.render(ctx);
+      }
 
-    // Draw opponent hand cards (show card backs)
-    for (const card of this.opponentHand) {
-      this.drawOpponentCardBack(ctx, card);
+      // Draw opponent hand cards (show card backs)
+      for (const card of this.opponentHand) {
+        this.drawOpponentCardBack(ctx, card);
+      }
     }
     
-
 
     // Draw placed stacks
     for (const card of this.placedLeft) {
@@ -2137,7 +2513,14 @@ class AxesMundiApp {
     }
     
     // Draw score and turn information (only in normal mode)
-    if (!this.isLearningMode) {
+    if (this.isHotseatMode) {
+      // Hotseat mode: show current player information
+      const currentPlayer = this.currentPlayerIndex === 0 ? this.player1Data : this.player2Data;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${18 * this.scale}px Arial`;
+      ctx.textAlign = 'left';
+      ctx.fillText(`🎮 ${currentPlayer?.name || 'Spieler'} ist am Zug`, 20 * this.scale, 40 * this.scale);
+    } else if (!this.isLearningMode) {
       ctx.fillStyle = '#ffffff';
       ctx.font = `${18 * this.scale}px Arial`;
       ctx.textAlign = 'left';
@@ -2151,105 +2534,152 @@ class AxesMundiApp {
       ctx.fillText('📚 Lernmodus', 20 * this.scale, 40 * this.scale);
     }
     
-         // Draw turn text (only in normal mode)
-     if (this.turnText && !this.isLearningMode) {
-       ctx.fillStyle = this.isPlayerTurn ? '#4caf50' : '#ff9800';
-       ctx.font = `bold ${20 * this.scale}px Arial`;
-       ctx.textAlign = 'left';
-       ctx.fillText(this.turnText, 20 * this.scale, 90 * this.scale);
+          // Draw turn text (only in normal mode, not hotseat)
+      if (this.turnText && !this.isLearningMode && !this.isHotseatMode) {
+        ctx.fillStyle = this.isPlayerTurn ? '#4caf50' : '#ff9800';
+        ctx.font = `bold ${20 * this.scale}px Arial`;
+        ctx.textAlign = 'left';
+        ctx.fillText(this.turnText, 20 * this.scale, 90 * this.scale);
+      }
+      
+      // Draw timer bar (only in normal mode)
+      if (!this.isLearningMode && !this.isHotseatMode && this.turnTimer > 0) {
+        const timerBarWidth = 200 * this.scale;
+        const timerBarHeight = 8 * this.scale;
+        const timerBarX = 20 * this.scale;
+        const timerBarY = 100 * this.scale;
+        
+        // Background bar
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.fillRect(timerBarX, timerBarY, timerBarWidth, timerBarHeight);
+        
+                // Progress bar
+         const progress = this.turnTimer / this.getDifficultyTimer();
+        const progressWidth = timerBarWidth * progress;
+        
+        // Color based on time remaining
+        let timerColor = '#4caf50'; // Green
+        if (this.turnTimer <= 3) {
+          timerColor = '#ff4444'; // Red
+        } else if (this.turnTimer <= 5) {
+          timerColor = '#ff9800'; // Orange
+        }
+        
+        ctx.fillStyle = timerColor;
+        ctx.fillRect(timerBarX, timerBarY, progressWidth, timerBarHeight);
+        
+        // Border
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(timerBarX, timerBarY, timerBarWidth, timerBarHeight);
+      }
+      
+     // Draw deck stack
+     this.drawDeckStack(ctx);
+     
+     // Draw hand position indicators (gray boxes)
+     this.drawHandPositionIndicators(ctx);
+     
+          // Draw learning mode buttons (if needed)
+      if (this.isLearningMode) {
+        this.drawWeiterButton(ctx);
+        this.drawLearningModeButtons(ctx);
+      }
+      
+     // Draw graveyard cards
+     for (const card of this.graveyard) {
+       card.render(ctx);
      }
      
-     // Draw timer bar (only in normal mode)
-     if (!this.isLearningMode && this.turnTimer > 0) {
-       const timerBarWidth = 200 * this.scale;
-       const timerBarHeight = 8 * this.scale;
-       const timerBarX = 20 * this.scale;
-       const timerBarY = 100 * this.scale;
-       
-       // Background bar
-       ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-       ctx.fillRect(timerBarX, timerBarY, timerBarWidth, timerBarHeight);
-       
-               // Progress bar
-        const progress = this.turnTimer / this.getDifficultyTimer();
-       const progressWidth = timerBarWidth * progress;
-       
-       // Color based on time remaining
-       let timerColor = '#4caf50'; // Green
-       if (this.turnTimer <= 3) {
-         timerColor = '#ff4444'; // Red
-       } else if (this.turnTimer <= 5) {
-         timerColor = '#ff9800'; // Orange
-       }
-       
-       ctx.fillStyle = timerColor;
-       ctx.fillRect(timerBarX, timerBarY, progressWidth, timerBarHeight);
-       
-       // Border
-       ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-       ctx.lineWidth = 1;
-       ctx.strokeRect(timerBarX, timerBarY, timerBarWidth, timerBarHeight);
+     // Draw graveyard label
+     if (this.graveyard.length > 0) {
+       ctx.fillStyle = '#ffffff';
+       ctx.font = `${16 * this.scale}px Arial`;
+       ctx.textAlign = 'center';
+       ctx.fillText('Graveyard', this.gameCanvas.width - 150 * this.scale + 60 * this.scale, 30 * this.scale);
      }
-    
-    // Draw deck stack
-    this.drawDeckStack(ctx);
-    
-    // Draw hand position indicators (gray boxes)
-    this.drawHandPositionIndicators(ctx);
-    
-         // Draw learning mode buttons (if needed)
-     if (this.isLearningMode) {
-       this.drawWeiterButton(ctx);
-       this.drawLearningModeButtons(ctx);
+     
+     // Draw win overlay if game is won (not in learning mode)
+     if (this.gameWon && !this.isLearningMode) {
+       // Semi-transparent overlay
+       ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+       ctx.fillRect(0, 0, this.gameCanvas.width, this.gameCanvas.height);
+       
+       // Congratulations text
+       ctx.fillStyle = '#4caf50';
+       ctx.font = 'bold 48px Arial';
+       ctx.textAlign = 'center';
+       ctx.fillText('🎉 Congratulations! 🎉', this.gameCanvas.width / 2, this.gameCanvas.height / 2 - 50);
+       
+       // Subtitle
+       ctx.fillStyle = '#ffffff';
+       ctx.font = '24px Arial';
+       ctx.fillText('You have successfully sorted all cards!', this.gameCanvas.width / 2, this.gameCanvas.height / 2);
+       
+       // Final score
+       ctx.font = '20px Arial';
+       ctx.fillText(`Final Score: ${this.score}`, this.gameCanvas.width / 2, this.gameCanvas.height / 2 + 40);
+       
+       // Instructions
+       ctx.font = '18px Arial';
+       ctx.fillStyle = '#cccccc';
+       ctx.fillText('Check the dialog for next steps...', this.gameCanvas.width / 2, this.gameCanvas.height / 2 + 80);
      }
-    
-    // Draw graveyard cards
-    for (const card of this.graveyard) {
-      card.render(ctx);
-    }
-    
-    // Draw graveyard label
-    if (this.graveyard.length > 0) {
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `${16 * this.scale}px Arial`;
-      ctx.textAlign = 'center';
-      ctx.fillText('Graveyard', this.gameCanvas.width - 150 * this.scale + 60 * this.scale, 30 * this.scale);
-    }
-    
-    // Draw win overlay if game is won (not in learning mode)
-    if (this.gameWon && !this.isLearningMode) {
-      // Semi-transparent overlay
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-      ctx.fillRect(0, 0, this.gameCanvas.width, this.gameCanvas.height);
-      
-      // Congratulations text
-      ctx.fillStyle = '#4caf50';
-      ctx.font = 'bold 48px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('🎉 Congratulations! 🎉', this.gameCanvas.width / 2, this.gameCanvas.height / 2 - 50);
-      
-      // Subtitle
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '24px Arial';
-      ctx.fillText('You have successfully sorted all cards!', this.gameCanvas.width / 2, this.gameCanvas.height / 2);
-      
-      // Final score
-      ctx.font = '20px Arial';
-      ctx.fillText(`Final Score: ${this.score}`, this.gameCanvas.width / 2, this.gameCanvas.height / 2 + 40);
-      
-      // Instructions
-      ctx.font = '18px Arial';
-      ctx.fillStyle = '#cccccc';
-      ctx.fillText('Check the dialog for next steps...', this.gameCanvas.width / 2, this.gameCanvas.height / 2 + 80);
-    }
 
-    // Draw navigation arrows if more than 5 cards on board
-    this.drawNavigationArrows(ctx);
+     // Draw navigation arrows if more than 5 cards on board
+     this.drawNavigationArrows(ctx);
+     
+     // Learning mode: draw tooltips for placed cards
+     if (this.isLearningMode && this.tooltipVisible && this.tooltipCard) {
+       this.drawTooltip(ctx, this.tooltipCard);
+     }
+     
+     // Hotseat mode: draw player switch overlay
+     if (this.isHotseatMode && this.playerSwitchOverlayVisible) {
+       this.drawPlayerSwitchOverlay(ctx);
+     }
+   }
+
+   /**
+    * Draw debugging information for Hotseat mode card positions
+    */
+     private drawHotseatDebugInfo(): void {
+    const ctx = this.gameContext;
     
-    // Learning mode: draw tooltips for placed cards
-    if (this.isLearningMode && this.tooltipVisible && this.tooltipCard) {
-      this.drawTooltip(ctx, this.tooltipCard);
-    }
+    // Set up text style for debugging - smaller font
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '8px Arial';
+    ctx.textAlign = 'left';
+    
+    let debugY = 80;
+    
+    // Debug info for Player 1 Hand - single line per card
+    const player1Name = this.player1Data?.name || 'Spieler 1';
+    ctx.fillStyle = '#00ff00';
+    ctx.fillText(`${player1Name} (${this.player1Hand.length}):`, 10, debugY);
+    debugY += 12;
+    
+    this.player1Hand.forEach((card, index) => {
+      ctx.fillStyle = '#00ff00';
+      ctx.fillText(`  ${index}: "${card.card.title}" | Current:(${Math.round(card.x)},${Math.round(card.y)}) | Target:(${card.targetX !== null ? Math.round(card.targetX) : 'null'},${card.targetY !== null ? Math.round(card.targetY) : 'null'})`, 10, debugY);
+      debugY += 10;
+    });
+    
+    // Debug info for Player 2 Hand - single line per card
+    const player2Name = this.player2Data?.name || 'Spieler 2';
+    ctx.fillStyle = '#ff00ff';
+    ctx.fillText(`${player2Name} (${this.player2Hand.length}):`, 10, debugY);
+    debugY += 12;
+    
+    this.player2Hand.forEach((card, index) => {
+      ctx.fillStyle = '#ff00ff';
+      ctx.fillText(`  ${index}: "${card.card.title}" | Current:(${Math.round(card.x)},${Math.round(card.y)}) | Target:(${card.targetX !== null ? Math.round(card.targetX) : 'null'},${card.targetY !== null ? Math.round(card.targetY) : 'null'})`, 10, debugY);
+      debugY += 10;
+    });
+    
+    // Debug info for Current/Next Player Hands - compact
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(`Current:${this.currentPlayerIndex} | CurrentHand:${this.currentPlayerHand.length} | NextHand:${this.nextPlayerHand.length} | Remaining:${this.remainingCards.length}`, 10, debugY);
   }
 
      /**
@@ -2266,11 +2696,22 @@ class AxesMundiApp {
          this.scale
        );
        
-       // Animate card from deck to hand (same as initial hand cards)
-       this.animateCardToHand(newCard);
+       // Add to appropriate hand based on game mode
+       if (this.isHotseatMode) {
+         // Add to the actual player hand (not just the reference)
+         if (this.currentPlayerIndex === 0) {
+           this.player1Hand.push(newCard);
+         } else {
+           this.player2Hand.push(newCard);
+         }
+         this.layoutHotseatHands();
+       } else {
+         // Normal mode: animate card from deck to hand
+         this.animateCardToHand(newCard);
+       }
        
-       // In learning mode, don't switch turns
-       if (!this.isLearningMode) {
+       // In learning mode or hotseat mode, don't switch turns
+       if (!this.isLearningMode && !this.isHotseatMode) {
          // Switch to opponent turn after giving new card
          this.isPlayerTurn = false;
          this.stopTurnTimer(); // Stop player timer
@@ -2800,6 +3241,67 @@ class AxesMundiApp {
    }
 
   /**
+   * Layout hotseat hands (current player at bottom, next player at top)
+   */
+  private layoutHotseatHands(): void {
+    const cardSpacing = 220 * this.scale;
+    
+    // Layout current player hand (bottom) - show card fronts
+    if (this.currentPlayerIndex === 0) {
+      // Player 1 is current player
+      const currentPlayerTotalWidth = this.player1Hand.length * cardSpacing - 20 * this.scale;
+      const currentPlayerStartX = (this.gameCanvas.width - currentPlayerTotalWidth) / 2;
+      
+      this.player1Hand.forEach((card, index) => {
+        const x = currentPlayerStartX + index * cardSpacing;
+        const y = this.gameCanvas.height - 320 * this.scale; // Bottom position
+        card.setTargetPosition(x, y);
+      });
+      
+      // Player 2 is next player
+      const nextPlayerTotalWidth = this.player2Hand.length * cardSpacing - 20 * this.scale;
+      const nextPlayerStartX = (this.gameCanvas.width - nextPlayerTotalWidth) / 2;
+      
+      this.player2Hand.forEach((card, index) => {
+        const x = nextPlayerStartX + index * cardSpacing;
+        const y = 20 * this.scale; // Top position
+        card.setTargetPosition(x, y);
+      });
+    } else {
+      // Player 2 is current player
+      const currentPlayerTotalWidth = this.player2Hand.length * cardSpacing - 20 * this.scale;
+      const currentPlayerStartX = (this.gameCanvas.width - currentPlayerTotalWidth) / 2;
+      
+      this.player2Hand.forEach((card, index) => {
+        const x = currentPlayerStartX + index * cardSpacing;
+        const y = this.gameCanvas.height - 320 * this.scale; // Bottom position
+        card.setTargetPosition(x, y);
+      });
+      
+      // Player 1 is next player
+      const nextPlayerTotalWidth = this.player1Hand.length * cardSpacing - 20 * this.scale;
+      const nextPlayerStartX = (this.gameCanvas.width - nextPlayerTotalWidth) / 2;
+      
+      this.player1Hand.forEach((card, index) => {
+        const x = nextPlayerStartX + index * cardSpacing;
+        const y = 20 * this.scale; // Top position
+        card.setTargetPosition(x, y);
+      });
+    }
+    
+    logger.debug({
+      scope: 'renderer/layout',
+      msg: 'hotseat hands layout updated',
+      meta: { 
+        currentPlayerCards: this.currentPlayerIndex === 0 ? this.player1Hand.length : this.player2Hand.length,
+        nextPlayerCards: this.currentPlayerIndex === 0 ? this.player2Hand.length : this.player1Hand.length,
+        currentPlayerIndex: this.currentPlayerIndex,
+        scale: this.scale
+      }
+    });
+  }
+
+  /**
    * Layout all cards on the axis - center them with fixed 5px spacing
    */
   private layoutAxisCards(): void {
@@ -2844,7 +3346,37 @@ class AxesMundiApp {
       return;
     }
     
-    // Check for player win (hand empty)
+    // Hotseat mode: check current player hand
+    if (this.isHotseatMode) {
+      const currentPlayerHandLength = this.currentPlayerIndex === 0 ? this.player1Hand.length : this.player2Hand.length;
+      
+      if (currentPlayerHandLength === 0 && !this.gameLost) {
+        this.gameWon = true;
+        
+        const winnerName = this.currentPlayerIndex === 0 ? 
+          (this.player1Data?.name || 'Spieler 1') : 
+          (this.player2Data?.name || 'Spieler 2');
+        
+        logger.info({
+          scope: 'renderer/game',
+          msg: 'HOTSEAT GAME WON!',
+          meta: { 
+            winnerName,
+            currentPlayerIndex: this.currentPlayerIndex,
+            currentPlayerHandLength,
+            remainingCards: this.remainingCards.length
+          }
+        });
+        
+        // Show win dialog after 4 seconds delay
+        setTimeout(() => {
+          this.showHotseatWinDialog(winnerName);
+        }, 4000);
+      }
+      return;
+    }
+    
+    // Normal mode: Check for player win (hand empty)
     if (this.playerHand.length === 0 && !this.gameLost) {
       this.gameWon = true;
       
@@ -2882,6 +3414,23 @@ class AxesMundiApp {
       setTimeout(() => {
         this.showLoseDialog();
       }, 4000);
+    }
+  }
+
+  /**
+   * Show hotseat win dialog
+   */
+  private showHotseatWinDialog(winnerName: string): void {
+    const playAgain = confirm(`🎉 Glückwunsch! 🎉\n\n${winnerName} hat das Spiel gewonnen!\n\nAlle Karten wurden erfolgreich sortiert!\n\nNochmal spielen?`);
+    
+    if (playAgain) {
+      this.restartGame();
+    } else {
+      // Could close the app or show main menu
+      logger.info({
+        scope: 'renderer/game',
+        msg: 'player chose not to play again after hotseat win'
+      });
     }
   }
 
@@ -2937,6 +3486,10 @@ class AxesMundiApp {
      this.score = 0;
      this.playerHand = [];
      this.opponentHand = [];
+     this.player1Hand = [];
+     this.player2Hand = [];
+     this.currentPlayerHand = [];
+     this.nextPlayerHand = [];
      this.placedLeft = [];
      this.placedRight = [];
      this.graveyard = [];
@@ -2948,6 +3501,8 @@ class AxesMundiApp {
      this.isPlayerTurn = true;
      this.turnText = '';
      this.turnTimer = 30;
+     this.playerSwitchOverlayVisible = false;
+     this.playerSwitchOverlayBounds = null;
      
      // Reload the game
      this.loadGame();
@@ -3054,6 +3609,101 @@ class AxesMundiApp {
     ctx.quadraticCurveTo(x, y, x + radius, y);
     ctx.closePath();
     ctx.fill();
+  }
+
+  /**
+   * Show player switch overlay for hotseat mode
+   */
+  private showPlayerSwitchOverlay(): void {
+    this.playerSwitchOverlayVisible = true;
+    // Disable player turn while overlay is visible
+    this.isPlayerTurn = false;
+    logger.info({
+      scope: 'renderer/hotseat',
+      msg: 'player switch overlay shown',
+      meta: { currentPlayerIndex: this.currentPlayerIndex }
+    });
+  }
+
+  /**
+   * Switch players in hotseat mode
+   */
+  private switchPlayer(): void {
+    // Switch player index
+    this.currentPlayerIndex = this.currentPlayerIndex === 0 ? 1 : 0;
+    
+    // Update current and next player hands based on new index
+    this.currentPlayerHand = this.currentPlayerIndex === 0 ? this.player1Hand : this.player2Hand;
+    this.nextPlayerHand = this.currentPlayerIndex === 0 ? this.player2Hand : this.player1Hand;
+    
+    // Layout hands (card backs are handled in render method)
+    this.layoutHotseatHands();
+    
+    // Update turn text to show new current player
+    this.updateTurnText();
+    
+    // Hide overlay and re-enable player turn
+    this.playerSwitchOverlayVisible = false;
+    this.playerSwitchOverlayBounds = null;
+    this.isPlayerTurn = true;
+    
+    logger.info({
+      scope: 'renderer/hotseat',
+      msg: 'player switched',
+      meta: { 
+        newPlayerIndex: this.currentPlayerIndex,
+        currentPlayerCards: this.currentPlayerHand.length,
+        nextPlayerCards: this.nextPlayerHand.length
+      }
+    });
+  }
+
+  /**
+   * Draw player switch overlay for hotseat mode
+   */
+  private drawPlayerSwitchOverlay(ctx: CanvasRenderingContext2D): void {
+    // Darken the background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, this.gameCanvas.width, this.gameCanvas.height);
+    
+    // Draw overlay box
+    const overlayWidth = 400 * this.scale;
+    const overlayHeight = 200 * this.scale;
+    const overlayX = (this.gameCanvas.width - overlayWidth) / 2;
+    const overlayY = (this.gameCanvas.height - overlayHeight) / 2;
+    
+    // Store bounds for click detection
+    this.playerSwitchOverlayBounds = {
+      x: overlayX,
+      y: overlayY,
+      width: overlayWidth,
+      height: overlayHeight
+    };
+    
+    // Draw overlay background
+    ctx.fillStyle = '#2c3e50';
+    this.drawRoundedRect(ctx, overlayX, overlayY, overlayWidth, overlayHeight, 10 * this.scale);
+    
+    // Draw border
+    ctx.strokeStyle = '#3498db';
+    ctx.lineWidth = 3 * this.scale;
+    ctx.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
+    
+    // Draw text
+    const nextPlayerIndex = this.currentPlayerIndex === 0 ? 1 : 0;
+    const nextPlayer = nextPlayerIndex === 0 ? this.player1Data : this.player2Data;
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold ${24 * this.scale}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`Jetzt ist ${nextPlayer?.name || 'Spieler'} am Zug!`, 
+      overlayX + overlayWidth / 2, overlayY + overlayHeight / 2 - 30 * this.scale);
+    
+    ctx.font = `${18 * this.scale}px Arial`;
+    ctx.fillStyle = '#bdc3c7';
+    ctx.fillText('Klicke um fortzufahren', 
+      overlayX + overlayWidth / 2, overlayY + overlayHeight / 2 + 20 * this.scale);
   }
 
   /**

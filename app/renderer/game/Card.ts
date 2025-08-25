@@ -21,6 +21,7 @@ export class GameCard {
   public isHovered: boolean = false;
   public isCorrect: boolean | null = null;
   public isInHand: boolean = true; // Track if card is in hand or placed on axis
+  public showCardBack: boolean = false; // Track if card should show back instead of front
   
   // Image loading
   private imageElement: HTMLImageElement | null = null;
@@ -436,6 +437,13 @@ export class GameCard {
     ctx.fillStyle = '#f5f5f5';
     this.drawRoundedRect(ctx, cardX, cardY, this.width, this.height, 6 * this.scale);
     
+    // If showing card back, draw simple card back design
+    if (this.showCardBack) {
+      this.drawCardBack(ctx, cardX, cardY);
+      ctx.restore();
+      return;
+    }
+    
     // Draw light gray background for the entire top section (for images)
     const topSectionHeight = this.baseHeight * 0.6 * this.scale; // Use more of the card height
     const topSectionY = cardY + 4 * this.scale; // Start even closer to top (4px instead of 8px)
@@ -708,5 +716,35 @@ export class GameCard {
       const y = startY + index * lineHeight;
       ctx.fillText(line, centerX, y);
     });
+  }
+
+  /**
+   * Draw card back design
+   */
+  private drawCardBack(ctx: CanvasRenderingContext2D, cardX: number, cardY: number): void {
+    // Draw card back background
+    ctx.fillStyle = '#2c3e50';
+    this.drawRoundedRect(ctx, cardX, cardY, this.width, this.height, 6 * this.scale);
+    
+    // Draw decorative pattern
+    ctx.fillStyle = '#34495e';
+    const patternSize = 20 * this.scale;
+    for (let x = cardX + 10 * this.scale; x < cardX + this.width - 10 * this.scale; x += patternSize) {
+      for (let y = cardY + 10 * this.scale; y < cardY + this.height - 10 * this.scale; y += patternSize) {
+        ctx.fillRect(x, y, patternSize - 2 * this.scale, patternSize - 2 * this.scale);
+      }
+    }
+    
+    // Draw "Axes-Mundi" text in center
+    ctx.fillStyle = '#ecf0f1';
+    ctx.font = `bold ${18 * this.scale}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Axes-Mundi', cardX + this.width / 2, cardY + this.height / 2);
+    
+    // Draw small logo or symbol
+    ctx.fillStyle = '#3498db';
+    ctx.font = `${24 * this.scale}px Arial`;
+    ctx.fillText('🎯', cardX + this.width / 2, cardY + this.height / 2 - 40 * this.scale);
   }
 }

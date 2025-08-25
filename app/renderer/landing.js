@@ -23,10 +23,16 @@ class LandingPageController {
       'singleplayer-options',
       'ai-difficulty',
       'multiplayer-options',
+      'second-player-setup',
       'deck-selection'
     ];
     
     this.playerData = {
+      name: '',
+      avatar: null
+    };
+    
+    this.secondPlayerData = {
       name: '',
       avatar: null
     };
@@ -106,11 +112,17 @@ class LandingPageController {
         playerForm.addEventListener('submit', this.handlePlayerFormSubmit.bind(this));
       }
 
-      // Avatar selection
+      // Avatar selection (for both player forms)
       const avatarOptions = document.querySelectorAll('.avatar-option');
       avatarOptions.forEach(option => {
         option.addEventListener('click', this.handleAvatarSelection.bind(this));
       });
+
+      // Second player form submission
+      const secondPlayerForm = document.getElementById('second-player-form');
+      if (secondPlayerForm) {
+        secondPlayerForm.addEventListener('submit', this.handleSecondPlayerFormSubmit.bind(this));
+      }
 
       // Game mode selection
       const gameModeCards = document.querySelectorAll('.game-mode-card');
@@ -203,21 +215,32 @@ class LandingPageController {
     try {
       const avatarOption = event.currentTarget;
       const avatarId = avatarOption.dataset.avatar;
+      const avatarSection = avatarOption.closest('section');
       
-      // Remove previous selection
-      document.querySelectorAll('.avatar-option').forEach(option => {
+      // Remove previous selection in current section only
+      avatarSection.querySelectorAll('.avatar-option').forEach(option => {
         option.classList.remove('selected');
       });
       
       // Select new avatar
       avatarOption.classList.add('selected');
-      this.playerData.avatar = avatarId;
       
-      logger.debug({ 
-        scope: 'landing/avatar', 
-        msg: 'avatar selected', 
-        meta: { avatarId } 
-      });
+      // Determine which player this is for
+      if (avatarSection.id === 'second-player-setup') {
+        this.secondPlayerData.avatar = avatarId;
+        logger.debug({ 
+          scope: 'landing/avatar', 
+          msg: 'second player avatar selected', 
+          meta: { avatarId } 
+        });
+      } else {
+        this.playerData.avatar = avatarId;
+        logger.debug({ 
+          scope: 'landing/avatar', 
+          msg: 'first player avatar selected', 
+          meta: { avatarId } 
+        });
+      }
       
     } catch (error) {
       logger.error({ 
@@ -281,6 +304,9 @@ class LandingPageController {
       } else if (option === 'educational') {
         // Educational mode - go directly to deck selection
         this.navigateToSection('deck-selection');
+      } else if (option === 'hotseat') {
+        // Hotseat mode - go to second player setup
+        this.navigateToSection('second-player-setup');
       }
       
       logger.info({ 
@@ -327,6 +353,49 @@ class LandingPageController {
         msg: 'failed to handle difficulty selection', 
         err: { message: error.message } 
       });
+    }
+  }
+
+  /**
+   * Handle second player form submission
+   */
+  handleSecondPlayerFormSubmit(event) {
+    event.preventDefault();
+    
+    try {
+      const nameInput = document.getElementById('second-player-name');
+      const playerName = nameInput.value.trim();
+      
+      if (!playerName) {
+        this.showError('Bitte gib den Namen des zweiten Spielers ein.');
+        return;
+      }
+      
+      if (!this.secondPlayerData.avatar) {
+        this.showError('Bitte wähle einen Avatar für den zweiten Spieler aus.');
+        return;
+      }
+      
+      // Save second player data
+      this.secondPlayerData.name = playerName;
+      this.saveSecondPlayerData();
+      
+      // Navigate to deck selection
+      this.navigateToSection('deck-selection');
+      
+      logger.info({ 
+        scope: 'landing/second-player', 
+        msg: 'second player data saved', 
+        meta: { name: playerName, avatar: this.secondPlayerData.avatar } 
+      });
+      
+    } catch (error) {
+      logger.error({ 
+        scope: 'landing/second-player', 
+        msg: 'failed to handle second player form submission', 
+        err: { message: error.message } 
+      });
+      this.showError('Fehler beim Speichern der Spielerdaten.');
     }
   }
 
@@ -519,6 +588,28 @@ class LandingPageController {
   }
 
   /**
+   * Save second player data to localStorage
+   */
+  saveSecondPlayerData() {
+    try {
+      localStorage.setItem('axesMundiSecondPlayerData', JSON.stringify(this.secondPlayerData));
+      
+      logger.info({ 
+        scope: 'landing/storage', 
+        msg: 'second player data saved', 
+        meta: { data: this.secondPlayerData } 
+      });
+      
+    } catch (error) {
+      logger.error({ 
+        scope: 'landing/storage', 
+        msg: 'failed to save second player data', 
+        err: { message: error.message } 
+      });
+    }
+  }
+
+  /**
    * Save game configuration to localStorage
    */
   saveGameConfiguration(deckId) {
@@ -532,6 +623,12 @@ class LandingPageController {
       localStorage.setItem('axesMundiGameConfig', JSON.stringify(fullConfig));
       localStorage.setItem('selectedDeck', deckId);
       localStorage.setItem('selectedGameType', this.gameConfig.type);
+      
+      // For hotseat mode, also save both player data
+      if (this.gameConfig.type === 'hotseat') {
+        localStorage.setItem('axesMundiPlayer1Data', JSON.stringify(this.playerData));
+        localStorage.setItem('axesMundiPlayer2Data', JSON.stringify(this.secondPlayerData));
+      }
       
       logger.info({ 
         scope: 'landing/storage', 
