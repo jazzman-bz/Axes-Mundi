@@ -70,7 +70,13 @@ class AxesMundiApp {
   constructor() {
     this.loadingElement = document.getElementById('loading') as HTMLElement;
     this.gameCanvas = document.getElementById('game-canvas') as HTMLCanvasElement;
-    this.gameContext = this.gameCanvas.getContext('2d')!;
+    
+    // Robust canvas context initialization for browser compatibility
+    const context = this.gameCanvas.getContext('2d');
+    if (!context) {
+      throw new Error('Failed to get 2D canvas context. Browser may not support canvas.');
+    }
+    this.gameContext = context;
 
     // Initialize game difficulty from localStorage or default to medium
     const savedDifficulty = localStorage.getItem('selectedDifficulty') as 'easy' | 'medium' | 'hard';
@@ -2377,16 +2383,26 @@ class AxesMundiApp {
    * Game loop
    */
   private gameLoop(): void {
-    const currentTime = performance.now();
-    const deltaTime = currentTime - this.lastTime;
-    
-    if (deltaTime >= 1000 / this.fps) {
-      this.update(deltaTime);
-      this.render();
-      this.lastTime = currentTime;
+    try {
+      const currentTime = performance.now();
+      const deltaTime = currentTime - this.lastTime;
+      
+      if (deltaTime >= 1000 / this.fps) {
+        this.update(deltaTime);
+        this.render();
+        this.lastTime = currentTime;
+      }
+      
+      this.animationId = requestAnimationFrame(this.gameLoop.bind(this));
+    } catch (error) {
+      logger.error({ 
+        scope: 'renderer/gameloop', 
+        msg: 'game loop error', 
+        err: { message: (error as Error).message, stack: (error as Error).stack } 
+      });
+      // Continue the loop even if there's an error
+      this.animationId = requestAnimationFrame(this.gameLoop.bind(this));
     }
-    
-    this.animationId = requestAnimationFrame(this.gameLoop.bind(this));
   }
 
   /**
@@ -2441,6 +2457,12 @@ class AxesMundiApp {
     const ctx = this.gameContext;
     const width = this.gameCanvas.width;
     const height = this.gameCanvas.height;
+    
+    // Validate canvas dimensions
+    if (width <= 0 || height <= 0) {
+      logger.warn({ scope: 'renderer/render', msg: 'invalid canvas dimensions', meta: { width, height } });
+      return;
+    }
     
     // Clear canvas
     ctx.fillStyle = '#2a2a2a';

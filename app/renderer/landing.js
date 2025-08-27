@@ -655,7 +655,10 @@ class LandingPageController {
       
       // Redirect to game page after a short delay
       setTimeout(() => {
-        window.location.href = './game.html';
+        // In development mode, use the full URL with Vite dev server
+        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const gameUrl = isDev ? 'http://localhost:5179/game.html' : './game.html';
+        window.location.href = gameUrl;
       }, 1000);
       
       logger.info({ 

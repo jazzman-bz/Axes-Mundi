@@ -139,6 +139,8 @@ body {
 
 .section.active {
   display: block;
+  position: relative;
+  z-index: 1;
 }
 
 .section-content {
@@ -165,6 +167,8 @@ body {
 .player-form {
   max-width: 500px;
   margin: 0 auto;
+  position: relative;
+  z-index: 5;
 }
 
 .form-group {
@@ -190,6 +194,9 @@ body {
   color: var(--text-primary);
   transition: all var(--transition-medium);
   backdrop-filter: blur(10px);
+  position: relative;
+  z-index: 10;
+  cursor: text;
 }
 
 .form-input:focus {
