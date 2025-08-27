@@ -119,6 +119,9 @@ export class LANWebSocketServer {
       case 'deckResponse':
         this.handleDeckResponse(playerId, message.deckId, message.available);
         break;
+      case 'startingPlayer':
+        this.handleStartingPlayer(playerId, message.startingPlayer, message.serverStarts);
+        break;
       default:
         logger.warn({ 
           scope: 'main/websocket', 
@@ -181,11 +184,12 @@ export class LANWebSocketServer {
       } 
     });
 
-    // Send notification to renderer process to update UI
+    // Send notification to renderer process to update UI with client name
     if (global.mainWindow && global.mainWindow.webContents) {
       global.mainWindow.webContents.send('lan-status-update', {
         type: 'playerConnected',
         playerName,
+        clientPlayerName: playerName, // Store client name for server-client
         message: `Player ${playerName} connected to server!`
       });
     }
@@ -287,6 +291,37 @@ export class LANWebSocketServer {
   }
 
   /**
+   * Send starting player selection to all connected clients
+   */
+  async sendStartingPlayer(startingPlayer: string, serverStarts: boolean): Promise<void> {
+    logger.info({
+      scope: 'main/websocket',
+      msg: 'Sending starting player selection to client',
+      meta: { startingPlayer, serverStarts }
+    });
+
+    // Send to all connected clients
+    for (const [, player] of this.players) {
+      player.ws.send(JSON.stringify({
+        type: 'startingPlayer',
+        startingPlayer,
+        serverStarts,
+        message: `Starting player selected: ${startingPlayer}`
+      }));
+    }
+
+    // Send notification to renderer process to update UI
+    if (global.mainWindow && global.mainWindow.webContents) {
+      global.mainWindow.webContents.send('lan-status-update', {
+        type: 'startingPlayer',
+        startingPlayer,
+        serverStarts,
+        message: `Spieler ${startingPlayer} beginnt das Spiel!`
+      });
+    }
+  }
+
+  /**
    * Handle deck selection from server
    */
   private handleDeckSelection(_playerId: string, deckId: string): void {
@@ -346,6 +381,30 @@ export class LANWebSocketServer {
         message: available ? 
           `Deck ${deckId} wurde gewählt und ist vorhanden!` : 
           `Deck ${deckId} nicht vorhanden!`
+      });
+    }
+  }
+
+  /**
+   * Handle starting player selection from client
+   */
+  private handleStartingPlayer(playerId: string, startingPlayer: string, serverStarts: boolean): void {
+    const player = this.players.get(playerId);
+    if (!player) return;
+
+    logger.info({ 
+      scope: 'main/websocket', 
+      msg: 'Received starting player selection from client', 
+      meta: { playerId, playerName: player.name, startingPlayer, serverStarts } 
+    });
+
+    // Send notification to renderer process to update UI
+    if (global.mainWindow && global.mainWindow.webContents) {
+      global.mainWindow.webContents.send('lan-status-update', {
+        type: 'startingPlayer',
+        startingPlayer,
+        serverStarts,
+        message: `Spieler ${startingPlayer} beginnt das Spiel!`
       });
     }
   }

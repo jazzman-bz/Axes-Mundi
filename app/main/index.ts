@@ -95,11 +95,11 @@ function setupIPC(): void {
     return { success: true, message: 'IPC connection working' };
   });
 
-  // Send deck selection to client
+    // Send deck selection to client
   ipcMain.handle('send-deck-selection', async (_, deckId: string) => {
     try {
       logger.info({ scope: 'main/lan', msg: 'Sending deck selection to client', meta: { deckId } });
-      
+
       if (lanServer) {
         await lanServer.sendDeckSelection(deckId);
         return { success: true };
@@ -108,10 +108,36 @@ function setupIPC(): void {
         return { success: false, error: 'No LAN server running' };
       }
     } catch (error: any) {
-      logger.error({ 
+      logger.error({
+        scope: 'main/lan',
+        msg: 'Failed to send deck selection',
+        err: { message: error.message }
+      });
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Send starting player selection to client
+  ipcMain.handle('send-starting-player', async (_, startingPlayer: string, serverStarts: boolean) => {
+    try {
+      logger.info({ 
         scope: 'main/lan', 
-        msg: 'Failed to send deck selection', 
-        err: { message: error.message } 
+        msg: 'Sending starting player selection to client', 
+        meta: { startingPlayer, serverStarts } 
+      });
+
+      if (lanServer) {
+        await lanServer.sendStartingPlayer(startingPlayer, serverStarts);
+        return { success: true };
+      } else {
+        logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
+        return { success: false, error: 'No LAN server running' };
+      }
+    } catch (error: any) {
+      logger.error({
+        scope: 'main/lan',
+        msg: 'Failed to send starting player selection',
+        err: { message: error.message }
       });
       return { success: false, error: error.message };
     }

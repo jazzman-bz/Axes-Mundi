@@ -15,42 +15,43 @@ const logger = {
  * Landing Page Controller
  */
 class LandingPageController {
-  constructor() {
-    this.currentSection = 'player-setup';
-    this.sections = [
-      'player-setup',
-      'game-mode-selection', 
-      'singleplayer-options',
-      'ai-difficulty',
-      'multiplayer-options',
-      'lan-options',
-      'second-player-setup',
-      'deck-selection'
-    ];
-    
-    this.playerData = {
-      name: '',
-      avatar: null
-    };
-    
-    this.secondPlayerData = {
-      name: '',
-      avatar: null
-    };
-    
-         this.gameConfig = {
-       mode: null,
-       type: null,
-       difficulty: null
-     };
-     
-     // LAN connection state
-     this.isServerClient = false;
-     this.serverPlayerName = null;
-     this.lanClient = null;
-    
-    this.init();
-  }
+      constructor() {
+      this.currentSection = 'player-setup';
+      this.sections = [
+        'player-setup',
+        'game-mode-selection', 
+        'singleplayer-options',
+        'ai-difficulty',
+        'multiplayer-options',
+        'lan-options',
+        'second-player-setup',
+        'deck-selection'
+      ];
+      
+      this.playerData = {
+        name: '',
+        avatar: null
+      };
+      
+      this.secondPlayerData = {
+        name: '',
+        avatar: null
+      };
+      
+           this.gameConfig = {
+        mode: null,
+        type: null,
+        difficulty: null
+      };
+      
+      // LAN connection state
+      this.isServerClient = false;
+      this.serverPlayerName = null;
+      this.clientPlayerName = null; // Store client player name for server-client
+      this.lanClient = null;
+      
+      this.init();
+    }
 
   /**
    * Initialize the landing page
@@ -596,17 +597,21 @@ class LandingPageController {
              this.navigateToSection('deck-selection');
            }
            break;
-         case 'deckSelection':
-           console.log('🎴 Received deck selection from server:', message.deckId);
-           this.handleDeckSelectionFromServer(message.deckId);
-           break;
+                   case 'deckSelection':
+            console.log('🎴 Received deck selection from server:', message.deckId);
+            this.handleDeckSelectionFromServer(message.deckId);
+            break;
+          case 'startingPlayer':
+            console.log('🎲 Received starting player selection:', message.startingPlayer);
+            this.showConnectionStatus(`Spieler ${message.startingPlayer} beginnt das Spiel!`, false);
+            break;
 
-        default:
-          logger.warn({ 
-            scope: 'landing/lan', 
-            msg: 'Unknown LAN message type', 
-            meta: { type: message.type } 
-          });
+         default:
+           logger.warn({ 
+             scope: 'landing/lan', 
+             msg: 'Unknown LAN message type', 
+             meta: { type: message.type } 
+           });
       }
       
     } catch (error) {
@@ -643,36 +648,92 @@ class LandingPageController {
     }
   }
 
-     /**
-    * Send deck selection to client
-    */
-   sendDeckSelectionToClient(deckId) {
-     try {
-       console.log('🎴 Sending deck selection to client:', deckId);
-       
-       // Send deck selection via IPC to main process
-       if (window.AXM && window.AXM.sendDeckSelection) {
-         window.AXM.sendDeckSelection(deckId);
-         this.showConnectionStatus(`Deck ${deckId} wurde ausgewählt und an Client gesendet...`, false);
-       } else {
-         this.showError('Deck-Auswahl konnte nicht gesendet werden.');
-       }
-       
-       logger.info({ 
-         scope: 'landing/deck', 
-         msg: 'deck selection sent to client', 
-         meta: { deckId } 
-       });
-       
-     } catch (error) {
-       logger.error({ 
-         scope: 'landing/deck', 
-         msg: 'failed to send deck selection', 
-         err: { message: error.message } 
-       });
-       this.showError('Fehler beim Senden der Deck-Auswahl.');
-     }
-   }
+         /**
+     * Send deck selection to client
+     */
+    sendDeckSelectionToClient(deckId) {
+      try {
+        console.log('🎴 Sending deck selection to client:', deckId);
+        
+        // Send deck selection via IPC to main process
+        if (window.AXM && window.AXM.sendDeckSelection) {
+          window.AXM.sendDeckSelection(deckId);
+          this.showConnectionStatus(`Deck ${deckId} wurde ausgewählt und an Client gesendet...`, false);
+        } else {
+          this.showError('Deck-Auswahl konnte nicht gesendet werden.');
+        }
+        
+        logger.info({ 
+          scope: 'landing/deck', 
+          msg: 'deck selection sent to client', 
+          meta: { deckId } 
+        });
+        
+      } catch (error) {
+        logger.error({ 
+          scope: 'landing/deck', 
+          msg: 'failed to send deck selection', 
+          err: { message: error.message } 
+        });
+        this.showError('Fehler beim Senden der Deck-Auswahl.');
+      }
+    }
+
+    /**
+     * Select random starting player and communicate to client
+     */
+    selectRandomStartingPlayer() {
+      try {
+        console.log('🎲 Selecting random starting player...');
+        
+        // For server-client: we know our name and we need to get the client's name
+        // For client: we know our name and we have the server's name from the connection
+        let clientPlayerName = this.playerData.name; // Default to local player name
+        
+        if (this.isServerClient) {
+          // Server-client: we have the client's name stored
+          clientPlayerName = this.clientPlayerName || "Client";
+        } else {
+          // Client: we have the server's name from the connection
+          clientPlayerName = this.serverPlayerName || "Server";
+        }
+        
+        // Random selection: true = server starts, false = client starts
+        const serverStarts = Math.random() < 0.5;
+        const startingPlayer = serverStarts ? this.playerData.name : clientPlayerName;
+        
+        console.log('🎲 Random selection result:', { 
+          serverStarts, 
+          startingPlayer, 
+          serverPlayerName: this.playerData.name,
+          clientPlayerName: clientPlayerName,
+          serverPlayerNameFromConnection: this.serverPlayerName,
+          isServerClient: this.isServerClient
+        });
+        
+        // Send starting player selection via IPC to main process
+        if (window.AXM && window.AXM.sendStartingPlayer) {
+          window.AXM.sendStartingPlayer(startingPlayer, serverStarts);
+          this.showConnectionStatus(`Spieler ${startingPlayer} beginnt das Spiel!`, false);
+        } else {
+          this.showError('Spielerauswahl konnte nicht gesendet werden.');
+        }
+        
+        logger.info({ 
+          scope: 'landing/game', 
+          msg: 'random starting player selected', 
+          meta: { startingPlayer, serverStarts } 
+        });
+        
+      } catch (error) {
+        logger.error({ 
+          scope: 'landing/game', 
+          msg: 'failed to select starting player', 
+          err: { message: error.message } 
+        });
+        this.showError('Fehler bei der Spielerauswahl.');
+      }
+    }
 
    /**
     * Handle deck selection from server (client side)
@@ -726,43 +787,58 @@ class LandingPageController {
      }
    }
 
-   /**
-    * Handle LAN status updates from main process
-    */
-   handleLANStatusUpdate(data) {
-    try {
-      console.log('📡 Handling LAN status update:', data);
-      
-             switch (data.type) {
-         case 'playerConnected':
-           this.showConnectionStatus(`Player ${data.playerName} connected to server!`, false);
-           break;
-         case 'playerReady':
-           this.showConnectionStatus(`Player ${data.playerName} is ready! Handshake complete!`, false);
-           // Navigate to deck selection for server-client after handshake
-           if (this.isServerClient) {
-             console.log('🎯 Server-client: Navigating to deck selection after handshake');
-             this.navigateToSection('deck-selection');
-           }
-           break;
-         case 'deckResponse':
-           if (data.available) {
-             this.showConnectionStatus(`Deck ${data.deckId} wurde gewählt und ist vorhanden!`, false);
-           } else {
-             this.showConnectionStatus(`Deck ${data.deckId} nicht vorhanden!`, false);
-           }
-           break;
-         default:
-           console.log('📡 Unknown LAN status update type:', data.type);
-       }
-    } catch (error) {
-      logger.error({ 
-        scope: 'landing/lan-status', 
-        msg: 'Failed to handle LAN status update', 
-        err: { message: error.message } 
-      });
-    }
-  }
+       /**
+     * Handle LAN status updates from main process
+     */
+    handleLANStatusUpdate(data) {
+     try {
+       console.log('📡 Handling LAN status update:', data);
+       
+              switch (data.type) {
+          case 'playerConnected':
+            this.showConnectionStatus(`Player ${data.playerName} connected to server!`, false);
+            // Store client player name for server-client
+            if (this.isServerClient && data.clientPlayerName) {
+              this.clientPlayerName = data.clientPlayerName;
+              console.log('🎯 Server-client: Stored client player name:', this.clientPlayerName);
+            }
+            break;
+          case 'playerReady':
+            this.showConnectionStatus(`Player ${data.playerName} is ready! Handshake complete!`, false);
+            // Navigate to deck selection for server-client after handshake
+            if (this.isServerClient) {
+              console.log('🎯 Server-client: Navigating to deck selection after handshake');
+              this.navigateToSection('deck-selection');
+            }
+            break;
+          case 'deckResponse':
+            if (data.available) {
+              this.showConnectionStatus(`Deck ${data.deckId} wurde gewählt und ist vorhanden!`, false);
+              // After deck confirmation, select random starting player (server-client only)
+              if (this.isServerClient) {
+                console.log('🎲 Deck confirmed, selecting random starting player...');
+                setTimeout(() => {
+                  this.selectRandomStartingPlayer();
+                }, 1000); // Small delay for better UX
+              }
+            } else {
+              this.showConnectionStatus(`Deck ${data.deckId} nicht vorhanden!`, false);
+            }
+            break;
+          case 'startingPlayer':
+            this.showConnectionStatus(`Spieler ${data.startingPlayer} beginnt das Spiel!`, false);
+            break;
+          default:
+            console.log('📡 Unknown LAN status update type:', data.type);
+        }
+     } catch (error) {
+       logger.error({ 
+         scope: 'landing/lan-status', 
+         msg: 'Failed to handle LAN status update', 
+         err: { message: error.message } 
+       });
+     }
+   }
 
   /**
    * Show connection status

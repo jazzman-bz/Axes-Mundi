@@ -17,6 +17,7 @@ electron_1.contextBridge.exposeInMainWorld('AXM', {
     startLANServer: (playerName) => electron_1.ipcRenderer.invoke('start-lan-server', playerName),
     stopLANServer: () => electron_1.ipcRenderer.invoke('stop-lan-server'),
     sendDeckSelection: (deckId) => electron_1.ipcRenderer.invoke('send-deck-selection', deckId),
+    sendStartingPlayer: (startingPlayer, serverStarts) => electron_1.ipcRenderer.invoke('send-starting-player', startingPlayer, serverStarts),
     // Test IPC connection
     testIPC: () => electron_1.ipcRenderer.invoke('test-ipc'),
     // Event listeners

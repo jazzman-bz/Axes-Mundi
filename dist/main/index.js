@@ -105,6 +105,32 @@ function setupIPC() {
             return { success: false, error: error.message };
         }
     });
+    // Send starting player selection to client
+    electron_1.ipcMain.handle('send-starting-player', async (_, startingPlayer, serverStarts) => {
+        try {
+            logger_1.logger.info({
+                scope: 'main/lan',
+                msg: 'Sending starting player selection to client',
+                meta: { startingPlayer, serverStarts }
+            });
+            if (lanServer) {
+                await lanServer.sendStartingPlayer(startingPlayer, serverStarts);
+                return { success: true };
+            }
+            else {
+                logger_1.logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
+                return { success: false, error: 'No LAN server running' };
+            }
+        }
+        catch (error) {
+            logger_1.logger.error({
+                scope: 'main/lan',
+                msg: 'Failed to send starting player selection',
+                err: { message: error.message }
+            });
+            return { success: false, error: error.message };
+        }
+    });
     // Place card (placeholder for game logic)
     electron_1.ipcMain.handle('place-card', async (_, index) => {
         try {
