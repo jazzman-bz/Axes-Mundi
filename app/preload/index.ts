@@ -13,18 +13,26 @@ contextBridge.exposeInMainWorld('AXM', {
   getVersion: () => ipcRenderer.invoke('get-version'),
   getEnvironment: () => ipcRenderer.invoke('get-environment'),
   placeCard: (index: number) => ipcRenderer.invoke('place-card', index),
+  
+     // LAN Server management
+   startLANServer: (playerName: string) => ipcRenderer.invoke('start-lan-server', playerName),
+   stopLANServer: () => ipcRenderer.invoke('stop-lan-server'),
+   sendDeckSelection: (deckId: string) => ipcRenderer.invoke('send-deck-selection', deckId),
+  
+  // Test IPC connection
+  testIPC: () => ipcRenderer.invoke('test-ipc'),
 
   // Event listeners
   on: (channel: string, func: (...args: any[]) => void) => {
     // Whitelist channels
-    const validChannels = ['game-update', 'score-update'];
+    const validChannels = ['game-update', 'score-update', 'lan-status-update'];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (_event, ...args) => func(...args));
     }
   },
 
   removeAllListeners: (channel: string) => {
-    const validChannels = ['game-update', 'score-update'];
+    const validChannels = ['game-update', 'score-update', 'lan-status-update'];
     if (validChannels.includes(channel)) {
       ipcRenderer.removeAllListeners(channel);
     }
@@ -40,6 +48,10 @@ declare global {
       getVersion: () => Promise<string>;
       getEnvironment: () => Promise<{ env: string; logLevel: string }>;
       placeCard: (index: number) => Promise<{ success: boolean; score: number }>;
+             startLANServer: (playerName: string) => Promise<{ success: boolean; port: number }>;
+       stopLANServer: () => Promise<{ success: boolean }>;
+       sendDeckSelection: (deckId: string) => Promise<{ success: boolean }>;
+      testIPC: () => Promise<{ success: boolean; message: string }>;
       on: (channel: string, func: (...args: any[]) => void) => void;
       removeAllListeners: (channel: string) => void;
     };

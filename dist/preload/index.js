@@ -13,16 +13,22 @@ electron_1.contextBridge.exposeInMainWorld('AXM', {
     getVersion: () => electron_1.ipcRenderer.invoke('get-version'),
     getEnvironment: () => electron_1.ipcRenderer.invoke('get-environment'),
     placeCard: (index) => electron_1.ipcRenderer.invoke('place-card', index),
+    // LAN Server management
+    startLANServer: (playerName) => electron_1.ipcRenderer.invoke('start-lan-server', playerName),
+    stopLANServer: () => electron_1.ipcRenderer.invoke('stop-lan-server'),
+    sendDeckSelection: (deckId) => electron_1.ipcRenderer.invoke('send-deck-selection', deckId),
+    // Test IPC connection
+    testIPC: () => electron_1.ipcRenderer.invoke('test-ipc'),
     // Event listeners
     on: (channel, func) => {
         // Whitelist channels
-        const validChannels = ['game-update', 'score-update'];
+        const validChannels = ['game-update', 'score-update', 'lan-status-update'];
         if (validChannels.includes(channel)) {
             electron_1.ipcRenderer.on(channel, (_event, ...args) => func(...args));
         }
     },
     removeAllListeners: (channel) => {
-        const validChannels = ['game-update', 'score-update'];
+        const validChannels = ['game-update', 'score-update', 'lan-status-update'];
         if (validChannels.includes(channel)) {
             electron_1.ipcRenderer.removeAllListeners(channel);
         }

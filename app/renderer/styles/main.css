@@ -320,16 +320,11 @@ body {
   position: relative;
 }
 
-.option-card:hover:not(.coming-soon) {
+.option-card:hover {
   background: var(--background-secondary);
   border-color: var(--accent-color);
   transform: translateY(-5px);
   box-shadow: var(--shadow-medium);
-}
-
-.option-card.coming-soon {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .option-icon {
@@ -350,17 +345,7 @@ body {
   line-height: 1.5;
 }
 
-.coming-soon-badge {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: var(--warning-color);
-  color: white;
-  padding: 0.3rem 0.8rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
+/* Coming Soon Badge removed */
 
 /* ===== DIFFICULTY GRID ===== */
 .difficulty-grid {
@@ -382,16 +367,11 @@ body {
   position: relative;
 }
 
-.difficulty-card:hover:not(.coming-soon) {
+.difficulty-card:hover {
   background: var(--background-secondary);
   border-color: var(--accent-color);
   transform: translateY(-5px);
   box-shadow: var(--shadow-medium);
-}
-
-.difficulty-card.coming-soon {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .difficulty-icon {
@@ -656,6 +636,24 @@ body {
   .header-title {
     font-size: 1.3rem;
   }
+}
+
+/* ===== CONNECTION STATUS ===== */
+.connection-status {
+  text-align: center;
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 8px;
+  background: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.connection-status.loading {
+  background: var(--accent-color);
+  color: white;
+  animation: pulse 2s infinite;
 }
 
 /* ===== UTILITY CLASSES ===== */

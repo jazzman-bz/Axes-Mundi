@@ -1,9 +1,17 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { join } from 'path';
 import { logger } from './logger';
+import { LANWebSocketServer } from './websocket-server';
 
 // Keep a global reference of the window object
 let mainWindow: BrowserWindow | null = null;
+let lanServer: LANWebSocketServer | null = null;
+
+// Make mainWindow globally available for WebSocket server
+declare global {
+  var mainWindow: BrowserWindow | null;
+}
+global.mainWindow = mainWindow;
 
 /**
  * Create the main application window
@@ -27,8 +35,12 @@ function createWindow(): void {
       show: false, // Don't show until ready
     });
 
+    // Update global reference
+    global.mainWindow = mainWindow;
+
     // Load the app
-    const isDev = process.env.NODE_ENV === 'development' || process.env.AXM_ENV === 'development';
+    // Force development mode for now
+    const isDev = true; // process.env.NODE_ENV === 'development' || process.env.AXM_ENV === 'development';
     if (isDev) {
       mainWindow.loadURL('http://localhost:5179');
       mainWindow.webContents.openDevTools();
@@ -77,6 +89,34 @@ function setupIPC(): void {
     };
   });
 
+  // Test IPC connection
+  ipcMain.handle('test-ipc', () => {
+    logger.info({ scope: 'main/ipc', msg: 'test-ipc requested' });
+    return { success: true, message: 'IPC connection working' };
+  });
+
+  // Send deck selection to client
+  ipcMain.handle('send-deck-selection', async (_, deckId: string) => {
+    try {
+      logger.info({ scope: 'main/lan', msg: 'Sending deck selection to client', meta: { deckId } });
+      
+      if (lanServer) {
+        await lanServer.sendDeckSelection(deckId);
+        return { success: true };
+      } else {
+        logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
+        return { success: false, error: 'No LAN server running' };
+      }
+    } catch (error: any) {
+      logger.error({ 
+        scope: 'main/lan', 
+        msg: 'Failed to send deck selection', 
+        err: { message: error.message } 
+      });
+      return { success: false, error: error.message };
+    }
+  });
+
   // Place card (placeholder for game logic)
   ipcMain.handle('place-card', async (_, index: number) => {
     try {
@@ -98,6 +138,79 @@ function setupIPC(): void {
         msg: 'card placement failed', 
         meta: { index },
         err: { message: error.message, stack: error.stack } 
+      });
+      throw error;
+    }
+  });
+
+  // LAN Server management
+  ipcMain.handle('start-lan-server', async (_, playerName: string) => {
+    try {
+      logger.info({ scope: 'main/lan', msg: 'Starting LAN server...', meta: { playerName } });
+      
+      if (lanServer) {
+        logger.info({ scope: 'main/lan', msg: 'Stopping existing server' });
+        lanServer.stop();
+      }
+      
+      // Try different ports if 8080 is busy
+      const ports = [8080, 8081, 8082, 8083, 8084];
+      let startedPort = null;
+      let lastError = null;
+
+      for (const port of ports) {
+        try {
+          logger.info({ scope: 'main/lan', msg: `Trying port ${port}...` });
+          lanServer = new LANWebSocketServer(port, playerName);
+          await lanServer.start();
+          startedPort = port;
+          logger.info({ scope: 'main/lan', msg: `Successfully started on port ${port}` });
+          break;
+        } catch (error: any) {
+          lastError = error;
+          logger.warn({ 
+            scope: 'main/lan', 
+            msg: `Port ${port} failed: ${error.message}`, 
+            err: { message: error.message } 
+          });
+        }
+      }
+
+      if (startedPort) {
+        logger.info({ scope: 'main/lan', msg: 'LAN server started successfully', meta: { port: startedPort, playerName } });
+        return { success: true, port: startedPort };
+      } else {
+        const errorMsg = lastError ? lastError.message : 'No available ports';
+        logger.error({ 
+          scope: 'main/lan', 
+          msg: 'All ports failed', 
+          err: { message: errorMsg } 
+        });
+        return { success: false, error: errorMsg };
+      }
+    } catch (error: any) {
+      logger.error({ 
+        scope: 'main/lan', 
+        msg: 'Failed to start LAN server', 
+        err: { message: error.message, stack: error.stack } 
+      });
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('stop-lan-server', async () => {
+    try {
+      if (lanServer) {
+        lanServer.stop();
+        lanServer = null;
+        logger.info({ scope: 'main/lan', msg: 'LAN server stopped' });
+      }
+      return { success: true };
+    } catch (error: any) {
+      logger.error({ 
+        scope: 'main/lan', 
+        msg: 'Failed to stop LAN server', 
+        err: { message: error.message } 
       });
       throw error;
     }
@@ -134,6 +247,9 @@ function setupAppEvents(): void {
   // App quit
   app.on('before-quit', () => {
     logger.info({ scope: 'main/app', msg: 'app quitting' });
+    if (lanServer) {
+      lanServer.stop();
+    }
   });
 }
 
