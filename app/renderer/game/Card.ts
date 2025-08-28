@@ -1,4 +1,4 @@
-import { Card as CardData } from '@/data/types';
+import { Card as CardData, Deck } from '@/data/types';
 import { logger } from '@/utils/logger';
 
 /**
@@ -111,15 +111,15 @@ export class GameCard {
       
       if (this.deck.imageFolder && this.deck.imageFolder.trim() !== '') {
         if (hasExtension) {
-          imagePath = `./assets/${this.deck.imageFolder}/${encodedImageName}`;
+          imagePath = `./content/assets/${this.deck.imageFolder}/${encodedImageName}`;
         } else {
-          imagePath = `./assets/${this.deck.imageFolder}/${encodedImageName}.jpg`;
+          imagePath = `./content/assets/${this.deck.imageFolder}/${encodedImageName}.jpg`;
         }
       } else {
         if (hasExtension) {
-          imagePath = `./assets/${encodedImageName}`;
+          imagePath = `./content/assets/${encodedImageName}`;
         } else {
-          imagePath = `./assets/${encodedImageName}.jpg`;
+          imagePath = `./content/assets/${encodedImageName}.jpg`;
         }
       }
       

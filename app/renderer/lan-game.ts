@@ -68,6 +68,45 @@ export class LANGameManager {
   }
 
   /**
+   * Get board card
+   */
+  getBoardCard(): CardData | null {
+    return this.boardCard;
+  }
+
+  /**
+   * Get server hand (player hand)
+   */
+  getServerHand(): CardData[] {
+    return this.playerHand;
+  }
+
+  /**
+   * Get client hand (opponent hand)
+   */
+  getClientHand(): CardData[] {
+    return this.opponentHand;
+  }
+
+  /**
+   * Get card distribution for canvas rendering
+   */
+  getCardDistribution(): any {
+    if (!this.deck || !this.boardCard) {
+      return null;
+    }
+    
+    return {
+      deckId: this.deck.id,
+      boardCard: this.boardCard,
+      serverHand: this.playerHand,
+      clientHand: this.opponentHand,
+      deckOrder: this.remainingCards,
+      startingPlayer: this.currentPlayer
+    };
+  }
+
+  /**
    * Set player names from landing page
    */
   setPlayerNames(serverPlayerName: string, clientPlayerName: string): void {
@@ -105,6 +144,9 @@ export class LANGameManager {
       // Load deck from localStorage
       const selectedDeck = localStorage.getItem('selectedDeck') || 'space-height-de';
       console.log('🎮 Selected deck from localStorage:', selectedDeck);
+      console.log('🎮 All localStorage keys:', Object.keys(localStorage));
+      console.log('🎮 selectedDeck value:', localStorage.getItem('selectedDeck'));
+      console.log('🎮 selectedGameType value:', localStorage.getItem('selectedGameType'));
       
       logger.info({
         scope: 'renderer/lan',
@@ -128,8 +170,9 @@ export class LANGameManager {
       // Deal cards for LAN mode
       this.dealCardsForLAN();
       
-      // Send card distribution to client
-      this.sendCardDistributionToClient();
+             // Card distribution is prepared but NOT sent yet
+       // It will be sent after the canvas is initialized and cards are displayed
+       console.log('🎴 Card distribution prepared but not sent yet');
       
       logger.info({ 
         scope: 'renderer/lan', 
@@ -220,44 +263,53 @@ export class LANGameManager {
     });
   }
 
-  /**
-   * Send card distribution to client
-   */
-  private sendCardDistributionToClient(): void {
+     /**
+    * Send card distribution to client AFTER canvas is initialized
+    * This ensures the cards are displayed on the server-client before sending to client
+    */
+   public sendCardDistributionAfterCanvasInit(): void {
     try {
-      // Create card distribution data
+      // Create simplified card distribution (only IDs + positions)
       const distribution = {
         type: 'cardDistribution',
-        boardCard: {
-          id: this.boardCard?.id || '',
-          title: this.boardCard?.title || '',
+        deckId: this.deck.id,
+        boardCard: this.boardCard ? {
+          id: this.boardCard.id,
           position: 0
-        },
+        } : null,
         serverHand: this.playerHand.map((card, index) => ({
           id: card.id,
-          title: card.title,
           position: index + 1
         })),
         clientHand: this.opponentHand.map((card, index) => ({
           id: card.id,
-          title: card.title,
           position: index + 6
         })),
         deckOrder: this.remainingCards.map((card, index) => ({
           id: card.id,
-          title: card.title,
           position: index + 11
         })),
-        startingPlayer: this.currentPlayer // Jetzt currentPlayer statt currentLANPlayer
+        startingPlayer: this.currentPlayer
       };
 
-      // Send via IPC to main process
+      // Debug: Log the simplified distribution
+      console.log('🎴 Simplified card distribution created:');
+      console.log('🎴 Deck ID:', distribution.deckId);
+      console.log('🎴 Board Card ID:', distribution.boardCard ? distribution.boardCard.id : 'none');
+      console.log('🎴 Server Hand IDs:', distribution.serverHand.map(card => card.id));
+      console.log('🎴 Client Hand IDs:', distribution.clientHand.map(card => card.id));
+      console.log('🎴 Deck Order IDs:', distribution.deckOrder.map(card => card.id));
+      console.log('🎴 Starting Player:', distribution.startingPlayer);
+
+      // Send via IPC to main process AND directly via WebSocket
       if (window.AXM && window.AXM.sendCardDistribution) {
         window.AXM.sendCardDistribution(distribution);
         
+        console.log('🎴 Starting card positions an client gesendet (IPC):', distribution);
+        
         logger.info({
           scope: 'renderer/lan',
-          msg: 'send to client...',
+          msg: 'send to client via IPC...',
           meta: {
             boardCard: distribution.boardCard.id,
             serverHandSize: distribution.serverHand.length,
@@ -267,9 +319,44 @@ export class LANGameManager {
           }
         });
       } else {
+        console.warn('🎴 AXM.sendCardDistribution not available');
         logger.warn({
           scope: 'renderer/lan',
           msg: 'AXM.sendCardDistribution not available'
+        });
+      }
+
+      // Save card distribution to localStorage for GameScene to use
+      localStorage.setItem('lanCardDistribution', JSON.stringify(distribution));
+      console.log('🎴 Card distribution saved to localStorage for GameScene');
+      
+      // Send via IPC to main process (this will handle WebSocket transmission to client)
+      if (window.AXM && window.AXM.sendCardDistribution) {
+        window.AXM.sendCardDistribution(distribution);
+        
+        console.log('🎴 Card distribution sent via IPC to main process:', distribution);
+        console.log('🎴 Board card:', distribution.boardCard?.title);
+        console.log('🎴 Server hand size:', distribution.serverHand.length);
+        console.log('🎴 Client hand size:', distribution.clientHand.length);
+        console.log('🎴 Deck size:', distribution.deckOrder.length);
+        console.log('🎴 Starting player:', distribution.startingPlayer);
+        
+        logger.info({
+          scope: 'renderer/lan',
+          msg: 'card distribution sent via IPC',
+          meta: {
+            boardCard: distribution.boardCard?.id || 'none',
+            serverHandSize: distribution.serverHand.length,
+            clientHandSize: distribution.clientHand.length,
+            deckSize: distribution.deckOrder.length,
+            startingPlayer: distribution.startingPlayer
+          }
+        });
+      } else {
+        console.error('🎴 AXM.sendCardDistribution not available - cannot send card distribution!');
+        logger.error({
+          scope: 'renderer/lan',
+          msg: 'AXM.sendCardDistribution not available - cannot send card distribution'
         });
       }
 
@@ -317,14 +404,14 @@ export class LANGameManager {
       logger.info({
         scope: 'renderer/lan',
         msg: 'boardkarten received (list)',
-        meta: { boardCard: distribution.boardCard?.title || 'none' }
+        meta: { boardCard: distribution.boardCard?.id || 'none' }
       });
 
       logger.info({
         scope: 'renderer/lan',
         msg: 'server player hand received (list)',
         meta: { 
-          serverHand: distribution.serverHand?.map((card: any) => card.title) || [],
+          serverHand: distribution.serverHand?.map((card: any) => card.id) || [],
           serverHandSize: distribution.serverHand?.length || 0
         }
       });
@@ -333,7 +420,7 @@ export class LANGameManager {
         scope: 'renderer/lan',
         msg: 'client-player hand received (list)',
         meta: { 
-          clientHand: distribution.clientHand?.map((card: any) => card.title) || [],
+          clientHand: distribution.clientHand?.map((card: any) => card.id) || [],
           clientHandSize: distribution.clientHand?.length || 0
         }
       });
@@ -342,7 +429,7 @@ export class LANGameManager {
         scope: 'renderer/lan',
         msg: 'deck karten received (list)',
         meta: { 
-          deckCards: distribution.deckOrder?.map((card: any) => card.title) || [],
+          deckCards: distribution.deckOrder?.map((card: any) => card.id) || [],
           deckSize: distribution.deckOrder?.length || 0
         }
       });

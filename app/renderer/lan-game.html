@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axes Mundi - LAN Multiplayer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+
+        
+        #game-canvas {
+            display: block;
+            background: #2a2a2a;
+        }
+        
+        #lan-status {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #ffffff;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 16px;
+            z-index: 100;
+        }
+        
+        #lan-info {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #ffffff;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 100;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+
+    
+    <div id="lan-status">🎮 Verbinde...</div>
+    <div id="lan-info">
+        <div id="player-name">Spieler: ...</div>
+        <div id="opponent-name">Gegner: ...</div>
+        <div id="current-turn">Zug: ...</div>
+    </div>
+    
+    <canvas id="game-canvas"></canvas>
+    
+    <script type="module" src="./lan-game-main.ts"></script>
+</body>
+</html>

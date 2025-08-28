@@ -308,13 +308,39 @@ export class LANWebSocketServer {
       }
     });
 
+    // Debug: Log the complete distribution received from renderer
+    console.log('🎴 Main process received card distribution:');
+    console.log('🎴 Deck ID:', distribution.deckId);
+    console.log('🎴 Deck Name:', distribution.deckName);
+    console.log('🎴 Board Card:', distribution.boardCard ? distribution.boardCard.title : 'none');
+    console.log('🎴 Server Hand Size:', distribution.serverHand?.length || 0);
+    console.log('🎴 Client Hand Size:', distribution.clientHand?.length || 0);
+    console.log('🎴 Deck Size:', distribution.deckOrder?.length || 0);
+    console.log('🎴 Starting Player:', distribution.startingPlayer);
+
     // Send to all connected clients
     for (const [, player] of this.players) {
-      player.ws.send(JSON.stringify({
+      const message = {
         type: 'cardDistribution',
-        ...distribution,
+        distribution: distribution, // Wrap in distribution object for consistency
         message: 'Card distribution received from server'
-      }));
+      };
+      
+      logger.info({
+        scope: 'main/websocket',
+        msg: 'Sending card distribution message to client',
+        meta: { 
+          playerId: player.id,
+          playerName: player.name,
+          messageType: message.type,
+          boardCard: distribution.boardCard?.title || 'none',
+          serverHandSize: distribution.serverHand?.length || 0,
+          clientHandSize: distribution.clientHand?.length || 0,
+          deckSize: distribution.deckOrder?.length || 0
+        }
+      });
+      
+      player.ws.send(JSON.stringify(message));
     }
 
     // Send notification to renderer process to update UI

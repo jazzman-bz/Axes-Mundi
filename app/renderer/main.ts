@@ -66,7 +66,12 @@ class AxesMundiApp {
    private playerSwitchOverlayVisible: boolean = false; // Track if player switch overlay is visible
    private playerSwitchOverlayBounds: { x: number; y: number; width: number; height: number } | null = null; // Player switch overlay bounds
 
-   // LAN mode state - REMOVED: Now handled by LANGameManager
+   // LAN mode state
+   private isLANMode: boolean = false; // Track if we're in LAN mode
+   private lanPlayerName: string = ''; // Current player name in LAN mode
+   private lanOpponentName: string = ''; // Opponent player name in LAN mode
+   private isLANServerClient: boolean = false; // True if this is the server-client
+   private lanCardDistribution: any = null; // Card distribution for LAN mode
 
 
   constructor() {
@@ -89,7 +94,20 @@ class AxesMundiApp {
     this.isLearningMode = savedGameType === 'educational';
     this.isHotseatMode = savedGameType === 'hotseat';
     
-    // LAN mode is now handled by LANGameManager - skip initialization here
+    // Initialize LAN mode from localStorage
+    this.isLANMode = savedGameType === 'lan';
+    if (this.isLANMode) {
+      this.lanPlayerName = localStorage.getItem('axesMundiPlayer') ? JSON.parse(localStorage.getItem('axesMundiPlayer')!).name : 'Player';
+      this.lanOpponentName = localStorage.getItem('clientPlayerName') || 'Opponent';
+      this.isLANServerClient = localStorage.getItem('isServerClient') === 'true';
+      
+      console.log('🎮 LAN mode initialized:', {
+        isLANMode: this.isLANMode,
+        lanPlayerName: this.lanPlayerName,
+        lanOpponentName: this.lanOpponentName,
+        isLANServerClient: this.isLANServerClient
+      });
+    }
     
     // Load player data for hotseat mode and singleplayer modes
     if (this.isHotseatMode) {

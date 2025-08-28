@@ -44,11 +44,17 @@ class LandingPageController {
         difficulty: null
       };
       
-      // LAN connection state
-      this.isServerClient = false;
-      this.serverPlayerName = null;
-      this.clientPlayerName = null; // Store client player name for server-client
-      this.lanClient = null;
+             // LAN connection state
+       this.isServerClient = localStorage.getItem('isServerClient') === 'true';
+       this.serverPlayerName = localStorage.getItem('serverPlayerName');
+       this.clientPlayerName = localStorage.getItem('clientPlayerName'); // Store client player name for server-client
+       this.lanClient = null;
+       
+       console.log('🎮 Landing page initialized with LAN state:', {
+         isServerClient: this.isServerClient,
+         serverPlayerName: this.serverPlayerName,
+         clientPlayerName: this.clientPlayerName
+       });
       
       this.init();
     }
@@ -471,14 +477,22 @@ class LandingPageController {
              const result = await window.AXM.startLANServer(this.playerData.name);
       console.log('🚀 Result from startLANServer:', result);
        
-               if (result.success) {
-          this.isServerClient = true; // Mark as server-client
-          this.showConnectionStatus(`Server started on port ${result.port}! Waiting for players...`, false);
-          logger.info({ scope: 'landing/lan', msg: 'LAN server started', meta: { port: result.port } });
-          
-          // Store the server port for clients to connect to
-          this.serverPort = result.port;
-        } else {
+                      if (result.success) {
+         this.isServerClient = true; // Mark as server-client
+         console.log('🎮 Server-client flag set to true');
+         
+         // Store in localStorage for persistence
+         localStorage.setItem('isServerClient', 'true');
+         localStorage.setItem('serverPlayerName', this.playerData.name);
+         console.log('🎮 isServerClient saved to localStorage');
+         console.log('🎮 serverPlayerName saved to localStorage:', this.playerData.name);
+         
+         this.showConnectionStatus(`Server started on port ${result.port}! Waiting for players...`, false);
+         logger.info({ scope: 'landing/lan', msg: 'LAN server started', meta: { port: result.port } });
+         
+         // Store the server port for clients to connect to
+         this.serverPort = result.port;
+       } else {
          const errorMsg = result.error || 'Unknown error';
          this.showConnectionStatus(`Failed to start server: ${errorMsg}`, false);
          logger.error({ scope: 'landing/lan', msg: 'Failed to start LAN server', meta: { error: errorMsg } });
@@ -601,6 +615,10 @@ class LandingPageController {
             console.log('🎴 Received deck selection from server:', message.deckId);
             this.handleDeckSelectionFromServer(message.deckId);
             break;
+          case 'cardDistribution':
+            console.log('🎴 Received card distribution from server:', message);
+            this.handleCardDistributionFromServer(message);
+            break;
           case 'startingPlayer':
             console.log('🎲 Received starting player selection:', message.startingPlayer);
             this.showConnectionStatus(`Spieler ${message.startingPlayer} beginnt das Spiel!`, false);
@@ -654,11 +672,18 @@ class LandingPageController {
     sendDeckSelectionToClient(deckId) {
       try {
         console.log('🎴 Sending deck selection to client:', deckId);
+        console.log('🎴 this.isServerClient:', this.isServerClient);
+        console.log('🎴 this.clientPlayerName:', this.clientPlayerName);
+        
+        // Save selected deck to localStorage for LANGameManager to use
+        localStorage.setItem('selectedDeck', deckId);
+        console.log('🎴 Selected deck saved to localStorage:', deckId);
         
         // Send deck selection via IPC to main process
         if (window.AXM && window.AXM.sendDeckSelection) {
           window.AXM.sendDeckSelection(deckId);
           this.showConnectionStatus(`Deck ${deckId} wurde ausgewählt und an Client gesendet...`, false);
+          console.log('🎴 Deck selection sent via IPC, waiting for client response...');
         } else {
           this.showError('Deck-Auswahl konnte nicht gesendet werden.');
         }
@@ -735,12 +760,63 @@ class LandingPageController {
       }
     }
 
-   /**
-    * Handle deck selection from server (client side)
-    */
-   handleDeckSelectionFromServer(deckId) {
+       /**
+     * Handle card distribution from server (client side)
+     */
+    handleCardDistributionFromServer(message) {
+      try {
+        console.log('🎴 Client: Received card distribution from server');
+        console.log('🎴 Client: Message type:', message.type);
+        console.log('🎴 Client: Distribution object:', message.distribution);
+        
+        if (message.distribution) {
+          const distribution = message.distribution;
+          console.log('🎴 Client: Deck ID:', distribution.deckId);
+          console.log('🎴 Client: Board Card:', distribution.boardCard?.title || 'none');
+          console.log('🎴 Client: Server Hand Size:', distribution.serverHand?.length || 0);
+          console.log('🎴 Client: Client Hand Size:', distribution.clientHand?.length || 0);
+          console.log('🎴 Client: Deck Size:', distribution.deckOrder?.length || 0);
+          console.log('🎴 Client: Starting Player:', distribution.startingPlayer);
+          
+          // Store card distribution for later use
+          localStorage.setItem('lanCardDistribution', JSON.stringify(distribution));
+          console.log('🎴 Client: Card distribution saved to localStorage');
+          
+          // Show success message
+          this.showConnectionStatus(`Kartenverteilung erhalten! Spiel kann starten.`, false);
+        } else {
+          console.error('🎴 Client: No distribution object in message');
+          this.showError('Fehler: Keine Kartendaten erhalten.');
+        }
+        
+        logger.info({ 
+          scope: 'landing/card-distribution', 
+          msg: 'card distribution received from server', 
+          meta: { 
+            hasDistribution: !!message.distribution,
+            deckId: message.distribution?.deckId,
+            boardCard: message.distribution?.boardCard?.title
+          } 
+        });
+        
+      } catch (error) {
+        console.error('🎴 Client: Failed to handle card distribution:', error);
+        logger.error({ 
+          scope: 'landing/card-distribution', 
+          msg: 'failed to handle card distribution from server', 
+          err: { message: error.message } 
+        });
+        this.showError('Fehler beim Verarbeiten der Kartendaten.');
+      }
+    }
+
+    /**
+     * Handle deck selection from server (client side)
+     */
+    handleDeckSelectionFromServer(deckId) {
      try {
-       console.log('🎴 Checking if deck is available:', deckId);
+       console.log('🎴 Client: Checking if deck is available:', deckId);
+       console.log('🎴 Client: this.lanClient exists:', !!this.lanClient);
        
        // Check if deck is available (this would normally check the actual deck files)
        const availableDecks = [
@@ -752,16 +828,20 @@ class LandingPageController {
        
        const isAvailable = availableDecks.includes(deckId);
        
-       console.log('🎴 Deck availability check:', { deckId, isAvailable });
+       console.log('🎴 Client: Deck availability check:', { deckId, isAvailable });
        
        // Send response back to server
        if (this.lanClient) {
-         this.lanClient.sendMessage({ 
+         const response = { 
            type: 'deckResponse', 
            deckId, 
            available: isAvailable 
-         });
-         console.log('📤 Sent deck response to server');
+         };
+         console.log('📤 Client: Sending deck response to server:', response);
+         this.lanClient.sendMessage(response);
+         console.log('📤 Client: Deck response sent successfully');
+       } else {
+         console.error('🎴 Client: No lanClient available to send response');
        }
        
        // Show status message
@@ -795,14 +875,16 @@ class LandingPageController {
        console.log('📡 Handling LAN status update:', data);
        
               switch (data.type) {
-          case 'playerConnected':
-            this.showConnectionStatus(`Player ${data.playerName} connected to server!`, false);
-            // Store client player name for server-client
-            if (this.isServerClient && data.clientPlayerName) {
-              this.clientPlayerName = data.clientPlayerName;
-              console.log('🎯 Server-client: Stored client player name:', this.clientPlayerName);
-            }
-            break;
+                     case 'playerConnected':
+             this.showConnectionStatus(`Player ${data.playerName} connected to server!`, false);
+             // Store client player name for server-client
+             if (this.isServerClient && data.clientPlayerName) {
+               this.clientPlayerName = data.clientPlayerName;
+               localStorage.setItem('clientPlayerName', this.clientPlayerName);
+               console.log('🎯 Server-client: Stored client player name:', this.clientPlayerName);
+               console.log('🎯 Server-client: Saved to localStorage');
+             }
+             break;
           case 'playerReady':
             this.showConnectionStatus(`Player ${data.playerName} is ready! Handshake complete!`, false);
             // Navigate to deck selection for server-client after handshake
@@ -811,20 +893,21 @@ class LandingPageController {
               this.navigateToSection('deck-selection');
             }
             break;
-          case 'deckResponse':
-            if (data.available) {
-              this.showConnectionStatus(`Deck ${data.deckId} wurde gewählt und ist vorhanden!`, false);
-              // After deck confirmation, select random starting player (server-client only)
-              if (this.isServerClient) {
-                console.log('🎲 Deck confirmed, selecting random starting player...');
-                setTimeout(() => {
-                  this.selectRandomStartingPlayer();
-                }, 1000); // Small delay for better UX
-              }
-            } else {
-              this.showConnectionStatus(`Deck ${data.deckId} nicht vorhanden!`, false);
-            }
-            break;
+                     case 'deckResponse':
+             if (data.available) {
+               this.showConnectionStatus(`Deck ${data.deckId} wurde gewählt und ist vorhanden!`, false);
+               // After deck confirmation, start the game (server-client only)
+               if (this.isServerClient) {
+                 console.log('🎲 Deck confirmed, starting game...');
+                 setTimeout(() => {
+                   console.log('🎮 Starting game with deck:', data.deckId);
+                   this.startGame(data.deckId);
+                 }, 1000); // Small delay for better UX
+               }
+             } else {
+               this.showConnectionStatus(`Deck ${data.deckId} nicht vorhanden!`, false);
+             }
+             break;
           case 'startingPlayer':
             this.showConnectionStatus(`Spieler ${data.startingPlayer} beginnt das Spiel!`, false);
             break;
@@ -1117,6 +1200,18 @@ class LandingPageController {
    */
   startGame(deckId) {
     try {
+      console.log('🎮 startGame called with deckId:', deckId);
+      console.log('🎮 this.isServerClient:', this.isServerClient);
+      console.log('🎮 this.serverPlayerName:', this.serverPlayerName);
+      console.log('🎮 this.clientPlayerName:', this.clientPlayerName);
+      
+      // Check if this is a LAN game
+      if (this.isServerClient) {
+        console.log('🎮 Starting LAN game as server-client...');
+        this.startLANGame(deckId);
+        return;
+      }
+      
       // Show loading message
       this.showLoadingMessage('Spiel wird gestartet...');
       
@@ -1183,6 +1278,62 @@ class LandingPageController {
   }
 
   /**
+   * Start LAN game (server-client only)
+   */
+  async startLANGame(deckId) {
+    try {
+      console.log('🎮 Starting LAN game for server-client...');
+      console.log('🎮 Deck ID:', deckId);
+      console.log('🎮 isServerClient:', this.isServerClient);
+      console.log('🎮 serverPlayerName:', this.serverPlayerName);
+      console.log('🎮 clientPlayerName:', this.clientPlayerName);
+      
+      // Import and use LAN game manager
+      console.log('🎮 Importing LANGameManager...');
+      const { LANGameManager } = await import('./lan-game.ts');
+      console.log('🎮 LANGameManager imported successfully');
+      
+      console.log('🎮 Creating LANGameManager instance...');
+      const lanGame = new LANGameManager();
+      console.log('🎮 LANGameManager instance created');
+      
+      // Set the real player names in the LANGameManager
+      if (this.serverPlayerName && this.clientPlayerName) {
+        lanGame.setPlayerNames(this.serverPlayerName, this.clientPlayerName);
+        console.log('🎮 Player names set in LANGameManager:', this.serverPlayerName, this.clientPlayerName);
+      }
+      
+      // Set the selected deck in localStorage for LANGameManager to use
+      localStorage.setItem('selectedDeck', deckId);
+      console.log('🎮 Selected deck saved to localStorage:', deckId);
+      
+             // Initialize LAN game (this will create card distribution but NOT send it yet)
+       console.log('🎮 Calling initializeLANGame()...');
+       await lanGame.initializeLANGame();
+       console.log('🎮 initializeLANGame() completed');
+       
+       console.log('🎮 LAN game card distribution created (not sent yet)');
+       
+       // Show success message and redirect to LAN game
+       this.showConnectionStatus('LAN-Spiel gestartet - Wechsle zu Spielfläche...', false);
+       
+       // Set LAN mode flag in localStorage
+       localStorage.setItem('selectedGameType', 'lan');
+       
+       // Redirect to LAN game after 2 seconds
+       setTimeout(() => {
+         console.log('🎮 Redirecting to lan-game.html...');
+         window.location.href = './lan-game.html';
+       }, 2000);
+      
+    } catch (error) {
+      console.error('🎮 Failed to start LAN game:', error);
+      console.error('🎮 Error stack:', error.stack);
+      this.showError('Fehler beim Starten des LAN-Spiels.');
+    }
+  }
+
+  /**
    * Show loading message
    */
   showLoadingMessage(message) {
@@ -1228,48 +1379,7 @@ class LandingPageController {
     }
   }
 
-  /**
-   * Start LAN game (card distribution only)
-   */
-  async startLANGame(deckId) {
-    try {
-      console.log('🎮 Starting LAN game for card distribution...');
-      console.log('🎮 Deck ID:', deckId);
-      console.log('🎮 isServerClient:', this.isServerClient);
-      console.log('🎮 serverPlayerName:', this.serverPlayerName);
-      console.log('🎮 clientPlayerName:', this.clientPlayerName);
-      
-      // Import and use LAN game manager
-      console.log('🎮 Importing LANGameManager...');
-      const { LANGameManager } = await import('./lan-game.ts');
-      console.log('🎮 LANGameManager imported successfully');
-      
-      console.log('🎮 Creating LANGameManager instance...');
-      const lanGame = new LANGameManager();
-      console.log('🎮 LANGameManager instance created');
-      
-      // Set the real player names in the LANGameManager
-      if (this.serverPlayerName && this.clientPlayerName) {
-        lanGame.setPlayerNames(this.serverPlayerName, this.clientPlayerName);
-        console.log('🎮 Player names set in LANGameManager:', this.serverPlayerName, this.clientPlayerName);
-      }
-      
-      // Initialize LAN game (this will handle card distribution)
-      console.log('🎮 Calling initializeLANGame()...');
-      await lanGame.initializeLANGame();
-      console.log('🎮 initializeLANGame() completed');
-      
-      console.log('🎮 LAN game card distribution completed');
-      
-      // Show success message instead of redirecting to game.html
-      this.showConnectionStatus('LAN-Spiel gestartet - Kartenverteilung abgeschlossen!', false);
-      
-    } catch (error) {
-      console.error('🎮 Failed to start LAN game:', error);
-      console.error('🎮 Error stack:', error.stack);
-      this.showError('Fehler beim Starten des LAN-Spiels.');
-    }
-  }
+
 }
 
 // Initialize landing page when DOM is ready
