@@ -6,7 +6,7 @@ import { logger } from '@/utils/logger';
  */
 export async function loadDeck(deckId: string): Promise<Deck> {
   try {
-    const response = await fetch(`./decks/${deckId}.json`);
+    const response = await fetch(`./content/decks/${deckId}.json`);
     if (!response.ok) {
       throw new Error(`Failed to load deck: ${response.statusText}`);
     }

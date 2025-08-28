@@ -122,6 +122,9 @@ export class LANWebSocketServer {
       case 'startingPlayer':
         this.handleStartingPlayer(playerId, message.startingPlayer, message.serverStarts);
         break;
+      case 'cardDistribution':
+        this.handleCardDistribution(playerId, message);
+        break;
       default:
         logger.warn({ 
           scope: 'main/websocket', 
@@ -291,6 +294,40 @@ export class LANWebSocketServer {
   }
 
   /**
+   * Send card distribution to all connected clients
+   */
+  async sendCardDistribution(distribution: any): Promise<void> {
+    logger.info({
+      scope: 'main/websocket',
+      msg: 'Sending card distribution to client',
+      meta: { 
+        boardCard: distribution.boardCard?.id,
+        serverHandSize: distribution.serverHand?.length,
+        clientHandSize: distribution.clientHand?.length,
+        deckSize: distribution.deckOrder?.length
+      }
+    });
+
+    // Send to all connected clients
+    for (const [, player] of this.players) {
+      player.ws.send(JSON.stringify({
+        type: 'cardDistribution',
+        ...distribution,
+        message: 'Card distribution received from server'
+      }));
+    }
+
+    // Send notification to renderer process to update UI
+    if (global.mainWindow && global.mainWindow.webContents) {
+      global.mainWindow.webContents.send('lan-status-update', {
+        type: 'cardDistribution',
+        distribution,
+        message: 'Card distribution sent to client'
+      });
+    }
+  }
+
+  /**
    * Send starting player selection to all connected clients
    */
   async sendStartingPlayer(startingPlayer: string, serverStarts: boolean): Promise<void> {
@@ -317,6 +354,32 @@ export class LANWebSocketServer {
         startingPlayer,
         serverStarts,
         message: `Spieler ${startingPlayer} beginnt das Spiel!`
+      });
+    }
+  }
+
+  /**
+   * Send game start trigger to all connected clients
+   */
+  async sendGameStartTrigger(): Promise<void> {
+    logger.info({
+      scope: 'main/websocket',
+      msg: 'Sending game start trigger to client'
+    });
+
+    // Send to all connected clients
+    for (const [, player] of this.players) {
+      player.ws.send(JSON.stringify({
+        type: 'startGame',
+        message: 'Game start trigger received from server'
+      }));
+    }
+
+    // Send notification to renderer process to update UI
+    if (global.mainWindow && global.mainWindow.webContents) {
+      global.mainWindow.webContents.send('lan-status-update', {
+        type: 'startGame',
+        message: 'Game start trigger sent to client'
       });
     }
   }
@@ -381,6 +444,36 @@ export class LANWebSocketServer {
         message: available ? 
           `Deck ${deckId} wurde gewählt und ist vorhanden!` : 
           `Deck ${deckId} nicht vorhanden!`
+      });
+    }
+  }
+
+  /**
+   * Handle card distribution from client
+   */
+  private handleCardDistribution(playerId: string, message: any): void {
+    const player = this.players.get(playerId);
+    if (!player) return;
+
+    logger.info({ 
+      scope: 'main/websocket', 
+      msg: 'Received card distribution from client', 
+      meta: { 
+        playerId, 
+        playerName: player.name,
+        boardCard: message.boardCard?.id,
+        serverHandSize: message.serverHand?.length,
+        clientHandSize: message.clientHand?.length,
+        deckSize: message.deckOrder?.length
+      } 
+    });
+
+    // Send notification to renderer process to update UI
+    if (global.mainWindow && global.mainWindow.webContents) {
+      global.mainWindow.webContents.send('lan-status-update', {
+        type: 'cardDistribution',
+        distribution: message,
+        message: 'Card distribution received from client'
       });
     }
   }

@@ -105,6 +105,62 @@ function setupIPC() {
             return { success: false, error: error.message };
         }
     });
+    // Send card distribution to client
+    electron_1.ipcMain.handle('send-card-distribution', async (_, distribution) => {
+        try {
+            logger_1.logger.info({
+                scope: 'main/lan',
+                msg: 'Sending card distribution to client',
+                meta: {
+                    boardCard: distribution.boardCard?.id,
+                    serverHandSize: distribution.serverHand?.length,
+                    clientHandSize: distribution.clientHand?.length,
+                    deckSize: distribution.deckOrder?.length
+                }
+            });
+            if (lanServer) {
+                await lanServer.sendCardDistribution(distribution);
+                return { success: true };
+            }
+            else {
+                logger_1.logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
+                return { success: false, error: 'No LAN server running' };
+            }
+        }
+        catch (error) {
+            logger_1.logger.error({
+                scope: 'main/lan',
+                msg: 'Failed to send card distribution',
+                err: { message: error.message }
+            });
+            return { success: false, error: error.message };
+        }
+    });
+    // Send game start trigger to client
+    electron_1.ipcMain.handle('send-game-start-trigger', async () => {
+        try {
+            logger_1.logger.info({
+                scope: 'main/lan',
+                msg: 'Sending game start trigger to client'
+            });
+            if (lanServer) {
+                await lanServer.sendGameStartTrigger();
+                return { success: true };
+            }
+            else {
+                logger_1.logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
+                return { success: false, error: 'No LAN server running' };
+            }
+        }
+        catch (error) {
+            logger_1.logger.error({
+                scope: 'main/lan',
+                msg: 'Failed to send game start trigger',
+                err: { message: error.message }
+            });
+            return { success: false, error: error.message };
+        }
+    });
     // Send starting player selection to client
     electron_1.ipcMain.handle('send-starting-player', async (_, startingPlayer, serverStarts) => {
         try {

@@ -1227,6 +1227,49 @@ class LandingPageController {
       });
     }
   }
+
+  /**
+   * Start LAN game (card distribution only)
+   */
+  async startLANGame(deckId) {
+    try {
+      console.log('🎮 Starting LAN game for card distribution...');
+      console.log('🎮 Deck ID:', deckId);
+      console.log('🎮 isServerClient:', this.isServerClient);
+      console.log('🎮 serverPlayerName:', this.serverPlayerName);
+      console.log('🎮 clientPlayerName:', this.clientPlayerName);
+      
+      // Import and use LAN game manager
+      console.log('🎮 Importing LANGameManager...');
+      const { LANGameManager } = await import('./lan-game.ts');
+      console.log('🎮 LANGameManager imported successfully');
+      
+      console.log('🎮 Creating LANGameManager instance...');
+      const lanGame = new LANGameManager();
+      console.log('🎮 LANGameManager instance created');
+      
+      // Set the real player names in the LANGameManager
+      if (this.serverPlayerName && this.clientPlayerName) {
+        lanGame.setPlayerNames(this.serverPlayerName, this.clientPlayerName);
+        console.log('🎮 Player names set in LANGameManager:', this.serverPlayerName, this.clientPlayerName);
+      }
+      
+      // Initialize LAN game (this will handle card distribution)
+      console.log('🎮 Calling initializeLANGame()...');
+      await lanGame.initializeLANGame();
+      console.log('🎮 initializeLANGame() completed');
+      
+      console.log('🎮 LAN game card distribution completed');
+      
+      // Show success message instead of redirecting to game.html
+      this.showConnectionStatus('LAN-Spiel gestartet - Kartenverteilung abgeschlossen!', false);
+      
+    } catch (error) {
+      console.error('🎮 Failed to start LAN game:', error);
+      console.error('🎮 Error stack:', error.stack);
+      this.showError('Fehler beim Starten des LAN-Spiels.');
+    }
+  }
 }
 
 // Initialize landing page when DOM is ready

@@ -117,6 +117,62 @@ function setupIPC(): void {
     }
   });
 
+  // Send card distribution to client
+  ipcMain.handle('send-card-distribution', async (_, distribution: any) => {
+    try {
+      logger.info({ 
+        scope: 'main/lan', 
+        msg: 'Sending card distribution to client', 
+        meta: { 
+          boardCard: distribution.boardCard?.id,
+          serverHandSize: distribution.serverHand?.length,
+          clientHandSize: distribution.clientHand?.length,
+          deckSize: distribution.deckOrder?.length
+        } 
+      });
+
+      if (lanServer) {
+        await lanServer.sendCardDistribution(distribution);
+        return { success: true };
+      } else {
+        logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
+        return { success: false, error: 'No LAN server running' };
+      }
+    } catch (error: any) {
+      logger.error({
+        scope: 'main/lan',
+        msg: 'Failed to send card distribution',
+        err: { message: error.message }
+      });
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Send game start trigger to client
+  ipcMain.handle('send-game-start-trigger', async () => {
+    try {
+      logger.info({ 
+        scope: 'main/lan', 
+        msg: 'Sending game start trigger to client'
+      });
+
+      if (lanServer) {
+        await lanServer.sendGameStartTrigger();
+        return { success: true };
+      } else {
+        logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
+        return { success: false, error: 'No LAN server running' };
+      }
+    } catch (error: any) {
+      logger.error({
+        scope: 'main/lan',
+        msg: 'Failed to send game start trigger',
+        err: { message: error.message }
+      });
+      return { success: false, error: error.message };
+    }
+  });
+
   // Send starting player selection to client
   ipcMain.handle('send-starting-player', async (_, startingPlayer: string, serverStarts: boolean) => {
     try {

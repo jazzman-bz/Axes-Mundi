@@ -66,6 +66,8 @@ class AxesMundiApp {
    private playerSwitchOverlayVisible: boolean = false; // Track if player switch overlay is visible
    private playerSwitchOverlayBounds: { x: number; y: number; width: number; height: number } | null = null; // Player switch overlay bounds
 
+   // LAN mode state - REMOVED: Now handled by LANGameManager
+
 
   constructor() {
     this.loadingElement = document.getElementById('loading') as HTMLElement;
@@ -86,6 +88,8 @@ class AxesMundiApp {
     const savedGameType = localStorage.getItem('selectedGameType');
     this.isLearningMode = savedGameType === 'educational';
     this.isHotseatMode = savedGameType === 'hotseat';
+    
+    // LAN mode is now handled by LANGameManager - skip initialization here
     
     // Load player data for hotseat mode and singleplayer modes
     if (this.isHotseatMode) {
@@ -157,8 +161,20 @@ class AxesMundiApp {
     this.calculateScale(); // Calculate initial scale
     this.loadLogo(); // Load the Axes Mundi logo
     this.loadArrowImages(); // Load arrow images
-    this.loadGame();
-    this.startGameLoop();
+    
+    // Check if this is LAN mode - if so, don't start normal game
+    const isLANMode = localStorage.getItem('selectedGameType') === 'lan';
+    if (isLANMode) {
+      logger.info({
+        scope: 'renderer/app',
+        msg: 'LAN mode detected - skipping normal game initialization',
+        meta: { reason: 'LAN mode handled by LANGameManager' }
+      });
+      this.startGameLoop(); // Start game loop for basic UI only
+    } else {
+      this.loadGame();
+      this.startGameLoop();
+    }
   }
 
   /**
@@ -390,6 +406,8 @@ class AxesMundiApp {
     }
   }
 
+  // REMOVED: loadLANGame() - Now handled by LANGameManager
+
   /**
    * Load game data
    */
@@ -397,6 +415,15 @@ class AxesMundiApp {
     try {
       // Load deck from localStorage
       const selectedDeck = localStorage.getItem('selectedDeck') || 'space-height-de';
+      
+      logger.info({
+        scope: 'renderer/game',
+        msg: 'loading deck for game',
+        meta: { 
+          selectedDeck
+        }
+      });
+      
       this.deck = await loadDeck(selectedDeck);
       
       // Initialize remaining cards from deck and shuffle them
@@ -563,7 +590,7 @@ class AxesMundiApp {
     }
   }
 
-  /**
+    /**
    * Deal cards to both players based on difficulty
    */
   private dealCardsToPlayers(): void {
@@ -579,6 +606,12 @@ class AxesMundiApp {
       }
     });
     
+    // LAN mode is now handled by LANGameManager - skip here
+    
+    // In LAN mode, client waits for card distribution from server
+    // LAN mode is now handled by LANGameManager - skip here
+    
+    // Normal AI mode logic (with animations)
     // Deal 5 cards to player with small delay
     for (let i = 0; i < 5; i++) {
       setTimeout(() => {
@@ -597,19 +630,21 @@ class AxesMundiApp {
      const totalDealTime = 1200 + 5 * 200 + opponentCardCount * 200; // Player cards + opponent cards
      setTimeout(() => {
        this.isPlayerTurn = true;
+       
        this.startTurnTimer(); // Start timer for first turn
-       logger.info({
-         scope: 'renderer/game',
-         msg: 'game started, player turn',
-         meta: { 
-           turn: this.currentTurn,
-           playerHandSize: this.playerHand.length,
-           opponentHandSize: this.opponentHand.length,
-           remainingCards: this.remainingCards.length,
-           difficulty: this.gameDifficulty,
-           opponentCardCount: opponentCardCount
-         }
-       });
+       
+                logger.info({
+           scope: 'renderer/game',
+           msg: 'game started, player turn',
+           meta: { 
+             turn: this.currentTurn,
+             playerHandSize: this.playerHand.length,
+             opponentHandSize: this.opponentHand.length,
+             remainingCards: this.remainingCards.length,
+             difficulty: this.gameDifficulty,
+             opponentCardCount: opponentCardCount
+           }
+         });
      }, totalDealTime); // After all cards are dealt (dynamic based on difficulty)
   }
 
@@ -638,6 +673,23 @@ class AxesMundiApp {
       });
     }
   }
+
+  // REMOVED: handleCardDistributionFromServer() - Now handled by LANGameManager
+
+  // REMOVED: setupLANIPCListeners() and startLANGame() - Now handled by LANGameManager
+
+  /**
+   * Find card in deck by ID
+   */
+  private findCardInDeck(cardId: string): CardData | null {
+    // Search in the original deck data
+    if (this.deck && this.deck.cards) {
+      return this.deck.cards.find((card: CardData) => card.id === cardId) || null;
+    }
+    return null;
+  }
+
+  // REMOVED: sendCardDistributionToClient() - Now handled by LANGameManager
 
   /**
    * Deal a card to the opponent
@@ -741,6 +793,8 @@ class AxesMundiApp {
       this.turnText = '';
       return;
     }
+    
+    // LAN mode is now handled by LANGameManager - skip here
     
     // In hotseat mode, show current player name
     if (this.isHotseatMode) {
