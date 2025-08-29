@@ -964,27 +964,65 @@ class LANGameApp {
     console.log('🎮 Player hand laid out:', this.playerHand.length, 'cards');
   }
 
-  /**
-   * Layout opponent hand (like Single-Player)
-   */
-  private layoutOpponentHand(): void {
-    const cardSpacing = 220 * this.scale;
-    const totalWidth = this.opponentHand.length * cardSpacing - 20 * this.scale;
-    const startX = (this.canvas!.width - totalWidth) / 2;
-    
-    this.opponentHand.forEach((card, index) => {
-      const x = startX + index * cardSpacing;
-      const y = 20 * this.scale; // Top position
-      
-      // Store hand position for return to hand functionality
-      card.storeHandPosition(x, y);
-      
-      // Set target position for animation
-      card.setTargetPosition(x, y);
-    });
-    
-    console.log('🎮 Opponent hand laid out:', this.opponentHand.length, 'cards');
-  }
+     /**
+    * Layout opponent hand (like Single-Player)
+    */
+   private layoutOpponentHand(): void {
+     const cardSpacing = 220 * this.scale;
+     const totalWidth = this.opponentHand.length * cardSpacing - 20 * this.scale;
+     const startX = (this.canvas!.width - totalWidth) / 2;
+     
+     this.opponentHand.forEach((card, index) => {
+       const x = startX + index * cardSpacing;
+       const y = 20 * this.scale; // Top position
+       
+       // Store hand position for return to hand functionality
+       card.storeHandPosition(x, y);
+       
+       // Set target position for animation
+       card.setTargetPosition(x, y);
+     });
+     
+     console.log('🎮 Opponent hand laid out:', this.opponentHand.length, 'cards');
+   }
+
+   /**
+    * Layout all cards on the axis - center them with proper spacing (like Single-Player)
+    */
+   private layoutAxisCards(): void {
+     if (!this.boardCard) return;
+     
+     // Combine all placed cards with the board card
+     const allCards = [
+       this.boardCard,
+       ...this.placedLeft,
+       ...this.placedRight
+     ];
+     
+     if (allCards.length <= 1) return; // No need to spread if only one card
+     
+     // Sort cards by their current X position to maintain relative order
+     const sortedCards = allCards.sort((a, b) => a.x - b.x);
+     
+     // Use fixed spacing between cards (like Single-Player)
+     const cardWidth = 200 * this.scale;
+     const spacing = 5 * this.scale; // Fixed 5px spacing
+     
+     // Calculate total width needed
+     const totalWidth = sortedCards.length * cardWidth + (sortedCards.length - 1) * spacing;
+     const startX = (this.canvas!.width - totalWidth) / 2; // Center the entire spread
+     
+     // Set target positions for smooth animation
+     const axisY = this.canvas!.height / 2;
+     
+     sortedCards.forEach((card, index) => {
+       const x = startX + index * (cardWidth + spacing);
+       const y = axisY - card.height / 2;
+       card.setTargetPosition(x, y);
+     });
+     
+     console.log('🎮 Axis cards laid out:', sortedCards.length, 'cards with', spacing, 'px spacing');
+   }
 
   /**
    * Update LAN status display
@@ -1350,6 +1388,12 @@ class LANGameApp {
            
            // Remove from hand AFTER successful placement
            this.playerHand = this.playerHand.filter((c) => c !== releasedCard);
+           
+           // Center the player hand after card removal
+           this.layoutHand();
+           
+           // Center all cards on the axis with proper spacing
+           this.layoutAxisCards();
            
            console.log('🎮 Card successfully placed on axis');
         } else {
