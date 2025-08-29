@@ -272,8 +272,11 @@ class LANGameApp {
               this.canvas!.height - 320 * this.scale, // Deck Y position
               this.scale
             );
+            // Board card is on axis, not in hand - so show the measurement value
+            this.boardCard.isInHand = false;
             console.log('🎮 Board card created:', boardCardData.title);
             console.log('🎮 Board card object:', this.boardCard);
+            console.log('🎮 Board card isInHand set to false for measurement display');
           } else {
             console.error('🎮 Board card data not found for ID:', distribution.boardCard.id);
           }

@@ -145,10 +145,14 @@ export class GameScene {
           1.2 // Slightly larger for board card
         );
         
+        // Board card is on axis, not in hand - so show the measurement value
+        this.lanBoardCard.isInHand = false;
+        
         // Add card to scene (GameCard uses canvas, not PixiJS container)
         const pixiCard = this.createPixiCardRepresentation(this.lanBoardCard);
         this.container.addChild(pixiCard);
         console.log('🎮 GameScene: Board card added to scene');
+        console.log('🎮 GameScene: Board card isInHand set to false for measurement display');
         
         // Animate board card appearance
         this.animateCardAppearance(this.lanBoardCard, 0);
