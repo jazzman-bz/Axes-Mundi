@@ -1,6 +1,7 @@
 import { logger } from '@/utils/logger';
 import { loadDeck } from '@/data/deckLoader';
 import { Card as CardData } from '@/data/types';
+import { evaluatePlacement, isAxisCorrectlySorted } from '@/data/scoring';
 
 /**
  * LAN Game Manager - Handles card distribution for LAN mode without full game UI
@@ -15,6 +16,14 @@ export class LANGameManager {
   private serverPlayerName: string = '';
   private clientPlayerName: string = '';
   private currentPlayer: string = ''; // Wer ist am Zug
+  
+  // WebSocket client for non-server clients
+  private lanClient: any = null;
+  private onGameStateUpdateCallback: ((gameState: any) => void) | null = null;
+  
+  // Game state for card placement validation
+  private placedCards: CardData[] = []; // Cards placed on the axis
+  private gameStarted: boolean = false;
 
   constructor() {
     console.log('🎮 LANGameManager constructor called');
@@ -58,6 +67,9 @@ export class LANGameManager {
       this.currentPlayer = this.serverPlayerName;
     }
     
+    // Store updated current player
+    localStorage.setItem('currentPlayer', this.currentPlayer);
+    
     logger.info({
       scope: 'renderer/lan',
       msg: 'current player updated',
@@ -94,6 +106,20 @@ export class LANGameManager {
   }
 
   /**
+   * Get placed cards on axis
+   */
+  getPlacedCards(): CardData[] {
+    return this.placedCards;
+  }
+
+  /**
+   * Check if game has started
+   */
+  isGameStarted(): boolean {
+    return this.gameStarted;
+  }
+
+  /**
    * Get card distribution for canvas rendering
    */
   getCardDistribution(): any {
@@ -107,7 +133,9 @@ export class LANGameManager {
       serverHand: this.playerHand,
       clientHand: this.opponentHand,
       deckOrder: this.remainingCards,
-      currentPlayer: this.currentPlayer
+      currentPlayer: this.currentPlayer,
+      placedCards: this.placedCards,
+      gameStarted: this.gameStarted
     };
   }
 
@@ -136,18 +164,30 @@ export class LANGameManager {
       console.log('🎮 isServerClient:', this.isServerClient);
       
       if (!this.isServerClient) {
-        console.log('🎮 Not server client, returning early');
+        console.log('🎮 Not server client, initializing as LAN client');
         logger.info({
           scope: 'renderer/lan',
-          msg: 'LAN client - waiting for card distribution from server'
+          msg: 'LAN client - initializing WebSocket connection'
         });
+        
+        // Initialize as LAN client
+        await this.initializeAsLANClient();
         return;
       }
 
       console.log('🎮 Server client detected, proceeding with initialization');
 
-      // Load deck from localStorage
-      const selectedDeck = localStorage.getItem('selectedDeck') || 'space-height-de';
+      // Load deck from localStorage with validation
+      let selectedDeck = localStorage.getItem('selectedDeck') || 'space-height-de';
+      
+      // Validate that the selected deck exists, fallback to space-height-de if not
+      const validDecks = ['space-height-de', 'buildings-height-de', 'time-inventions-en', 'temperatures-temperature-de'];
+      if (!validDecks.includes(selectedDeck)) {
+        console.warn('🎮 Invalid deck ID in localStorage:', selectedDeck, 'falling back to space-height-de');
+        selectedDeck = 'space-height-de';
+        localStorage.setItem('selectedDeck', selectedDeck);
+      }
+      
       console.log('🎮 Selected deck from localStorage:', selectedDeck);
       console.log('🎮 All localStorage keys:', Object.keys(localStorage));
       console.log('🎮 selectedDeck value:', localStorage.getItem('selectedDeck'));
@@ -172,11 +212,17 @@ export class LANGameManager {
       const boardCardData = this.remainingCards.shift()!;
       this.boardCard = boardCardData;
       
+      // Initialize placed cards with board card
+      this.placedCards = [boardCardData];
+      
       // Deal cards for LAN mode
       this.dealCardsForLAN();
       
       // Set current player randomly
       this.setCurrentPlayerRandomly();
+      
+      // Mark game as started
+      this.gameStarted = true;
       
       // Card distribution is prepared but NOT sent yet
       // It will be sent after the canvas is initialized and cards are displayed
@@ -189,7 +235,8 @@ export class LANGameManager {
           boardCard: boardCardData.title, 
           remainingCards: this.remainingCards.length,
           playerHandSize: this.playerHand.length,
-          opponentHandSize: this.opponentHand.length
+          opponentHandSize: this.opponentHand.length,
+          gameStarted: this.gameStarted
         } 
       });
     } catch (error) {
@@ -197,6 +244,197 @@ export class LANGameManager {
         scope: 'renderer/lan', 
         msg: 'failed to initialize LAN game', 
         err: { message: error.message, stack: error.stack } 
+      });
+    }
+  }
+
+  /**
+   * Initialize as LAN client (non-server)
+   */
+  private async initializeAsLANClient(): Promise<void> {
+    try {
+      console.log('🎮 Initializing as LAN client...');
+      
+      // Get server connection details from localStorage
+      const serverUrl = localStorage.getItem('lanServerUrl') || 'ws://localhost:8080';
+      const playerName = this.clientPlayerName;
+      
+      console.log('🎮 Connecting to server:', serverUrl, 'as:', playerName);
+      
+      // Import and initialize LAN client
+      const { LANClient } = await import('./lan-client');
+      this.lanClient = new LANClient(serverUrl, playerName);
+      
+      // Set up message handlers
+      this.lanClient.onMessage((message: any) => {
+        this.handleWebSocketMessage(message);
+      });
+      
+      // Connect to server
+      await this.lanClient.connect();
+      
+      // Send ready status
+      this.lanClient.sendReady();
+      
+      logger.info({
+        scope: 'renderer/lan',
+        msg: 'LAN client initialized successfully',
+        meta: { serverUrl, playerName }
+      });
+      
+    } catch (error) {
+      logger.error({
+        scope: 'renderer/lan',
+        msg: 'failed to initialize LAN client',
+        err: { message: error.message, stack: error.stack }
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Handle WebSocket messages from server
+   */
+  private handleWebSocketMessage(message: any): void {
+    try {
+      console.log('🎮 LAN client received message:', message.type);
+      
+      switch (message.type) {
+        case 'cardPlacement':
+          this.handleRemoteCardPlacement(message);
+          break;
+        case 'gameStateUpdate':
+          this.handleRemoteGameStateUpdate(message);
+          break;
+        case 'currentPlayerUpdate':
+          this.handleRemoteCurrentPlayerUpdate(message);
+          break;
+        default:
+          console.log('🎮 Unknown message type:', message.type);
+      }
+      
+    } catch (error) {
+      logger.error({
+        scope: 'renderer/lan',
+        msg: 'failed to handle WebSocket message',
+        err: { message: error.message, stack: error.stack }
+      });
+    }
+  }
+
+  /**
+   * Handle remote card placement from server
+   */
+  private handleRemoteCardPlacement(message: any): void {
+    try {
+      console.log('🎮 Handling remote card placement:', message);
+      
+      // Update local game state
+      const { cardId, position, playerName } = message;
+      
+      // Find the card in the appropriate hand
+      let card: CardData | undefined;
+      if (playerName === this.serverPlayerName) {
+        card = this.opponentHand.find(c => c.id === cardId);
+      } else {
+        card = this.playerHand.find(c => c.id === cardId);
+      }
+      
+      if (card) {
+        // Remove from hand and add to placed cards
+        if (playerName === this.serverPlayerName) {
+          this.opponentHand = this.opponentHand.filter(c => c.id !== cardId);
+        } else {
+          this.playerHand = this.playerHand.filter(c => c.id !== cardId);
+        }
+        
+        this.placedCards.push(card);
+        
+        logger.info({
+          scope: 'renderer/lan',
+          msg: 'remote card placement processed',
+          meta: { cardId, position, playerName, placedCardsCount: this.placedCards.length }
+        });
+        
+        // Notify callback if set
+        if (this.onGameStateUpdateCallback) {
+          this.onGameStateUpdateCallback(this.getGameState());
+        }
+      }
+      
+    } catch (error) {
+      logger.error({
+        scope: 'renderer/lan',
+        msg: 'failed to handle remote card placement',
+        err: { message: error.message, stack: error.stack }
+      });
+    }
+  }
+
+  /**
+   * Handle remote game state update from server
+   */
+  private handleRemoteGameStateUpdate(message: any): void {
+    try {
+      console.log('🎮 Handling remote game state update:', message);
+      
+      // Update local game state
+      this.currentPlayer = message.currentPlayer;
+      this.placedCards = message.placedCards || [];
+      
+      // Update localStorage
+      localStorage.setItem('currentPlayer', this.currentPlayer);
+      
+      logger.info({
+        scope: 'renderer/lan',
+        msg: 'remote game state updated',
+        meta: { 
+          currentPlayer: this.currentPlayer,
+          placedCardsCount: this.placedCards.length
+        }
+      });
+      
+      // Notify callback if set
+      if (this.onGameStateUpdateCallback) {
+        this.onGameStateUpdateCallback(this.getGameState());
+      }
+      
+    } catch (error) {
+      logger.error({
+        scope: 'renderer/lan',
+        msg: 'failed to handle remote game state update',
+        err: { message: error.message, stack: error.stack }
+      });
+    }
+  }
+
+  /**
+   * Handle remote current player update from server
+   */
+  private handleRemoteCurrentPlayerUpdate(message: any): void {
+    try {
+      console.log('🎮 Handling remote current player update:', message);
+      
+      // Update local current player
+      this.currentPlayer = message.currentPlayer;
+      localStorage.setItem('currentPlayer', this.currentPlayer);
+      
+      logger.info({
+        scope: 'renderer/lan',
+        msg: 'remote current player updated',
+        meta: { currentPlayer: this.currentPlayer }
+      });
+      
+      // Notify callback if set
+      if (this.onGameStateUpdateCallback) {
+        this.onGameStateUpdateCallback(this.getGameState());
+      }
+      
+    } catch (error) {
+      logger.error({
+        scope: 'renderer/lan',
+        msg: 'failed to handle remote current player update',
+        err: { message: error.message, stack: error.stack }
       });
     }
   }
@@ -297,7 +535,9 @@ export class LANGameManager {
           id: card.id,
           position: index + 11
         })),
-        currentPlayer: this.currentPlayer
+        currentPlayer: this.currentPlayer,
+        placedCards: this.placedCards,
+        gameStarted: this.gameStarted
       };
 
       // Debug: Log the simplified distribution
@@ -308,31 +548,8 @@ export class LANGameManager {
       console.log('🎴 Client Hand IDs:', distribution.clientHand.map(card => card.id));
       console.log('🎴 Deck Order IDs:', distribution.deckOrder.map(card => card.id));
       console.log('🎴 Current Player:', distribution.currentPlayer);
-
-      // Send via IPC to main process AND directly via WebSocket
-      if (window.AXM && window.AXM.sendCardDistribution) {
-        window.AXM.sendCardDistribution(distribution);
-        
-        console.log('🎴 Starting card positions an client gesendet (IPC):', distribution);
-        
-        logger.info({
-          scope: 'renderer/lan',
-          msg: 'send to client via IPC...',
-          meta: {
-            boardCard: distribution.boardCard.id,
-            serverHandSize: distribution.serverHand.length,
-            clientHandSize: distribution.clientHand.length,
-            deckSize: distribution.deckOrder.length,
-            currentPlayer: distribution.currentPlayer
-          }
-        });
-      } else {
-        console.warn('🎴 AXM.sendCardDistribution not available');
-        logger.warn({
-          scope: 'renderer/lan',
-          msg: 'AXM.sendCardDistribution not available'
-        });
-      }
+      console.log('🎴 Placed Cards:', distribution.placedCards.map(card => card.id));
+      console.log('🎴 Game Started:', distribution.gameStarted);
 
       // Save card distribution to localStorage for GameScene to use
       localStorage.setItem('lanCardDistribution', JSON.stringify(distribution));
@@ -343,11 +560,13 @@ export class LANGameManager {
         window.AXM.sendCardDistribution(distribution);
         
         console.log('🎴 Card distribution sent via IPC to main process:', distribution);
-        console.log('🎴 Board card:', distribution.boardCard?.title);
+        console.log('🎴 Board card:', distribution.boardCard?.id);
         console.log('🎴 Server hand size:', distribution.serverHand.length);
         console.log('🎴 Client hand size:', distribution.clientHand.length);
         console.log('🎴 Deck size:', distribution.deckOrder.length);
         console.log('🎴 Current player:', distribution.currentPlayer);
+        console.log('🎴 Placed Cards:', distribution.placedCards.map(card => card.id));
+        console.log('🎴 Game Started:', distribution.gameStarted);
         
         logger.info({
           scope: 'renderer/lan',
@@ -357,7 +576,9 @@ export class LANGameManager {
             serverHandSize: distribution.serverHand.length,
             clientHandSize: distribution.clientHand.length,
             deckSize: distribution.deckOrder.length,
-            currentPlayer: distribution.currentPlayer
+            currentPlayer: distribution.currentPlayer,
+            placedCardsCount: distribution.placedCards.length,
+            gameStarted: distribution.gameStarted
           }
         });
       } else {
@@ -368,17 +589,7 @@ export class LANGameManager {
         });
       }
 
-      logger.info({
-        scope: 'renderer/lan',
-        msg: 'card distribution sent to client',
-        meta: {
-          boardCard: distribution.boardCard.id,
-          serverHandSize: distribution.serverHand.length,
-          clientHandSize: distribution.clientHand.length,
-          deckSize: distribution.deckOrder.length,
-          currentPlayer: distribution.currentPlayer
-        }
-      });
+      // Logging already done above
 
     } catch (error) {
       logger.error({
@@ -405,7 +616,9 @@ export class LANGameManager {
           boardCard: distribution.boardCard?.id,
           serverHandSize: distribution.serverHand?.length,
           clientHandSize: distribution.clientHand?.length,
-          deckSize: distribution.deckOrder?.length
+          deckSize: distribution.deckOrder?.length,
+          placedCardsCount: distribution.placedCards?.length,
+          gameStarted: distribution.gameStarted
         }
       });
 
@@ -442,6 +655,21 @@ export class LANGameManager {
         }
       });
 
+      logger.info({
+        scope: 'renderer/lan',
+        msg: 'placed cards received (list)',
+        meta: { 
+          placedCards: distribution.placedCards?.map((card: any) => card.id) || [],
+          placedCardsCount: distribution.placedCards?.length || 0
+        }
+      });
+
+      logger.info({
+        scope: 'renderer/lan',
+        msg: 'game started received:',
+        meta: { gameStarted: distribution.gameStarted }
+      });
+
       // For LAN client: Only log the distribution, don't create GameCard objects
       logger.info({
         scope: 'renderer/lan',
@@ -451,7 +679,9 @@ export class LANGameManager {
           serverHandIds: distribution.serverHand?.map((card: any) => card.id) || [],
           clientHandIds: distribution.clientHand?.map((card: any) => card.id) || [],
           deckCardIds: distribution.deckOrder?.map((card: any) => card.id) || [],
-          currentPlayer: distribution.currentPlayer
+          currentPlayer: distribution.currentPlayer,
+          placedCardsCount: distribution.placedCards?.length || 0,
+          gameStarted: distribution.gameStarted
         }
       });
 
@@ -462,5 +692,309 @@ export class LANGameManager {
         err: { message: (error as Error).message, stack: (error as Error).stack }
       });
     }
+  }
+
+  /**
+   * Place a card on the axis with validation (Server-Client only)
+   */
+  placeCard(cardId: string, position: 'left' | 'right'): { success: boolean; message: string; isCorrect: boolean; cardData: CardData | null } {
+    try {
+      // Only server-client can place cards
+      if (!this.isServerClient) {
+        logger.warn({
+          scope: 'renderer/lan',
+          msg: 'non-server client attempted to place card',
+          meta: { cardId, currentPlayer: this.currentPlayer }
+        });
+        return { success: false, message: 'Only server-client can place cards', isCorrect: false, cardData: null };
+      }
+
+      // Check if it's the current player's turn
+      const isServerTurn = this.currentPlayer === this.serverPlayerName;
+      const card = isServerTurn ? 
+        this.playerHand.find(c => c.id === cardId) : 
+        this.opponentHand.find(c => c.id === cardId);
+      
+      if (!card) {
+        logger.warn({
+          scope: 'renderer/lan',
+          msg: 'card not found in player hand',
+          meta: { cardId, currentPlayer: this.currentPlayer, isServerTurn }
+        });
+        return { success: false, message: 'Card not found in hand', isCorrect: false, cardData: null };
+      }
+
+      // Check if card is already placed
+      if (this.placedCards.some(c => c.id === cardId)) {
+        logger.warn({
+          scope: 'renderer/lan',
+          msg: 'card already placed on axis',
+          meta: { cardId, cardTitle: card.title }
+        });
+        return { success: false, message: 'Card already placed', isCorrect: false, cardData: null };
+      }
+
+      // Validate placement using the same logic as KI game
+      const isCorrect = this.validateCardPlacement(card, position);
+      
+      if (isCorrect) {
+        // Place card correctly - stays on axis and turns green
+        this.placedCards.push(card);
+        
+        // Remove from player's hand
+        if (isServerTurn) {
+          this.playerHand = this.playerHand.filter(c => c.id !== cardId);
+        } else {
+          this.opponentHand = this.opponentHand.filter(c => c.id !== cardId);
+        }
+        
+        // Give new card if available
+        if (this.remainingCards.length > 0) {
+          const newCard = this.remainingCards.shift()!;
+          if (isServerTurn) {
+            this.playerHand.push(newCard);
+          } else {
+            this.opponentHand.push(newCard);
+          }
+        }
+        
+        logger.info({
+          scope: 'renderer/lan',
+          msg: 'card placed correctly - stays on axis and turns green',
+          meta: { 
+            cardId, 
+            cardTitle: card.title, 
+            position, 
+            currentPlayer: this.currentPlayer,
+            placedCardsCount: this.placedCards.length
+          }
+        });
+        
+        // Check if game is won
+        if (this.checkGameWin()) {
+          return { 
+            success: true, 
+            message: `Game won by ${this.currentPlayer}!`, 
+            isCorrect: true,
+            cardData: card
+          };
+        }
+        
+        // Switch turns
+        this.updateCurrentPlayer();
+        
+        // Send game state update to other clients via WebSocket
+        if (this.lanClient) {
+          this.lanClient.sendGameStateUpdate({
+            currentPlayer: this.currentPlayer,
+            placedCards: this.placedCards
+          });
+        }
+        
+        return { 
+          success: true, 
+          message: 'Card placed correctly! Stays on axis and turns green.', 
+          isCorrect: true,
+          cardData: card
+        };
+      } else {
+        // Incorrect placement - card stays on axis but turns red
+        // In this implementation, we don't move to graveyard yet
+        this.placedCards.push(card);
+        
+        // Remove from player's hand
+        if (isServerTurn) {
+          this.playerHand = this.playerHand.filter(c => c.id !== cardId);
+        } else {
+          this.opponentHand = this.opponentHand.filter(c => c.id !== cardId);
+        }
+        
+        // Give new card if available
+        if (this.remainingCards.length > 0) {
+          const newCard = this.remainingCards.shift()!;
+          if (isServerTurn) {
+            this.playerHand.push(newCard);
+          } else {
+            this.opponentHand.push(newCard);
+          }
+        }
+        
+        logger.info({
+          scope: 'renderer/lan',
+          msg: 'card placed incorrectly - stays on axis but turns red',
+          meta: { 
+            cardId, 
+            cardTitle: card.title, 
+            position, 
+            currentPlayer: this.currentPlayer,
+            placedCardsCount: this.placedCards.length
+          }
+        });
+        
+        // Switch turns
+        this.updateCurrentPlayer();
+        
+        // Send game state update to other clients via WebSocket
+        if (this.lanClient) {
+          this.lanClient.sendGameStateUpdate({
+            currentPlayer: this.currentPlayer,
+            placedCards: this.placedCards
+          });
+        }
+        
+        return { 
+          success: true, 
+          message: 'Card placed incorrectly - stays on axis but turns red.', 
+          isCorrect: false,
+          cardData: card
+        };
+      }
+      
+    } catch (error) {
+      logger.error({
+        scope: 'renderer/lan',
+        msg: 'failed to place card',
+        err: { message: error.message, stack: error.stack }
+      });
+      return { success: false, message: 'Failed to place card', isCorrect: false, cardData: null };
+    }
+  }
+
+  /**
+   * Validate card placement using the same logic as KI game
+   */
+  private validateCardPlacement(card: CardData, position: 'left' | 'right'): boolean {
+    try {
+      // If no cards are placed yet, any placement is valid
+      if (this.placedCards.length === 0) {
+        return true;
+      }
+      
+      // Find the center card (first placed card - board card)
+      const centerCard = this.placedCards[0];
+      
+      // Use the scoring function to validate placement (same as KI game)
+      const isCorrect = evaluatePlacement(card, centerCard, position === 'left');
+      
+      logger.info({
+        scope: 'renderer/lan',
+        msg: 'card placement validated using KI game logic',
+        meta: { 
+          cardTitle: card.title, 
+          centerCardTitle: centerCard.title, 
+          position, 
+          isCorrect,
+          cardValue: card.value,
+          cardUnit: card.unit,
+          centerValue: centerCard.value,
+          centerUnit: centerCard.unit
+        }
+      });
+      
+      return isCorrect;
+      
+    } catch (error) {
+      logger.error({
+        scope: 'renderer/lan',
+        msg: 'failed to validate card placement',
+        err: { message: error.message, stack: error.stack }
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Check if game is won (same logic as KI game)
+   */
+  private checkGameWin(): boolean {
+    try {
+      // Game is won when all cards from both hands are placed
+      const totalHandCards = this.playerHand.length + this.opponentHand.length;
+      const totalPlacedCards = this.placedCards.length;
+      
+      // Win condition: all hand cards placed + board card
+      const isWon = totalHandCards === 0 && totalPlacedCards > 0;
+      
+      if (isWon) {
+        logger.info({
+          scope: 'renderer/lan',
+          msg: 'game won - all cards placed',
+          meta: { 
+            winner: this.currentPlayer,
+            totalPlacedCards,
+            totalHandCards
+          }
+        });
+      }
+      
+      return isWon;
+      
+    } catch (error) {
+      logger.error({
+        scope: 'renderer/lan',
+        msg: 'failed to check game win',
+        err: { message: error.message, stack: error.stack }
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Get game state for synchronization
+   */
+  getGameState(): any {
+    return {
+      currentPlayer: this.currentPlayer,
+      placedCards: this.placedCards,
+      serverHand: this.playerHand,
+      clientHand: this.opponentHand,
+      remainingCards: this.remainingCards.length,
+      gameStarted: this.gameStarted
+    };
+  }
+
+  /**
+   * Update game state from server (for client)
+   */
+  updateGameState(gameState: any): void {
+    try {
+      if (this.isServerClient) {
+        return; // Server-client doesn't receive game state updates
+      }
+      
+      this.currentPlayer = gameState.currentPlayer;
+      this.placedCards = gameState.placedCards || [];
+      this.playerHand = gameState.serverHand || [];
+      this.opponentHand = gameState.clientHand || [];
+      this.gameStarted = gameState.gameStarted || false;
+      
+      // Update localStorage
+      localStorage.setItem('currentPlayer', this.currentPlayer);
+      
+      logger.info({
+        scope: 'renderer/lan',
+        msg: 'game state updated from server',
+        meta: { 
+          currentPlayer: this.currentPlayer,
+          placedCardsCount: this.placedCards.length,
+          serverHandSize: this.playerHand.length,
+          clientHandSize: this.opponentHand.length
+        }
+      });
+      
+    } catch (error) {
+      logger.error({
+        scope: 'renderer/lan',
+        msg: 'failed to update game state',
+        err: { message: error.message, stack: error.stack }
+      });
+    }
+  }
+
+  /**
+   * Set callback for game state updates
+   */
+  onGameStateUpdate(callback: (gameState: any) => void): void {
+    this.onGameStateUpdateCallback = callback;
   }
 }

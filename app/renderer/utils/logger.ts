@@ -15,6 +15,3 @@ export const logger = pino({
 
 // Log renderer startup
 logger.info({ scope: 'renderer/logger', msg: 'renderer logger initialized' });
-
-// Log renderer startup
-logger.info({ scope: 'renderer/logger', msg: 'renderer logger initialized' });

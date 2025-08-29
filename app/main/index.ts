@@ -199,29 +199,84 @@ function setupIPC(): void {
     }
   });
 
-  // Place card (placeholder for game logic)
-  ipcMain.handle('place-card', async (_, index: number) => {
+  // LAN card placement with WebSocket integration
+  ipcMain.handle('lan-place-card', async (_, cardId: string, position: 'left' | 'right') => {
     try {
-      logger.info({ scope: 'main/game', msg: 'card placement requested', meta: { index } });
+      logger.info({ 
+        scope: 'main/lan', 
+        msg: 'LAN card placement requested', 
+        meta: { cardId, position } 
+      });
       
       // Validate input
-      if (typeof index !== 'number' || index < 0) {
-        throw new Error('Invalid card index');
+      if (typeof cardId !== 'string' || !cardId) {
+        throw new Error('Invalid card ID');
+      }
+      if (position !== 'left' && position !== 'right') {
+        throw new Error('Invalid position - must be left or right');
       }
 
-      // TODO: Implement actual game logic
-      const result = { success: true, score: 100 };
+      // Send card placement to all connected clients via WebSocket
+      if (lanServer) {
+        // Get current player from renderer (this would need to be passed)
+        const currentPlayer = 'Server'; // TODO: Get actual current player
+        
+        await lanServer.sendCardPlacement(cardId, position, currentPlayer);
+        
+        logger.info({ 
+          scope: 'main/lan', 
+          msg: 'card placement sent to clients via WebSocket', 
+          meta: { cardId, position, currentPlayer } 
+        });
+        
+        return { success: true, message: 'Card placement sent to clients' };
+      } else {
+        logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
+        return { success: false, error: 'No LAN server running' };
+      }
       
-      logger.info({ scope: 'main/game', msg: 'card placed successfully', meta: { index, result } });
-      return result;
     } catch (error: any) {
-      logger.error({ 
-        scope: 'main/game', 
-        msg: 'card placement failed', 
-        meta: { index },
-        err: { message: error.message, stack: error.stack } 
+      logger.error({
+        scope: 'main/lan',
+        msg: 'Failed to handle LAN card placement',
+        err: { message: error.message }
       });
-      throw error;
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Update LAN game state (local only, no WebSocket)
+  ipcMain.handle('update-lan-game-state', async (_, gameState: any) => {
+    try {
+      logger.info({ 
+        scope: 'main/lan', 
+        msg: 'LAN game state update requested (local only)',
+        meta: { 
+          currentPlayer: gameState.currentPlayer,
+          placedCardsCount: gameState.placedCards?.length || 0
+        }
+      });
+      
+      // For now, just log the game state update - no WebSocket transmission
+      // Later we can add WebSocket functionality here
+      logger.info({ 
+        scope: 'main/lan', 
+        msg: 'game state updated locally', 
+        meta: { 
+          currentPlayer: gameState.currentPlayer,
+          placedCardsCount: gameState.placedCards?.length || 0
+        }
+      });
+      
+      return { success: true, message: 'Game state updated locally' };
+      
+    } catch (error: any) {
+      logger.error({
+        scope: 'main/lan',
+        msg: 'Failed to update LAN game state',
+        err: { message: error.message }
+      });
+      return { success: false, error: error.message };
     }
   });
 

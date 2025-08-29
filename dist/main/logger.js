@@ -26,7 +26,7 @@ const logFile = node_path_1.default.join(logDir, 'latest.log');
  * Main process logger
  */
 exports.logger = (0, pino_1.default)({
-    level: process.env.AXM_LOG_LEVEL || (process.env.AXM_ENV === 'development' ? 'debug' : 'info'),
+    level: process.env.AXM_LOG_LEVEL || (process.env.AXM_ENV === 'development' ? 'info' : 'info'),
     base: null,
     timestamp: () => `,"t":"${new Date().toISOString()}"`,
     formatters: {

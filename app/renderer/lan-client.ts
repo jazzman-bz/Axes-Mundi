@@ -131,6 +131,27 @@ export class LANClient {
   }
 
   /**
+   * Send card placement
+   */
+  sendCardPlacement(cardId: string, position: number): void {
+    this.sendMessage({
+      type: 'placeCard',
+      cardId,
+      position
+    });
+  }
+
+  /**
+   * Send game state update
+   */
+  sendGameStateUpdate(gameState: any): void {
+    this.sendMessage({
+      type: 'gameStateUpdate',
+      ...gameState
+    });
+  }
+
+  /**
    * Set message callback
    */
   onMessage(callback: (message: LANMessage) => void): void {

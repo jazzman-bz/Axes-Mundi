@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AXM Test</title>
+</head>
+<body>
+    <h1>AXM Test</h1>
+    <div id="status">Checking AXM availability...</div>
+    
+    <script>
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', () => {
+            const statusDiv = document.getElementById('status');
+            
+            // Check if AXM is available
+            if (window.AXM) {
+                console.log('✅ AXM object found:', window.AXM);
+                console.log('✅ Available methods:', Object.keys(window.AXM));
+                
+                if (window.AXM.placeLANCard) {
+                    console.log('✅ placeLANCard method found');
+                    statusDiv.innerHTML = '✅ AXM.placeLANCard is available!';
+                    statusDiv.style.color = 'green';
+                } else {
+                    console.log('❌ placeLANCard method NOT found');
+                    statusDiv.innerHTML = '❌ AXM.placeLANCard is NOT available';
+                    statusDiv.style.color = 'red';
+                }
+            } else {
+                console.log('❌ AXM object NOT found');
+                statusDiv.innerHTML = '❌ AXM object is NOT available';
+                statusDiv.style.color = 'red';
+            }
+            
+            // Test IPC connection
+            if (window.AXM && window.AXM.testIPC) {
+                window.AXM.testIPC()
+                    .then((result: any) => {
+                        console.log('✅ IPC test result:', result);
+                    })
+                    .catch((error: any) => {
+                        console.error('❌ IPC test failed:', error);
+                    });
+            }
+        });
+    </script>
+</body>
+</html>
+
+

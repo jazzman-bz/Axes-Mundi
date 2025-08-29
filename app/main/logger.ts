@@ -23,7 +23,7 @@ const logFile = path.join(logDir, 'latest.log');
  * Main process logger
  */
 export const logger = pino({
-  level: process.env.AXM_LOG_LEVEL || (process.env.AXM_ENV === 'development' ? 'debug' : 'info'),
+  level: process.env.AXM_LOG_LEVEL || (process.env.AXM_ENV === 'development' ? 'info' : 'info'),
   base: null,
   timestamp: () => `,"t":"${new Date().toISOString()}"`,
   formatters: {

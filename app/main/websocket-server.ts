@@ -125,6 +125,12 @@ export class LANWebSocketServer {
       case 'cardDistribution':
         this.handleCardDistribution(playerId, message);
         break;
+      case 'placeCard':
+        this.handleCardPlacement(playerId, message);
+        break;
+      case 'gameStateUpdate':
+        this.handleGameStateUpdate(playerId, message);
+        break;
       default:
         logger.warn({ 
           scope: 'main/websocket', 
@@ -186,16 +192,6 @@ export class LANWebSocketServer {
         totalPlayers: this.players.size
       } 
     });
-
-    // Send notification to renderer process to update UI with client name
-    if (global.mainWindow && global.mainWindow.webContents) {
-      global.mainWindow.webContents.send('lan-status-update', {
-        type: 'playerConnected',
-        playerName,
-        clientPlayerName: playerName, // Store client name for server-client
-        message: `Player ${playerName} connected to server!`
-      });
-    }
 
     // Log current server state
     logger.info({ 
@@ -308,14 +304,19 @@ export class LANWebSocketServer {
       }
     });
 
-    // Debug: Log the complete distribution received from renderer
-    console.log('🎴 Main process received card distribution:');
-    console.log('🎴 Deck ID:', distribution.deckId);
-    console.log('🎴 Board Card:', distribution.boardCard ? distribution.boardCard.title : 'none');
-    console.log('🎴 Server Hand Size:', distribution.serverHand?.length || 0);
-    console.log('🎴 Client Hand Size:', distribution.clientHand?.length || 0);
-    console.log('🎴 Deck Size:', distribution.deckOrder?.length || 0);
-    console.log('🎴 Current Player:', distribution.currentPlayer);
+    // Log card distribution details (structured logging)
+    logger.info({
+      scope: 'main/websocket',
+      msg: 'Card distribution details',
+      meta: {
+        deckId: distribution.deckId,
+        boardCard: distribution.boardCard?.title || 'none',
+        serverHandSize: distribution.serverHand?.length || 0,
+        clientHandSize: distribution.clientHand?.length || 0,
+        deckSize: distribution.deckOrder?.length || 0,
+        currentPlayer: distribution.currentPlayer
+      }
+    });
 
     // Send to all connected clients
     for (const [, player] of this.players) {
@@ -342,14 +343,11 @@ export class LANWebSocketServer {
       player.ws.send(JSON.stringify(message));
     }
 
-    // Send notification to renderer process to update UI
-    if (global.mainWindow && global.mainWindow.webContents) {
-      global.mainWindow.webContents.send('lan-status-update', {
-        type: 'cardDistribution',
-        distribution,
-        message: 'Card distribution sent to client'
-      });
-    }
+    // Card distribution sent - no UI update needed
+    logger.info({
+      scope: 'main/websocket',
+      msg: 'Card distribution sent to all clients - no UI update needed'
+    });
   }
 
   /**
@@ -491,14 +489,12 @@ export class LANWebSocketServer {
       } 
     });
 
-    // Send notification to renderer process to update UI
-    if (global.mainWindow && global.mainWindow.webContents) {
-      global.mainWindow.webContents.send('lan-status-update', {
-        type: 'cardDistribution',
-        distribution: message,
-        message: 'Card distribution received from client'
-      });
-    }
+    // Card distribution doesn't need UI update - just log it
+    logger.info({
+      scope: 'main/websocket',
+      msg: 'Card distribution received from client - no UI update needed',
+      meta: { playerId, playerName: player.name }
+    });
   }
 
   /**
@@ -520,6 +516,120 @@ export class LANWebSocketServer {
         type: 'currentPlayerUpdate',
         currentPlayer,
         message: `Spieler ${currentPlayer} ist am Zug!`
+      });
+    }
+  }
+
+  /**
+   * Send card placement to all connected clients
+   */
+  async sendCardPlacement(cardId: string, position: 'left' | 'right', playerName: string): Promise<void> {
+    logger.info({
+      scope: 'main/websocket',
+      msg: 'Sending card placement to clients',
+      meta: { cardId, position, playerName }
+    });
+
+    // Send to all connected clients
+    for (const [, player] of this.players) {
+      player.ws.send(JSON.stringify({
+        type: 'cardPlacement',
+        cardId,
+        position,
+        playerName
+      }));
+    }
+
+    // Only send UI update for card placement (important game event)
+    if (global.mainWindow && global.mainWindow.webContents) {
+      global.mainWindow.webContents.send('lan-status-update', {
+        type: 'cardPlacement',
+        cardId,
+        position,
+        playerName,
+        message: `Card ${cardId} placed at ${position} by ${playerName}`
+      });
+    }
+  }
+
+  /**
+   * Handle card placement from client
+   */
+  private handleCardPlacement(playerId: string, message: any): void {
+    const player = this.players.get(playerId);
+    if (!player) return;
+
+    logger.info({ 
+      scope: 'main/websocket', 
+      msg: 'Received card placement from client', 
+      meta: { 
+        playerId, 
+        playerName: player.name,
+        cardId: message.cardId,
+        position: message.position
+      } 
+    });
+
+    // Broadcast card placement to all other clients
+    this.broadcastToOthers(playerId, {
+      type: 'cardPlacement',
+      cardId: message.cardId,
+      position: message.position,
+      playerName: player.name
+    });
+
+    // Send notification to renderer process to update UI
+    if (global.mainWindow && global.mainWindow.webContents) {
+      global.mainWindow.webContents.send('lan-status-update', {
+        type: 'cardPlacement',
+        cardId: message.cardId,
+        position: message.position,
+        playerName: player.name,
+        message: `Karte ${message.cardId} wurde von ${player.name} platziert`
+      });
+    }
+  }
+
+  /**
+   * Handle game state update from client
+   */
+  private handleGameStateUpdate(playerId: string, message: any): void {
+    const player = this.players.get(playerId);
+    if (!player) return;
+
+    logger.info({ 
+      scope: 'main/websocket', 
+      msg: 'Received game state update from client', 
+      meta: { 
+        playerId, 
+        playerName: player.name,
+        currentPlayer: message.currentPlayer,
+        placedCardsCount: message.placedCards?.length || 0
+      } 
+    });
+
+    // Broadcast game state update to all other clients
+    this.broadcastToOthers(playerId, {
+      type: 'gameStateUpdate',
+      currentPlayer: message.currentPlayer,
+      placedCards: message.placedCards,
+      playerName: player.name
+    });
+
+    // Send notification to renderer process to update UI
+    if (global.mainWindow && global.mainWindow.webContents) {
+      global.mainWindow.webContents.send('lan-status-update', {
+        type: 'gameStateUpdate',
+        currentPlayer: message.currentPlayer,
+        placedCards: message.placedCards,
+        message: 'Game state updated from client'
+      });
+      
+      // Also send current player update separately for UI synchronization
+      global.mainWindow.webContents.send('lan-status-update', {
+        type: 'currentPlayerUpdate',
+        currentPlayer: message.currentPlayer,
+        message: `Spieler ${message.currentPlayer} ist am Zug!`
       });
     }
   }
