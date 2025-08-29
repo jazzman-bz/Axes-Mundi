@@ -54,17 +54,20 @@ class LANGameApp {
        // Load logo image
        this.loadLogoImage();
        
-       // Initialize LAN game manager
-       await this.initLANGame();
+             // Initialize LAN game manager
+      await this.initLANGame();
       
       // Start game loop (like Single-Player)
       this.startGameLoop();
+      
+      // Update LAN info display
+      this.updateLANInfo();
       
             // For server-client: distribute cards on canvas first, then send to client
       if (isServerClient) {
         await this.handleServerClientFlow();
       } else {
-        // For client: wait for card distribution from server
+        // For client: load card distribution from localStorage and display
         await this.handleClientFlow();
       }
       
@@ -392,6 +395,79 @@ class LANGameApp {
    }
 
   /**
+   * Deal a card to the client (client perspective - own hand at bottom)
+   */
+  private dealCardToClient(cardData: any, deck: any): void {
+    console.log('🎮 Client: Dealing card to client hand:', cardData);
+    
+    // Find the actual card data by ID
+    const actualCardData = deck.cards.find(card => card.id === cardData.id);
+    if (!actualCardData) {
+      console.error('🎮 Client: Card not found in deck:', cardData.id);
+      return;
+    }
+    
+    console.log('🎮 Client: Found actual card data:', actualCardData);
+    
+    const card = new GameCard(
+      actualCardData,
+      deck,
+      50 * this.scale, // Start at deck position
+      this.canvas!.height - 320 * this.scale, // Deck Y position
+      this.scale
+    );
+    
+    console.log('🎮 Client: GameCard created:', card);
+    
+    // Add to player hand (client sees their own cards at bottom)
+    this.playerHand.push(card);
+    
+    // Then layout to set target positions (this will animate the cards)
+    this.layoutHand();
+    
+    console.log('🎮 Client: Card dealt to client hand:', actualCardData.title);
+    console.log('🎮 Client: Player hand now has', this.playerHand.length, 'cards');
+  }
+
+  /**
+   * Deal a card to the server (client perspective - server's hand at top, card backs)
+   */
+  private dealCardToServer(cardData: any, deck: any): void {
+    console.log('🎮 Client: Dealing card to server hand (card back):', cardData);
+    
+    // Find the actual card data by ID
+    const actualCardData = deck.cards.find(card => card.id === cardData.id);
+    if (!actualCardData) {
+      console.error('🎮 Client: Card not found in deck:', cardData.id);
+      return;
+    }
+    
+    console.log('🎮 Client: Found actual card data:', actualCardData);
+    
+    const card = new GameCard(
+      actualCardData,
+      deck,
+      50 * this.scale, // Start at deck position
+      this.canvas!.height - 320 * this.scale, // Deck Y position
+      this.scale
+    );
+    
+    console.log('🎮 Client: GameCard created:', card);
+    
+    // Show card back for server's hand (client can't see server's cards)
+    card.showCardBack = true;
+    
+    // Add to opponent hand (client sees server's cards at top)
+    this.opponentHand.push(card);
+    
+    // Then layout to set target positions (this will animate the cards)
+    this.layoutOpponentHand();
+    
+    console.log('🎮 Client: Card dealt to server hand (card back):', actualCardData.title);
+    console.log('🎮 Client: Opponent hand now has', this.opponentHand.length, 'cards');
+  }
+
+  /**
    * Start game loop (like Single-Player)
    */
   private startGameLoop(): void {
@@ -705,19 +781,92 @@ class LANGameApp {
   }
 
   /**
-   * Handle client flow: wait for card distribution from server
+   * Handle client flow: load card distribution from localStorage and display
    */
   private async handleClientFlow(): Promise<void> {
     try {
       console.log('🎮 Handling client flow...');
       
-      this.updateLANStatus('Warte auf Kartenverteilung vom Server...');
+      this.updateLANStatus('Lade Kartenverteilung...');
       
-      // Client will receive card distribution via WebSocket
-      // This is handled in the landing.js handleCardDistributionFromServer method
+      // Client loads card distribution from localStorage (received via WebSocket)
+      const cardDistributionStr = localStorage.getItem('lanCardDistribution');
+      if (cardDistributionStr) {
+        const distribution = JSON.parse(cardDistributionStr);
+        console.log('🎮 Client: Loaded card distribution from localStorage:', distribution);
+        
+        // Load deck for image folder reference
+        const { loadDeck } = await import('@/data/deckLoader');
+        const deck = await loadDeck(distribution.deckId);
+        
+        if (!deck) {
+          throw new Error('Failed to load deck');
+        }
+        
+        console.log('🎮 Client: Deck loaded successfully:', deck.name);
+        
+        // Store remaining cards for deck visualization
+        this.remainingCards = [...deck.cards];
+        
+        // CLIENT PERSPECTIVE: 
+        // - Client sees their own hand (clientHand) at the bottom
+        // - Client sees server's hand (serverHand) at the top (card backs)
+        // - Board card is in the center
+        
+        // Create board card
+        if (distribution.boardCard) {
+          const boardCardData = deck.cards.find(card => card.id === distribution.boardCard.id);
+          if (boardCardData) {
+            console.log('🎮 Client: Creating board card:', boardCardData.title);
+            this.boardCard = new GameCard(
+              boardCardData,
+              deck,
+              50 * this.scale,
+              this.canvas!.height - 320 * this.scale,
+              this.scale
+            );
+            // Board card is on axis, not in hand - so show the measurement value
+            this.boardCard.isInHand = false;
+            console.log('🎮 Client: Board card created with measurement display');
+          }
+        }
+        
+        // Create CLIENT hand cards (bottom) - these are the client's own cards
+        if (distribution.clientHand && distribution.clientHand.length > 0) {
+          console.log('🎮 Client: Creating', distribution.clientHand.length, 'client hand cards (bottom)');
+          for (let i = 0; i < distribution.clientHand.length; i++) {
+            setTimeout(() => {
+              this.dealCardToClient(distribution.clientHand[i], deck);
+            }, i * 200);
+          }
+        }
+        
+        // Create SERVER hand cards (top) - show as card backs
+        if (distribution.serverHand && distribution.serverHand.length > 0) {
+          console.log('🎮 Client: Creating', distribution.serverHand.length, 'server hand cards (top, card backs)');
+          for (let i = 0; i < distribution.serverHand.length; i++) {
+            setTimeout(() => {
+              this.dealCardToServer(distribution.serverHand[i], deck);
+            }, 1200 + i * 200);
+          }
+        }
+        
+        // Animate board card to center
+        setTimeout(() => {
+          if (this.boardCard) {
+            this.animateBoardCardToCenter();
+          }
+        }, 3000);
+        
+        this.updateLANStatus('Kartenverteilung geladen! Spiel bereit.');
+        
+      } else {
+        throw new Error('No card distribution found in localStorage');
+      }
       
     } catch (error) {
       console.error('🎮 Failed to handle client flow:', error);
+      this.showError('Fehler beim Laden der Kartenverteilung.');
       throw error;
     }
   }
@@ -801,6 +950,37 @@ class LANGameApp {
       }
     } catch (error) {
       console.error('🎮 Failed to update LAN status:', error);
+    }
+  }
+
+  /**
+   * Update LAN info display with player names
+   */
+  private updateLANInfo(): void {
+    try {
+      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      const serverPlayerName = localStorage.getItem('serverPlayerName') || 'Server';
+      const clientPlayerName = localStorage.getItem('clientPlayerName') || 'Client';
+      
+      const playerNameElement = document.getElementById('player-name');
+      const opponentNameElement = document.getElementById('opponent-name');
+      const currentTurnElement = document.getElementById('current-turn');
+      
+      if (isServerClient) {
+        // Server-Client perspective
+        if (playerNameElement) playerNameElement.textContent = `Spieler: ${serverPlayerName}`;
+        if (opponentNameElement) opponentNameElement.textContent = `Gegner: ${clientPlayerName}`;
+      } else {
+        // Client perspective
+        if (playerNameElement) playerNameElement.textContent = `Spieler: ${clientPlayerName}`;
+        if (opponentNameElement) opponentNameElement.textContent = `Gegner: ${serverPlayerName}`;
+      }
+      
+      if (currentTurnElement) currentTurnElement.textContent = 'Zug: Wird bestimmt...';
+      
+      console.log('🎮 LAN info updated:', { isServerClient, serverPlayerName, clientPlayerName });
+    } catch (error) {
+      console.error('🎮 Failed to update LAN info:', error);
     }
   }
 

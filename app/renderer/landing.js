@@ -783,7 +783,14 @@ class LandingPageController {
           console.log('🎴 Client: Card distribution saved to localStorage');
           
           // Show success message
-          this.showConnectionStatus(`Kartenverteilung erhalten! Spiel kann starten.`, false);
+          this.showConnectionStatus(`Kartenverteilung erhalten! Starte Spiel...`, false);
+          
+          // CLIENT: Start the game automatically after receiving card distribution
+          console.log('🎮 Client: Starting game after receiving card distribution');
+          setTimeout(() => {
+            this.startClientGame(distribution.deckId);
+          }, 2000); // 2 second delay for better UX
+          
         } else {
           console.error('🎴 Client: No distribution object in message');
           this.showError('Fehler: Keine Kartendaten erhalten.');
@@ -1329,6 +1336,40 @@ class LandingPageController {
     } catch (error) {
       console.error('🎮 Failed to start LAN game:', error);
       console.error('🎮 Error stack:', error.stack);
+      this.showError('Fehler beim Starten des LAN-Spiels.');
+    }
+  }
+
+  /**
+   * Start LAN game (client only)
+   */
+  async startClientGame(deckId) {
+    try {
+      console.log('🎮 Starting LAN game for client...');
+      console.log('🎮 Deck ID:', deckId);
+      console.log('🎮 isServerClient:', this.isServerClient);
+      console.log('🎮 serverPlayerName:', this.serverPlayerName);
+      console.log('🎮 clientPlayerName:', this.clientPlayerName);
+      
+      // Set the selected deck in localStorage
+      localStorage.setItem('selectedDeck', deckId);
+      console.log('🎮 Selected deck saved to localStorage:', deckId);
+      
+      // Set LAN mode flag in localStorage
+      localStorage.setItem('selectedGameType', 'lan');
+      
+      // Show success message and redirect to LAN game
+      this.showConnectionStatus('LAN-Spiel gestartet - Wechsle zu Spielfläche...', false);
+      
+      // Redirect to LAN game after 2 seconds
+      setTimeout(() => {
+        console.log('🎮 Client: Redirecting to lan-game.html...');
+        window.location.href = './lan-game.html';
+      }, 2000);
+      
+    } catch (error) {
+      console.error('🎮 Client: Failed to start LAN game:', error);
+      console.error('🎮 Client: Error stack:', error.stack);
       this.showError('Fehler beim Starten des LAN-Spiels.');
     }
   }
