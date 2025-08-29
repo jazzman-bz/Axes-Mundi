@@ -23,7 +23,7 @@ export class LANGameManager {
     this.isServerClient = localStorage.getItem('isServerClient') === 'true';
     this.serverPlayerName = localStorage.getItem('serverPlayerName') || 'Server';
     this.clientPlayerName = localStorage.getItem('clientPlayerName') || 'Client';
-    // currentPlayer wird beim startingPlayer Event gesetzt
+    // currentPlayer wird beim Spielstart zufällig gesetzt
     
     console.log('🎮 LANGameManager constructor - isServerClient set to:', this.isServerClient);
     console.log('🎮 LANGameManager constructor - serverPlayerName:', this.serverPlayerName);
@@ -31,15 +31,20 @@ export class LANGameManager {
   }
 
   /**
-   * Set current player from starting player event
+   * Set current player randomly at game start
    */
-  setStartingPlayer(startingPlayer: string): void {
-    this.currentPlayer = startingPlayer;
+  setCurrentPlayerRandomly(): void {
+    // Random selection: true = server starts, false = client starts
+    const serverStarts = Math.random() < 0.5;
+    this.currentPlayer = serverStarts ? this.serverPlayerName : this.clientPlayerName;
+    
+    // Store current player in localStorage for consistency
+    localStorage.setItem('currentPlayer', this.currentPlayer);
     
     logger.info({
       scope: 'renderer/lan',
-      msg: 'starting player set',
-      meta: { startingPlayer: this.currentPlayer }
+      msg: 'current player set randomly',
+      meta: { currentPlayer: this.currentPlayer, serverStarts }
     });
   }
 
@@ -102,7 +107,7 @@ export class LANGameManager {
       serverHand: this.playerHand,
       clientHand: this.opponentHand,
       deckOrder: this.remainingCards,
-      startingPlayer: this.currentPlayer
+      currentPlayer: this.currentPlayer
     };
   }
 
@@ -170,9 +175,12 @@ export class LANGameManager {
       // Deal cards for LAN mode
       this.dealCardsForLAN();
       
-             // Card distribution is prepared but NOT sent yet
-       // It will be sent after the canvas is initialized and cards are displayed
-       console.log('🎴 Card distribution prepared but not sent yet');
+      // Set current player randomly
+      this.setCurrentPlayerRandomly();
+      
+      // Card distribution is prepared but NOT sent yet
+      // It will be sent after the canvas is initialized and cards are displayed
+      console.log('🎴 Card distribution prepared but not sent yet');
       
       logger.info({ 
         scope: 'renderer/lan', 
@@ -289,7 +297,7 @@ export class LANGameManager {
           id: card.id,
           position: index + 11
         })),
-        startingPlayer: this.currentPlayer
+        currentPlayer: this.currentPlayer
       };
 
       // Debug: Log the simplified distribution
@@ -299,7 +307,7 @@ export class LANGameManager {
       console.log('🎴 Server Hand IDs:', distribution.serverHand.map(card => card.id));
       console.log('🎴 Client Hand IDs:', distribution.clientHand.map(card => card.id));
       console.log('🎴 Deck Order IDs:', distribution.deckOrder.map(card => card.id));
-      console.log('🎴 Starting Player:', distribution.startingPlayer);
+      console.log('🎴 Current Player:', distribution.currentPlayer);
 
       // Send via IPC to main process AND directly via WebSocket
       if (window.AXM && window.AXM.sendCardDistribution) {
@@ -315,7 +323,7 @@ export class LANGameManager {
             serverHandSize: distribution.serverHand.length,
             clientHandSize: distribution.clientHand.length,
             deckSize: distribution.deckOrder.length,
-            startingPlayer: distribution.startingPlayer
+            currentPlayer: distribution.currentPlayer
           }
         });
       } else {
@@ -339,7 +347,7 @@ export class LANGameManager {
         console.log('🎴 Server hand size:', distribution.serverHand.length);
         console.log('🎴 Client hand size:', distribution.clientHand.length);
         console.log('🎴 Deck size:', distribution.deckOrder.length);
-        console.log('🎴 Starting player:', distribution.startingPlayer);
+        console.log('🎴 Current player:', distribution.currentPlayer);
         
         logger.info({
           scope: 'renderer/lan',
@@ -349,7 +357,7 @@ export class LANGameManager {
             serverHandSize: distribution.serverHand.length,
             clientHandSize: distribution.clientHand.length,
             deckSize: distribution.deckOrder.length,
-            startingPlayer: distribution.startingPlayer
+            currentPlayer: distribution.currentPlayer
           }
         });
       } else {
@@ -368,7 +376,7 @@ export class LANGameManager {
           serverHandSize: distribution.serverHand.length,
           clientHandSize: distribution.clientHand.length,
           deckSize: distribution.deckOrder.length,
-          startingPlayer: distribution.startingPlayer
+          currentPlayer: distribution.currentPlayer
         }
       });
 
@@ -443,7 +451,7 @@ export class LANGameManager {
           serverHandIds: distribution.serverHand?.map((card: any) => card.id) || [],
           clientHandIds: distribution.clientHand?.map((card: any) => card.id) || [],
           deckCardIds: distribution.deckOrder?.map((card: any) => card.id) || [],
-          startingPlayer: distribution.startingPlayer
+          currentPlayer: distribution.currentPlayer
         }
       });
 

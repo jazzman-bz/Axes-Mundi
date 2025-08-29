@@ -161,16 +161,16 @@ function setupIPC() {
             return { success: false, error: error.message };
         }
     });
-    // Send starting player selection to client
-    electron_1.ipcMain.handle('send-starting-player', async (_, startingPlayer, serverStarts) => {
+    // Send current player update to client
+    electron_1.ipcMain.handle('send-current-player-update', async (_, currentPlayer) => {
         try {
             logger_1.logger.info({
                 scope: 'main/lan',
-                msg: 'Sending starting player selection to client',
-                meta: { startingPlayer, serverStarts }
+                msg: 'Sending current player update to client',
+                meta: { currentPlayer }
             });
             if (lanServer) {
-                await lanServer.sendStartingPlayer(startingPlayer, serverStarts);
+                await lanServer.sendCurrentPlayerUpdate(currentPlayer);
                 return { success: true };
             }
             else {
@@ -181,7 +181,7 @@ function setupIPC() {
         catch (error) {
             logger_1.logger.error({
                 scope: 'main/lan',
-                msg: 'Failed to send starting player selection',
+                msg: 'Failed to send current player update',
                 err: { message: error.message }
             });
             return { success: false, error: error.message };

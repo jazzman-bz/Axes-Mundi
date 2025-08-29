@@ -44,17 +44,19 @@ class LandingPageController {
         difficulty: null
       };
       
-             // LAN connection state
-       this.isServerClient = localStorage.getItem('isServerClient') === 'true';
-       this.serverPlayerName = localStorage.getItem('serverPlayerName');
-       this.clientPlayerName = localStorage.getItem('clientPlayerName'); // Store client player name for server-client
-       this.lanClient = null;
+                     // LAN connection state
+        this.isServerClient = localStorage.getItem('isServerClient') === 'true';
+        this.serverPlayerName = localStorage.getItem('serverPlayerName');
+        this.clientPlayerName = localStorage.getItem('clientPlayerName'); // Store client player name for server-client
+        this.currentPlayer = localStorage.getItem('currentPlayer') || this.playerData.name; // Current player (starts with local player)
+        this.lanClient = null;
        
-       console.log('🎮 Landing page initialized with LAN state:', {
-         isServerClient: this.isServerClient,
-         serverPlayerName: this.serverPlayerName,
-         clientPlayerName: this.clientPlayerName
-       });
+               console.log('🎮 Landing page initialized with LAN state:', {
+          isServerClient: this.isServerClient,
+          serverPlayerName: this.serverPlayerName,
+          clientPlayerName: this.clientPlayerName,
+          currentPlayer: this.currentPlayer
+        });
       
       this.init();
     }
@@ -619,10 +621,10 @@ class LandingPageController {
             console.log('🎴 Received card distribution from server:', message);
             this.handleCardDistributionFromServer(message);
             break;
-          case 'startingPlayer':
-            console.log('🎲 Received starting player selection:', message.startingPlayer);
-            this.showConnectionStatus(`Spieler ${message.startingPlayer} beginnt das Spiel!`, false);
-            break;
+                   case 'currentPlayer':
+           console.log('🎲 Received current player update:', message.currentPlayer);
+           this.showConnectionStatus(`Spieler ${message.currentPlayer} ist am Zug!`, false);
+           break;
 
          default:
            logger.warn({ 
@@ -705,11 +707,11 @@ class LandingPageController {
     }
 
     /**
-     * Select random starting player and communicate to client
+     * Update current player after turn
      */
-    selectRandomStartingPlayer() {
+    updateCurrentPlayer() {
       try {
-        console.log('🎲 Selecting random starting player...');
+        console.log('🎲 Updating current player...');
         
         // For server-client: we know our name and we need to get the client's name
         // For client: we know our name and we have the server's name from the connection
@@ -723,40 +725,42 @@ class LandingPageController {
           clientPlayerName = this.serverPlayerName || "Server";
         }
         
-        // Random selection: true = server starts, false = client starts
-        const serverStarts = Math.random() < 0.5;
-        const startingPlayer = serverStarts ? this.playerData.name : clientPlayerName;
+        // Toggle current player
+        const currentPlayer = this.currentPlayer === this.playerData.name ? clientPlayerName : this.playerData.name;
         
-        console.log('🎲 Random selection result:', { 
-          serverStarts, 
-          startingPlayer, 
+        // Update local state
+        this.currentPlayer = currentPlayer;
+        localStorage.setItem('currentPlayer', currentPlayer);
+        
+        console.log('🎲 Current player update result:', { 
+          currentPlayer, 
           serverPlayerName: this.playerData.name,
           clientPlayerName: clientPlayerName,
           serverPlayerNameFromConnection: this.serverPlayerName,
           isServerClient: this.isServerClient
         });
         
-        // Send starting player selection via IPC to main process
-        if (window.AXM && window.AXM.sendStartingPlayer) {
-          window.AXM.sendStartingPlayer(startingPlayer, serverStarts);
-          this.showConnectionStatus(`Spieler ${startingPlayer} beginnt das Spiel!`, false);
+        // Send current player update via IPC to main process
+        if (window.AXM && window.AXM.sendCurrentPlayerUpdate) {
+          window.AXM.sendCurrentPlayerUpdate(currentPlayer);
+          this.showConnectionStatus(`Spieler ${currentPlayer} ist am Zug!`, false);
         } else {
-          this.showError('Spielerauswahl konnte nicht gesendet werden.');
+          this.showError('Spielerwechsel konnte nicht gesendet werden.');
         }
         
         logger.info({ 
           scope: 'landing/game', 
-          msg: 'random starting player selected', 
-          meta: { startingPlayer, serverStarts } 
+          msg: 'current player updated', 
+          meta: { currentPlayer } 
         });
         
       } catch (error) {
         logger.error({ 
           scope: 'landing/game', 
-          msg: 'failed to select starting player', 
+          msg: 'failed to update current player', 
           err: { message: error.message } 
         });
-        this.showError('Fehler bei der Spielerauswahl.');
+        this.showError('Fehler beim Spielerwechsel.');
       }
     }
 
@@ -776,14 +780,21 @@ class LandingPageController {
           console.log('🎴 Client: Server Hand Size:', distribution.serverHand?.length || 0);
           console.log('🎴 Client: Client Hand Size:', distribution.clientHand?.length || 0);
           console.log('🎴 Client: Deck Size:', distribution.deckOrder?.length || 0);
-          console.log('🎴 Client: Starting Player:', distribution.startingPlayer);
+                     console.log('🎴 Client: Current Player:', distribution.currentPlayer);
           
-          // Store card distribution for later use
-          localStorage.setItem('lanCardDistribution', JSON.stringify(distribution));
-          console.log('🎴 Client: Card distribution saved to localStorage');
-          
-          // Show success message
-          this.showConnectionStatus(`Kartenverteilung erhalten! Starte Spiel...`, false);
+                     // Store card distribution for later use
+           localStorage.setItem('lanCardDistribution', JSON.stringify(distribution));
+           console.log('🎴 Client: Card distribution saved to localStorage');
+           
+           // Store current player
+           if (distribution.currentPlayer) {
+             this.currentPlayer = distribution.currentPlayer;
+             localStorage.setItem('currentPlayer', this.currentPlayer);
+             console.log('🎴 Client: Current player set to:', this.currentPlayer);
+           }
+           
+           // Show success message
+           this.showConnectionStatus(`Kartenverteilung erhalten! Starte Spiel...`, false);
           
           // CLIENT: Start the game automatically after receiving card distribution
           console.log('🎮 Client: Starting game after receiving card distribution');
@@ -915,9 +926,13 @@ class LandingPageController {
                this.showConnectionStatus(`Deck ${data.deckId} nicht vorhanden!`, false);
              }
              break;
-          case 'startingPlayer':
-            this.showConnectionStatus(`Spieler ${data.startingPlayer} beginnt das Spiel!`, false);
-            break;
+                           case 'currentPlayer':
+          this.showConnectionStatus(`Spieler ${data.currentPlayer} ist am Zug!`, false);
+          // Update current player in localStorage
+          this.currentPlayer = data.currentPlayer;
+          localStorage.setItem('currentPlayer', this.currentPlayer);
+          console.log('🎲 Current player updated from LAN status:', this.currentPlayer);
+          break;
           default:
             console.log('📡 Unknown LAN status update type:', data.type);
         }
@@ -1324,14 +1339,22 @@ class LandingPageController {
        // Show success message and redirect to LAN game
        this.showConnectionStatus('LAN-Spiel gestartet - Wechsle zu Spielfläche...', false);
        
-       // Set LAN mode flag in localStorage
-       localStorage.setItem('selectedGameType', 'lan');
-       
-       // Redirect to LAN game after 2 seconds
-       setTimeout(() => {
-         console.log('🎮 Redirecting to lan-game.html...');
-         window.location.href = './lan-game.html';
-       }, 2000);
+               // Set LAN mode flag in localStorage
+        localStorage.setItem('selectedGameType', 'lan');
+        
+        // Store current player from LANGameManager
+        const currentPlayer = lanGame.getCurrentPlayer();
+        if (currentPlayer) {
+          this.currentPlayer = currentPlayer;
+          localStorage.setItem('currentPlayer', this.currentPlayer);
+          console.log('🎮 Server-client: Current player set to:', this.currentPlayer);
+        }
+        
+        // Redirect to LAN game after 2 seconds
+        setTimeout(() => {
+          console.log('🎮 Redirecting to lan-game.html...');
+          window.location.href = './lan-game.html';
+        }, 2000);
       
     } catch (error) {
       console.error('🎮 Failed to start LAN game:', error);
@@ -1355,11 +1378,26 @@ class LandingPageController {
       localStorage.setItem('selectedDeck', deckId);
       console.log('🎮 Selected deck saved to localStorage:', deckId);
       
-      // Set LAN mode flag in localStorage
-      localStorage.setItem('selectedGameType', 'lan');
-      
-      // Show success message and redirect to LAN game
-      this.showConnectionStatus('LAN-Spiel gestartet - Wechsle zu Spielfläche...', false);
+             // Set LAN mode flag in localStorage
+       localStorage.setItem('selectedGameType', 'lan');
+       
+       // Store current player from card distribution
+       const lanCardDistribution = localStorage.getItem('lanCardDistribution');
+       if (lanCardDistribution) {
+         try {
+           const distribution = JSON.parse(lanCardDistribution);
+           if (distribution.currentPlayer) {
+             this.currentPlayer = distribution.currentPlayer;
+             localStorage.setItem('currentPlayer', this.currentPlayer);
+             console.log('🎮 Client: Current player set to:', this.currentPlayer);
+           }
+         } catch (error) {
+           console.error('🎮 Client: Failed to parse card distribution:', error);
+         }
+       }
+       
+       // Show success message and redirect to LAN game
+       this.showConnectionStatus('LAN-Spiel gestartet - Wechsle zu Spielfläche...', false);
       
       // Redirect to LAN game after 2 seconds
       setTimeout(() => {

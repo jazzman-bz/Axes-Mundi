@@ -18,7 +18,7 @@ contextBridge.exposeInMainWorld('AXM', {
    startLANServer: (playerName: string) => ipcRenderer.invoke('start-lan-server', playerName),
    stopLANServer: () => ipcRenderer.invoke('stop-lan-server'),
        sendDeckSelection: (deckId: string) => ipcRenderer.invoke('send-deck-selection', deckId),
-    sendStartingPlayer: (startingPlayer: string, serverStarts: boolean) => ipcRenderer.invoke('send-starting-player', startingPlayer, serverStarts),
+    sendCurrentPlayerUpdate: (currentPlayer: string) => ipcRenderer.invoke('send-current-player-update', currentPlayer),
    sendCardDistribution: (distribution: any) => ipcRenderer.invoke('send-card-distribution', distribution),
   sendGameStartTrigger: () => ipcRenderer.invoke('send-game-start-trigger'),
   
@@ -54,7 +54,7 @@ declare global {
              startLANServer: (playerName: string) => Promise<{ success: boolean; port: number }>;
        stopLANServer: () => Promise<{ success: boolean }>;
        sendDeckSelection: (deckId: string) => Promise<{ success: boolean }>;
-    sendStartingPlayer: (startingPlayer: string, serverStarts: boolean) => Promise<{ success: boolean }>;
+          sendCurrentPlayerUpdate: (currentPlayer: string) => Promise<{ success: boolean }>;
     sendCardDistribution: (distribution: any) => Promise<{ success: boolean }>;
     sendGameStartTrigger: () => Promise<{ success: boolean }>;
       testIPC: () => Promise<{ success: boolean; message: string }>;

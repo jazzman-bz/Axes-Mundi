@@ -119,8 +119,8 @@ export class LANWebSocketServer {
       case 'deckResponse':
         this.handleDeckResponse(playerId, message.deckId, message.available);
         break;
-      case 'startingPlayer':
-        this.handleStartingPlayer(playerId, message.startingPlayer, message.serverStarts);
+      case 'currentPlayerUpdate':
+        this.handleCurrentPlayerUpdate(playerId, message.currentPlayer);
         break;
       case 'cardDistribution':
         this.handleCardDistribution(playerId, message);
@@ -311,12 +311,11 @@ export class LANWebSocketServer {
     // Debug: Log the complete distribution received from renderer
     console.log('🎴 Main process received card distribution:');
     console.log('🎴 Deck ID:', distribution.deckId);
-    console.log('🎴 Deck Name:', distribution.deckName);
     console.log('🎴 Board Card:', distribution.boardCard ? distribution.boardCard.title : 'none');
     console.log('🎴 Server Hand Size:', distribution.serverHand?.length || 0);
     console.log('🎴 Client Hand Size:', distribution.clientHand?.length || 0);
     console.log('🎴 Deck Size:', distribution.deckOrder?.length || 0);
-    console.log('🎴 Starting Player:', distribution.startingPlayer);
+    console.log('🎴 Current Player:', distribution.currentPlayer);
 
     // Send to all connected clients
     for (const [, player] of this.players) {
@@ -354,32 +353,30 @@ export class LANWebSocketServer {
   }
 
   /**
-   * Send starting player selection to all connected clients
+   * Send current player update to all connected clients
    */
-  async sendStartingPlayer(startingPlayer: string, serverStarts: boolean): Promise<void> {
+  async sendCurrentPlayerUpdate(currentPlayer: string): Promise<void> {
     logger.info({
       scope: 'main/websocket',
-      msg: 'Sending starting player selection to client',
-      meta: { startingPlayer, serverStarts }
+      msg: 'Sending current player update to client',
+      meta: { currentPlayer }
     });
 
     // Send to all connected clients
     for (const [, player] of this.players) {
       player.ws.send(JSON.stringify({
-        type: 'startingPlayer',
-        startingPlayer,
-        serverStarts,
-        message: `Starting player selected: ${startingPlayer}`
+        type: 'currentPlayerUpdate',
+        currentPlayer,
+        message: `Current player: ${currentPlayer}`
       }));
     }
 
     // Send notification to renderer process to update UI
     if (global.mainWindow && global.mainWindow.webContents) {
       global.mainWindow.webContents.send('lan-status-update', {
-        type: 'startingPlayer',
-        startingPlayer,
-        serverStarts,
-        message: `Spieler ${startingPlayer} beginnt das Spiel!`
+        type: 'currentPlayerUpdate',
+        currentPlayer,
+        message: `Spieler ${currentPlayer} ist am Zug!`
       });
     }
   }
@@ -505,25 +502,24 @@ export class LANWebSocketServer {
   }
 
   /**
-   * Handle starting player selection from client
+   * Handle current player update from client
    */
-  private handleStartingPlayer(playerId: string, startingPlayer: string, serverStarts: boolean): void {
+  private handleCurrentPlayerUpdate(playerId: string, currentPlayer: string): void {
     const player = this.players.get(playerId);
     if (!player) return;
 
     logger.info({ 
       scope: 'main/websocket', 
-      msg: 'Received starting player selection from client', 
-      meta: { playerId, playerName: player.name, startingPlayer, serverStarts } 
+      msg: 'Received current player update from client', 
+      meta: { playerId, playerName: player.name, currentPlayer } 
     });
 
     // Send notification to renderer process to update UI
     if (global.mainWindow && global.mainWindow.webContents) {
       global.mainWindow.webContents.send('lan-status-update', {
-        type: 'startingPlayer',
-        startingPlayer,
-        serverStarts,
-        message: `Spieler ${startingPlayer} beginnt das Spiel!`
+        type: 'currentPlayerUpdate',
+        currentPlayer,
+        message: `Spieler ${currentPlayer} ist am Zug!`
       });
     }
   }

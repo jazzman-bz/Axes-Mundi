@@ -60,18 +60,24 @@ class LANGameApp {
       // Start game loop (like Single-Player)
       this.startGameLoop();
       
-      // Update LAN info display
-      this.updateLANInfo();
-      
-            // For server-client: distribute cards on canvas first, then send to client
-      if (isServerClient) {
-        await this.handleServerClientFlow();
-      } else {
-        // For client: load card distribution from localStorage and display
-        await this.handleClientFlow();
-      }
-      
-      this.isInitialized = true;
+             // For server-client: distribute cards on canvas first, then send to client
+       if (isServerClient) {
+         await this.handleServerClientFlow();
+       } else {
+         // For client: load card distribution from localStorage and display
+         await this.handleClientFlow();
+       }
+       
+              // Update LAN info display AFTER card distribution is handled
+       this.updateLANInfo();
+       
+       // Initialize current player display
+       this.initializeCurrentPlayer();
+       
+       // Set up periodic refresh of LAN info to catch current player changes
+       this.setupLANInfoRefresh();
+       
+       this.isInitialized = true;
       console.log('🎮 LAN game application initialized successfully');
       
     } catch (error) {
@@ -954,13 +960,74 @@ class LANGameApp {
   }
 
   /**
-   * Update LAN info display with player names
+   * Initialize current player from localStorage and update overlay
+   */
+  public initializeCurrentPlayer(): void {
+    try {
+      const currentPlayer = localStorage.getItem('currentPlayer');
+      if (currentPlayer) {
+        console.log('🎮 Initializing current player from localStorage:', currentPlayer);
+        this.updateLANInfo();
+      } else {
+        console.warn('🎮 No current player found in localStorage');
+      }
+    } catch (error) {
+      console.error('🎮 Failed to initialize current player:', error);
+    }
+  }
+
+  /**
+   * Set up periodic refresh of LAN info to catch current player changes
+   */
+  private setupLANInfoRefresh(): void {
+    try {
+      // Refresh LAN info every 2 seconds to catch current player changes
+      setInterval(() => {
+        this.updateLANInfo();
+      }, 2000);
+      
+      console.log('🎮 LAN info refresh interval set up');
+    } catch (error) {
+      console.error('🎮 Failed to set up LAN info refresh:', error);
+    }
+  }
+
+  /**
+   * Update current player and refresh overlay
+   */
+  public updateCurrentPlayer(newCurrentPlayer: string): void {
+    try {
+      console.log('🎮 Updating current player to:', newCurrentPlayer);
+      localStorage.setItem('currentPlayer', newCurrentPlayer);
+      this.updateLANInfo();
+    } catch (error) {
+      console.error('🎮 Failed to update current player:', error);
+    }
+  }
+
+  /**
+   * Update LAN info display with player names and current player
    */
   private updateLANInfo(): void {
     try {
       const isServerClient = localStorage.getItem('isServerClient') === 'true';
       const serverPlayerName = localStorage.getItem('serverPlayerName') || 'Server';
       const clientPlayerName = localStorage.getItem('clientPlayerName') || 'Client';
+      const currentPlayer = localStorage.getItem('currentPlayer');
+      
+      // Debug logging
+      console.log('🎮 updateLANInfo called with:', {
+        isServerClient,
+        serverPlayerName,
+        clientPlayerName,
+        currentPlayer,
+        localStorageCurrentPlayer: localStorage.getItem('currentPlayer')
+      });
+      
+      if (!currentPlayer) {
+        console.warn('🎮 No current player found, using server player as default');
+        localStorage.setItem('currentPlayer', serverPlayerName);
+      }
       
       const playerNameElement = document.getElementById('player-name');
       const opponentNameElement = document.getElementById('opponent-name');
@@ -968,17 +1035,60 @@ class LANGameApp {
       
       if (isServerClient) {
         // Server-Client perspective
-        if (playerNameElement) playerNameElement.textContent = `Spieler: ${serverPlayerName}`;
-        if (opponentNameElement) opponentNameElement.textContent = `Gegner: ${clientPlayerName}`;
+        if (playerNameElement) {
+          playerNameElement.textContent = `Spieler: ${serverPlayerName}`;
+          // Highlight if it's server's turn
+          if (currentPlayer === serverPlayerName) {
+            playerNameElement.classList.add('current-turn');
+            playerNameElement.classList.remove('waiting-turn');
+          } else {
+            playerNameElement.classList.add('waiting-turn');
+            playerNameElement.classList.remove('current-turn');
+          }
+        }
+        if (opponentNameElement) {
+          opponentNameElement.textContent = `Gegner: ${clientPlayerName}`;
+          // Highlight if it's client's turn
+          if (currentPlayer === clientPlayerName) {
+            opponentNameElement.classList.add('current-turn');
+            opponentNameElement.classList.remove('waiting-turn');
+          } else {
+            opponentNameElement.classList.add('waiting-turn');
+            opponentNameElement.classList.remove('current-turn');
+          }
+        }
       } else {
         // Client perspective
-        if (playerNameElement) playerNameElement.textContent = `Spieler: ${clientPlayerName}`;
-        if (opponentNameElement) opponentNameElement.textContent = `Gegner: ${serverPlayerName}`;
+        if (playerNameElement) {
+          playerNameElement.textContent = `Spieler: ${clientPlayerName}`;
+          // Highlight if it's client's turn
+          if (currentPlayer === clientPlayerName) {
+            playerNameElement.classList.add('current-turn');
+            playerNameElement.classList.remove('waiting-turn');
+          } else {
+            playerNameElement.classList.add('waiting-turn');
+            playerNameElement.classList.remove('current-turn');
+          }
+        }
+        if (opponentNameElement) {
+          opponentNameElement.textContent = `Gegner: ${serverPlayerName}`;
+          // Highlight if it's server's turn
+          if (currentPlayer === serverPlayerName) {
+            opponentNameElement.classList.add('current-turn');
+            opponentNameElement.classList.remove('waiting-turn');
+          } else {
+            opponentNameElement.classList.add('waiting-turn');
+            opponentNameElement.classList.remove('current-turn');
+          }
+        }
       }
       
-      if (currentTurnElement) currentTurnElement.textContent = 'Zug: Wird bestimmt...';
+      if (currentTurnElement) {
+        currentTurnElement.textContent = `Zug: ${currentPlayer}`;
+        console.log('🎮 Current player updated in overlay:', currentPlayer);
+      }
       
-      console.log('🎮 LAN info updated:', { isServerClient, serverPlayerName, clientPlayerName });
+      console.log('🎮 LAN info updated:', { isServerClient, serverPlayerName, clientPlayerName, currentPlayer });
     } catch (error) {
       console.error('🎮 Failed to update LAN info:', error);
     }
