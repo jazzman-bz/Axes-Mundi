@@ -24,6 +24,9 @@ class LANGameApp {
   constructor() {
     console.log('🎮 LANGameApp constructor called');
     this.init();
+    
+    // Set up mouse event handlers for hover effects
+    this.setupMouseEvents();
   }
 
   /**
@@ -1096,10 +1099,108 @@ class LANGameApp {
 
      
 
-   /**
-    * Show error message
-    */
-   private showError(message: string): void {
+     /**
+   * Set up mouse event handlers for hover effects
+   */
+  private setupMouseEvents(): void {
+    try {
+      if (!this.canvas) {
+        console.warn('🎮 Canvas not available for mouse events');
+        return;
+      }
+
+      // Add mouse move event listener for hover effects
+      this.canvas.addEventListener('mousemove', (event) => {
+        this.handleMouseMove(event);
+      });
+
+      // Add mouse leave event listener to clear hover effects
+      this.canvas.addEventListener('mouseleave', () => {
+        this.clearAllHoverEffects();
+      });
+
+      console.log('🎮 Mouse events set up for hover effects');
+    } catch (error) {
+      console.error('🎮 Failed to set up mouse events:', error);
+    }
+  }
+
+  /**
+   * Handle mouse move for hover effects
+   */
+  private handleMouseMove(event: MouseEvent): void {
+    try {
+      if (!this.canvas) return;
+
+      const rect = this.canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      // Clear all hover effects first
+      this.clearAllHoverEffects();
+
+      // Only show hover effects for current player's turn
+      const currentPlayer = localStorage.getItem('currentPlayer');
+      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      
+      if (!currentPlayer) return;
+
+      // Determine which hand should show hover effects
+      let activeHand: any[] = [];
+      if (isServerClient) {
+        // Server-client: hover over server hand (playerHand) if it's server's turn
+        if (currentPlayer === localStorage.getItem('serverPlayerName')) {
+          activeHand = this.playerHand;
+        }
+      } else {
+        // Client: hover over client hand (playerHand) if it's client's turn
+        if (currentPlayer === localStorage.getItem('clientPlayerName')) {
+          activeHand = this.playerHand;
+        }
+      }
+
+      // Set hover effect for card under mouse in active hand
+      for (const card of activeHand) {
+        if (card.containsPoint(x, y)) {
+          card.isHovered = true;
+          console.log('🎮 Hover effect set for card:', card.card.title);
+          break;
+        }
+      }
+
+    } catch (error) {
+      console.error('🎮 Failed to handle mouse move:', error);
+    }
+  }
+
+  /**
+   * Clear all hover effects
+   */
+  private clearAllHoverEffects(): void {
+    try {
+      // Clear hover on all cards
+      if (this.boardCard) {
+        this.boardCard.isHovered = false;
+      }
+      
+      this.playerHand.forEach(card => {
+        card.isHovered = false;
+      });
+      
+      this.opponentHand.forEach(card => {
+        card.isHovered = false;
+      });
+
+      console.log('🎮 All hover effects cleared');
+    } catch (error) {
+      console.error('🎮 Failed to clear hover effects:', error);
+    }
+  }
+
+  /**
+   * Show error message
+   */
+  private showError(message: string): void {
     try {
       console.error('🎮 Error:', message);
       alert(`LAN-Spiel Fehler: ${message}`);
