@@ -36,6 +36,10 @@ export class GameCard {
   private originalX: number | null = null; // Store original position before preview
   private originalY: number | null = null;
   
+  // Hand position for return to hand functionality
+  private handX: number | null = null;
+  private handY: number | null = null;
+  
   // Weiter button bounds for learning mode
   public weiterButtonBounds: { x: number; y: number; width: number; height: number } | null = null;
 
@@ -207,6 +211,48 @@ export class GameCard {
       msg: 'card drag stopped', 
       meta: { cardId: this.card.id, finalX: this.x, finalY: this.y } 
     });
+  }
+
+  /**
+   * Store hand position for return to hand functionality
+   */
+  public storeHandPosition(x: number, y: number): void {
+    this.handX = x;
+    this.handY = y;
+    logger.debug({ 
+      scope: 'game/card', 
+      msg: 'hand position stored', 
+      meta: { cardId: this.card.id, handX: x, handY: y } 
+    });
+  }
+
+  /**
+   * Return card to its hand position
+   */
+  public returnToHand(): void {
+    if (this.handX !== null && this.handY !== null) {
+      // Clear any target positions
+      this.targetX = null;
+      this.targetY = null;
+      
+      // Set target to hand position
+      this.setTargetPosition(this.handX, this.handY);
+      
+      // Reset card state
+      this.isInHand = true;
+      
+      logger.debug({ 
+        scope: 'game/card', 
+        msg: 'card returning to hand', 
+        meta: { cardId: this.card.id, handX: this.handX, handY: this.handY } 
+      });
+    } else {
+      logger.warn({ 
+        scope: 'game/card', 
+        msg: 'cannot return to hand - no hand position stored', 
+        meta: { cardId: this.card.id } 
+      });
+    }
   }
 
   /**

@@ -20,6 +20,17 @@ class LANGameApp {
   private boardCard: any = null;
   private remainingCards: any[] = [];
   private scale: number = 1;
+  
+  // Drag & Drop variables
+  private isDragging: boolean = false;
+  private selectedCard: any = null;
+  private snapThreshold: number = 50; // Distance to axis for snapping
+  
+  // Card placement arrays (like Single-Player)
+  private placedLeft: any[] = []; // Cards placed to the left of center
+  private placedRight: any[] = []; // Cards placed to the right of center
+  private isPreviewActive: boolean = false; // Track if preview is currently active
+  private readonly stackSpacing: number = 140; // px spacing between placed cards
 
   constructor() {
     console.log('🎮 LANGameApp constructor called');
@@ -556,6 +567,15 @@ class LANGameApp {
       this.boardCard.tick();
     }
     
+    // Update placed cards on the axis (left and right of center)
+    this.placedLeft.forEach(card => {
+      card.tick();
+    });
+    
+    this.placedRight.forEach(card => {
+      card.tick();
+    });
+    
     // Update player hand cards
     this.playerHand.forEach(card => {
       card.tick();
@@ -575,6 +595,15 @@ class LANGameApp {
     if (this.boardCard) {
       this.boardCard.render(this.ctx!);
     }
+    
+    // Draw placed cards on the axis (left and right of center)
+    this.placedLeft.forEach(card => {
+      card.render(this.ctx!);
+    });
+    
+    this.placedRight.forEach(card => {
+      card.render(this.ctx!);
+    });
     
     // Draw player hand
     this.playerHand.forEach(card => {
@@ -924,6 +953,11 @@ class LANGameApp {
     this.playerHand.forEach((card, index) => {
       const x = startX + index * cardSpacing;
       const y = this.canvas!.height - 320 * this.scale; // Bottom position
+      
+      // Store hand position for return to hand functionality
+      card.storeHandPosition(x, y);
+      
+      // Set target position for animation
       card.setTargetPosition(x, y);
     });
     
@@ -941,6 +975,11 @@ class LANGameApp {
     this.opponentHand.forEach((card, index) => {
       const x = startX + index * cardSpacing;
       const y = 20 * this.scale; // Top position
+      
+      // Store hand position for return to hand functionality
+      card.storeHandPosition(x, y);
+      
+      // Set target position for animation
       card.setTargetPosition(x, y);
     });
     
@@ -1100,7 +1139,7 @@ class LANGameApp {
      
 
      /**
-   * Set up mouse event handlers for hover effects
+   * Set up mouse event handlers for hover effects and drag & drop
    */
   private setupMouseEvents(): void {
     try {
@@ -1109,24 +1148,97 @@ class LANGameApp {
         return;
       }
 
-      // Add mouse move event listener for hover effects
+      // Add mouse down event listener for drag & drop
+      this.canvas.addEventListener('mousedown', (event) => {
+        this.handleMouseDown(event);
+      });
+
+      // Add mouse move event listener for hover effects and dragging
       this.canvas.addEventListener('mousemove', (event) => {
         this.handleMouseMove(event);
+      });
+
+      // Add mouse up event listener for drag & drop
+      this.canvas.addEventListener('mouseup', (event) => {
+        this.handleMouseUp(event);
       });
 
       // Add mouse leave event listener to clear hover effects
       this.canvas.addEventListener('mouseleave', () => {
         this.clearAllHoverEffects();
+        // Also stop dragging if mouse leaves canvas
+        if (this.isDragging) {
+          this.stopDragging();
+        }
       });
 
-      console.log('🎮 Mouse events set up for hover effects');
+      console.log('🎮 Mouse events set up for hover effects and drag & drop');
     } catch (error) {
       console.error('🎮 Failed to set up mouse events:', error);
     }
   }
 
   /**
-   * Handle mouse move for hover effects
+   * Handle mouse down for drag & drop
+   */
+  private handleMouseDown(event: MouseEvent): void {
+    try {
+      // Only allow interaction during current player's turn
+      const currentPlayer = localStorage.getItem('currentPlayer');
+      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      const serverPlayerName = localStorage.getItem('serverPlayerName');
+      const clientPlayerName = localStorage.getItem('clientPlayerName');
+      
+      if (!currentPlayer) {
+        console.warn('🎮 No current player set, cannot start drag');
+        return;
+      }
+      
+      // Check if it's the current player's turn
+      let isCurrentPlayerTurn = false;
+      if (isServerClient) {
+        // Server-client: check if server is current player
+        isCurrentPlayerTurn = currentPlayer === serverPlayerName;
+      } else {
+        // Client: check if client is current player
+        isCurrentPlayerTurn = currentPlayer === clientPlayerName;
+      }
+      
+      if (!isCurrentPlayerTurn) {
+        console.log('🎮 Not current player turn, cannot start drag');
+        return;
+      }
+      
+      if (!this.canvas) return;
+
+      const rect = this.canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      console.log('🎮 Mouse down at:', { x, y, isCurrentPlayerTurn });
+
+      // Check player hand cards for drag start
+      for (const card of this.playerHand) {
+        if (card.containsPoint(x, y)) {
+          console.log('🎮 Card selected for drag:', card.card.title);
+          this.selectedCard = card;
+          card.startDrag(x, y);
+          this.isDragging = true;
+          break;
+        }
+      }
+
+      console.log('🎮 After mouse down:', { 
+        isDragging: this.isDragging, 
+        hasSelectedCard: !!this.selectedCard 
+      });
+    } catch (error) {
+      console.error('🎮 Failed to handle mouse down:', error);
+    }
+  }
+
+  /**
+   * Handle mouse move for hover effects and dragging
    */
   private handleMouseMove(event: MouseEvent): void {
     try {
@@ -1135,6 +1247,16 @@ class LANGameApp {
       const rect = this.canvas.getBoundingClientRect();
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
+
+      // Handle dragging if active
+      if (this.isDragging && this.selectedCard) {
+        console.log('🎮 Dragging card to:', { x, y });
+        this.selectedCard.updateDrag(x, y);
+        
+        // Show preview of where card would be placed on axis
+        this.showPlacementPreview(x, y);
+        return; // Skip hover effects while dragging
+      }
 
       // Clear all hover effects first
       this.clearAllHoverEffects();
@@ -1170,6 +1292,204 @@ class LANGameApp {
 
     } catch (error) {
       console.error('🎮 Failed to handle mouse move:', error);
+    }
+  }
+
+  /**
+   * Handle mouse up for drag & drop completion
+   */
+  private handleMouseUp(event: MouseEvent): void {
+    try {
+      if (this.isDragging && this.selectedCard) {
+        // Snap logic: if released near axis, place left/right of center
+        const releasedCard = this.selectedCard;
+        releasedCard.stopDrag();
+
+        const axisY = this.canvas!.height / 2;
+        const distToAxis = Math.abs((releasedCard.y + releasedCard.height / 2) - axisY);
+        
+        if (distToAxis <= this.snapThreshold) {
+          // SNAP: Snap to axis at exact position
+          const snapX = releasedCard.x + releasedCard.width / 2;
+          const snapY = axisY - releasedCard.height / 2;
+          
+          // SPECIAL CASE: If this is the first card after clearing the board, make it the boardCard
+          if (!this.boardCard) {
+            this.boardCard = releasedCard;
+            releasedCard.isInHand = false;
+            
+            // Center the first card on the axis
+            const centerX = this.canvas!.width / 2 - releasedCard.width / 2;
+            releasedCard.setTargetPosition(centerX, snapY);
+            
+            console.log('🎮 First card set as boardCard:', releasedCard.card.title);
+          } else {
+            // Normal case: Determine if it's left or right of center for array placement
+            const boardCenterX = this.boardCard.x + this.boardCard.width / 2;
+            const isLeft = snapX < boardCenterX;
+            
+            // Set the exact position where the card was dropped
+            releasedCard.setTargetPosition(snapX - releasedCard.width / 2, snapY);
+            releasedCard.isInHand = false;
+            
+            // Add to appropriate array based on position relative to center
+            if (isLeft) {
+              this.placedLeft.push(releasedCard);
+              console.log('🎮 Card placed to LEFT of center:', releasedCard.card.title);
+            } else {
+              this.placedRight.push(releasedCard);
+              console.log('🎮 Card placed to RIGHT of center:', releasedCard.card.title);
+            }
+          }
+
+          // Clear any preview positions
+          this.hidePlacementPreview();
+          
+                     // Remove hover effect from the placed card
+           releasedCard.isHovered = false;
+           
+           // Remove from hand AFTER successful placement
+           this.playerHand = this.playerHand.filter((c) => c !== releasedCard);
+           
+           console.log('🎮 Card successfully placed on axis');
+        } else {
+          // Not near axis, return card to hand
+          console.log('🎮 Card not near axis, returning to hand');
+          releasedCard.returnToHand();
+        }
+
+        // Clear dragging state
+        this.stopDragging();
+      }
+    } catch (error) {
+      console.error('🎮 Failed to handle mouse up:', error);
+      this.stopDragging();
+    }
+  }
+
+  /**
+   * Stop dragging and reset state
+   */
+  private stopDragging(): void {
+    try {
+      if (this.selectedCard) {
+        this.selectedCard.stopDrag();
+        this.selectedCard = null;
+      }
+      this.isDragging = false;
+      console.log('🎮 Dragging stopped');
+    } catch (error) {
+      console.error('🎮 Failed to stop dragging:', error);
+    }
+  }
+
+  /**
+   * Show preview of where card would be placed on axis
+   */
+  private showPlacementPreview(mouseX: number, mouseY: number): void {
+    try {
+      // Define the axis area as a collision box
+      const axisY = this.canvas!.height / 2;
+      const axisHeight = 100; // Height of the axis collision area
+      const axisTop = axisY - axisHeight / 2;
+      const axisBottom = axisY + axisHeight / 2;
+      
+      // Check if mouse is within the axis collision box
+      const isOverAxis = mouseY >= axisTop && mouseY <= axisBottom;
+      
+      if (isOverAxis) {
+        // Only show preview if not already active
+        if (!this.isPreviewActive) {
+          console.log('🎮 Mouse over axis, showing placement preview');
+          this.showAxisPreview(mouseX);
+        }
+      } else {
+        // Hide preview if mouse is not over axis
+        if (this.isPreviewActive) {
+          this.hidePlacementPreview();
+        }
+      }
+    } catch (error) {
+      console.error('🎮 Failed to show placement preview:', error);
+    }
+  }
+
+  /**
+   * Show axis preview by moving cards to make space
+   */
+  private showAxisPreview(previewX: number): void {
+    try {
+      if (!this.boardCard) return;
+      
+      // Only move cards if preview is not already active
+      if (this.isPreviewActive) {
+        return;
+      }
+      
+      console.log('🎮 showAxisPreview called with previewX:', previewX);
+      
+      // Combine all cards in their current order (board + left + right)
+      const allCards = [
+        this.boardCard,
+        ...this.placedLeft,
+        ...this.placedRight
+      ];
+      
+      if (allCards.length === 0) return;
+      
+      // Create a subtle spread effect - only 40px each side
+      const spreadDistance = 40; // Reduced from 120px to 40px
+      
+      allCards.forEach((card) => {
+        const cardCenterX = card.x + card.width / 2;
+        let newX = card.x;
+        
+        if (cardCenterX < previewX - 20) {
+          // Move cards to the left of preview position slightly left
+          newX = card.x - spreadDistance;
+        } else if (cardCenterX > previewX + 20) {
+          // Move cards to the right of preview position slightly right
+          newX = card.x + spreadDistance;
+        }
+        // Cards very close to preview position stay in place
+        
+        card.setPreviewPosition(newX, card.y);
+        
+        console.log('🎮 Set preview position for card:', card.card.title, 'from', card.x, 'to', newX);
+      });
+      
+      // Mark preview as active
+      this.isPreviewActive = true;
+      
+      console.log('🎮 Preview activated with', allCards.length, 'cards');
+    } catch (error) {
+      console.error('🎮 Failed to show axis preview:', error);
+    }
+  }
+
+  /**
+   * Hide placement preview
+   */
+  private hidePlacementPreview(): void {
+    try {
+      // Only restore if preview was active
+      if (!this.isPreviewActive) {
+        return;
+      }
+      
+      console.log('🎮 Hiding placement preview, restoring original positions');
+      
+      // Restore original positions for all cards
+      if (this.boardCard) this.boardCard.clearPreviewPosition();
+      for (const card of this.placedLeft) card.clearPreviewPosition();
+      for (const card of this.placedRight) card.clearPreviewPosition();
+      
+      // Mark preview as inactive
+      this.isPreviewActive = false;
+      
+      console.log('🎮 Preview deactivated');
+    } catch (error) {
+      console.error('🎮 Failed to hide placement preview:', error);
     }
   }
 
