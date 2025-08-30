@@ -125,9 +125,9 @@ export class LANWebSocketServer {
       case 'playerTurnChanged':
         this.handlePlayerTurnChanged(playerId, message.currentPlayer);
         break;
-      case 'cardDistribution':
-        this.handleCardDistribution(playerId, message);
-        break;
+             case 'cardDistribution':
+         this.handleCardDistribution(playerId, message);
+         break;
       case 'placeCard':
         this.handleCardPlacement(playerId, message);
         break;
@@ -371,23 +371,41 @@ export class LANWebSocketServer {
     });
   }
 
+
+
   /**
    * Send current player set event to all connected clients
    */
   async sendCurrentPlayerSet(currentPlayer: string): Promise<void> {
+    console.log('🎮 WebSocket Server: Sending currentPlayerSet to clients:', currentPlayer);
     logger.info({
       scope: 'main/websocket',
       msg: 'Sending current player set event to clients',
       meta: { currentPlayer }
     });
 
+    // Debug: Check if we have any connected players
+    console.log('🎮 WebSocket Server: Connected players count:', this.players.size);
+    for (const [playerId, player] of this.players) {
+      console.log('🎮 WebSocket Server: Player:', { id: playerId, name: player.name, wsState: player.ws.readyState });
+    }
+
     // Send to all connected clients
     for (const [, player] of this.players) {
-      player.ws.send(JSON.stringify({
+      const message = {
         type: 'currentPlayerSet',
         currentPlayer,
         message: `Spiel gestartet! ${currentPlayer} beginnt.`
-      }));
+      };
+      
+      console.log('🎮 WebSocket Server: Sending to player:', player.name, 'message:', message);
+      
+      try {
+        player.ws.send(JSON.stringify(message));
+        console.log('🎮 WebSocket Server: Message sent successfully to:', player.name);
+      } catch (error) {
+        console.error('🎮 WebSocket Server: Failed to send message to:', player.name, 'error:', error);
+      }
     }
 
     // Send notification to renderer process to update UI

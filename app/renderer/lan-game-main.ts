@@ -83,13 +83,12 @@ class LANGameApp {
        }
        
               // Update LAN info display AFTER card distribution is handled
-       this.updateLANInfo();
+       // REMOVED: updateLANInfo() here - it overwrites currentPlayer!
        
                // Initialize game state - both sides start in waiting mode
         this.initializeGameState();
         
-        // Force update LAN info to show correct player names and current player
-        this.updateLANInfo();
+        // REMOVED: updateLANInfo() here - it overwrites currentPlayer!
         
         // Set up periodic refresh of LAN info to catch current player changes
         this.setupLANInfoRefresh();
@@ -276,9 +275,9 @@ class LANGameApp {
         console.log('🎮 Sending card distribution to client...');
         this.lanGame.sendCardDistributionAfterCanvasInit();
         
-        // Update LAN info after sending card distribution to ensure current player is shown
-        this.updateLANInfo();
-          
+                    // Start game AFTER client connects (not immediately)
+        console.log('🎮 Card distribution ready - waiting for client to connect before starting game...');
+        
         this.updateLANStatus('Kartenverteilung an Client gesendet!');
         console.log('🎮 Card distribution sent to client successfully');
         }
@@ -1069,11 +1068,11 @@ class LANGameApp {
         console.log('🎮 LAN status updated:', message);
       }
       
-      // Also update the current turn element if it shows waiting status
-      const currentTurnElement = document.getElementById('current-turn');
-      if (currentTurnElement && !localStorage.getItem('currentPlayer')) {
-        currentTurnElement.textContent = 'Warte auf Spielstart...';
-      }
+      // DISABLED: currentPlayer check before card distribution
+      // const currentTurnElement = document.getElementById('current-turn');
+      // if (currentTurnElement && !localStorage.getItem('currentPlayer')) {
+      //   currentTurnElement.textContent = 'Warte auf Spielstart...';
+      // }
     } catch (error) {
       console.error('🎮 Failed to update LAN status:', error);
     }
@@ -1088,7 +1087,7 @@ class LANGameApp {
       
       // Both sides start in waiting mode - no current player set
       // Server will determine current player after everything is ready
-      this.updateLANInfo();
+      // REMOVED: updateLANInfo() here - it overwrites currentPlayer!
       
     } catch (error) {
       console.error('🎮 Failed to initialize game state:', error);
@@ -1147,9 +1146,16 @@ class LANGameApp {
         case 'gameStateUpdate':
           this.handleGameStateUpdate(data);
           break;
-        // currentPlayer events removed - waiting for server to implement
-        // case 'currentPlayerSet':
-        // case 'playerTurnChanged':
+        case 'currentPlayerSet':
+          // NOW ACTIVE: currentPlayer logic after card distribution
+          console.log('🎮 Received currentPlayerSet - updating current player');
+          this.updateCurrentPlayerFromServer(data.currentPlayer);
+          break;
+        case 'playerTurnChanged':
+          // NOW ACTIVE: player turn change logic after card distribution
+          console.log('🎮 Received playerTurnChanged - updating turn');
+          this.handlePlayerTurnChange(data.currentPlayer);
+          break;
         default:
           console.log('🎮 Unknown LAN status update type:', data.type);
       }
@@ -1187,6 +1193,10 @@ class LANGameApp {
       
       // Update UI to show waiting status
       this.updateLANStatus('Client verbunden. Warte auf Spielstart...');
+      
+      // NOW: Start the game after client is connected!
+      console.log('🎮 Client connected - now starting game with random player');
+      this.startGameAfterCardDistribution();
       
     } catch (error) {
       console.error('🎮 Failed to handle client player joined event:', error);
@@ -1266,8 +1276,26 @@ class LANGameApp {
     }
   }
 
-  // currentPlayer methods removed - waiting for server to implement
-  // public updateCurrentPlayerFromServer(newCurrentPlayer: string): void { ... }
+  /**
+   * Update current player from server via WebSocket
+   */
+  public updateCurrentPlayerFromServer(newCurrentPlayer: string): void {
+    try {
+      console.log('🎮 Updating current player from server:', newCurrentPlayer);
+      
+      // Store current player locally
+      localStorage.setItem('currentPlayer', newCurrentPlayer);
+      
+      // Update ONLY the current player UI (no full LAN update)
+      this.updateCurrentPlayerUI(newCurrentPlayer);
+      
+      // Update status
+      this.updateLANStatus(`Spiel gestartet! ${newCurrentPlayer} beginnt.`);
+      
+    } catch (error) {
+      console.error('🎮 Failed to update current player from server:', error);
+    }
+  }
   
   /**
    * Update client player name when received via WebSocket
@@ -1281,7 +1309,13 @@ class LANGameApp {
         this.lanGame.updateClientPlayerName(clientPlayerName);
         
         // Update overlay to show the real client name
-        this.updateLANInfo();
+        // BUT: Don't overwrite currentPlayer if game has already started
+        const currentPlayer = localStorage.getItem('currentPlayer');
+        if (currentPlayer && currentPlayer !== 'WAITING_FOR_CARD_DISTRIBUTION') {
+          console.log('🎮 Game already started, not updating LAN info to preserve currentPlayer:', currentPlayer);
+        } else {
+          this.updateLANInfo();
+        }
         
         console.log('🎮 Client player name updated successfully');
       } else {
@@ -1292,8 +1326,202 @@ class LANGameApp {
     }
   }
 
-  // currentPlayer methods removed - waiting for server to implement
-  // private handlePlayerTurnChange(newCurrentPlayer: string): void { ... }
+
+
+  /**
+   * Start the game by setting current player and distributing cards
+   * This method is called by the server-client after cards are distributed
+   */
+  public async startGameAfterCardDistribution(): Promise<void> {
+    try {
+      console.log('🎮 Starting game after card distribution...');
+      
+      // Cards are already distributed, now start game with random player
+      await this.startGameWithRandomPlayer();
+      
+    } catch (error) {
+      console.error('🎮 Failed to start game after card distribution:', error);
+    }
+  }
+
+  /**
+   * Handle player turn change from server
+   */
+  private handlePlayerTurnChange(newCurrentPlayer: string): void {
+    try {
+      console.log('🎮 Handling player turn change to:', newCurrentPlayer);
+      
+      // Update current player and UI
+      this.updateCurrentPlayerFromServer(newCurrentPlayer);
+      
+      // Update status
+      this.updateLANStatus(`${newCurrentPlayer} ist am Zug!`);
+      
+    } catch (error) {
+      console.error('🎮 Failed to handle player turn change:', error);
+    }
+  }
+
+  /**
+   * Set current player randomly and send to client via WebSocket
+   * This method is called by the server-client to start the game
+   * DISABLED: currentPlayer logic before card distribution
+   */
+  public setCurrentPlayerAndStartGame(): void {
+    try {
+      console.log('🎮 DISABLED: setCurrentPlayerAndStartGame called - waiting for card distribution');
+      
+    } catch (error) {
+      console.error('🎮 Failed to set current player and start game:', error);
+    }
+  }
+
+  /**
+   * Start game with random player after cards are distributed
+   * This method is called AFTER cards are distributed - NO LAN UPDATE CONFLICTS
+   */
+  public async startGameWithRandomPlayer(): Promise<void> {
+    try {
+      console.log('🎮 Starting game with random player AFTER card distribution...');
+      
+      const serverPlayerName = localStorage.getItem('serverPlayerName');
+      const clientPlayerName = localStorage.getItem('clientPlayerName');
+      
+      if (!serverPlayerName || !clientPlayerName) {
+        console.warn('🎮 Cannot start game: missing player names');
+        return;
+      }
+      
+      // Randomly choose who starts (50/50 chance)
+      const randomStart = Math.random() < 0.5;
+      const currentPlayer = randomStart ? serverPlayerName : clientPlayerName;
+      
+      console.log('🎮 Randomly selected current player:', currentPlayer, 'randomStart:', randomStart);
+      
+      // Store current player locally
+      localStorage.setItem('currentPlayer', currentPlayer);
+      
+      // Update ONLY the current player UI elements (no full LAN update)
+      this.updateCurrentPlayerUI(currentPlayer);
+      
+      // Send current player to client via WebSocket
+      console.log('🎮 About to send current player to client:', currentPlayer);
+      console.log('🎮 window.AXM available:', !!window.AXM);
+      console.log('🎮 window.AXM.sendCurrentPlayerUpdate available:', !!(window.AXM && window.AXM.sendCurrentPlayerUpdate));
+      
+      if (window.AXM && window.AXM.sendCurrentPlayerUpdate) {
+        console.log('🎮 Sending current player to client via WebSocket:', currentPlayer);
+        try {
+          const result = await window.AXM.sendCurrentPlayerUpdate(currentPlayer);
+          console.log('🎮 IPC result:', result);
+          
+          if (result.success) {
+            console.log('🎮 Current player sent to client successfully:', currentPlayer);
+            this.updateLANStatus(`Spiel gestartet! ${currentPlayer} beginnt.`);
+          } else {
+            console.warn('🎮 Failed to send current player to client:', (result as any).error);
+          }
+        } catch (error: any) {
+          console.error('🎮 Error sending current player to client:', error);
+        }
+      } else {
+        console.warn('🎮 AXM.sendCurrentPlayerUpdate not available');
+        console.log('🎮 Available AXM methods:', Object.keys(window.AXM || {}));
+      }
+      
+      console.log('🎮 Game started successfully with current player:', currentPlayer);
+      
+    } catch (error) {
+      console.error('🎮 Failed to start game with random player:', error);
+    }
+  }
+
+  /**
+   * Update ONLY the current player UI elements (no full LAN update)
+   * This method updates the UI to show who's turn it is
+   */
+  private updateCurrentPlayerUI(currentPlayer: string): void {
+    try {
+      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      const serverPlayerName = localStorage.getItem('serverPlayerName');
+      const clientPlayerName = localStorage.getItem('clientPlayerName');
+      
+      if (!serverPlayerName || !clientPlayerName) {
+        console.warn('🎮 Cannot update current player UI: missing player names');
+        return;
+      }
+      
+      // Get UI elements
+      const playerNameElement = document.getElementById('playerName');
+      const opponentNameElement = document.getElementById('opponentName');
+      const currentTurnElement = document.getElementById('currentTurn');
+      
+      console.log('🎮 UI Elements found:', {
+        playerNameElement: !!playerNameElement,
+        opponentNameElement: !!opponentNameElement,
+        currentTurnElement: !!currentTurnElement
+      });
+      
+      if (isServerClient) {
+        // Server-Client perspective
+        if (playerNameElement) {
+          playerNameElement.textContent = `Spieler: ${serverPlayerName}`;
+          // Highlight if it's server's turn
+          if (currentPlayer === serverPlayerName) {
+            playerNameElement.classList.add('current-turn');
+            playerNameElement.classList.remove('waiting-turn');
+          } else {
+            playerNameElement.classList.add('waiting-turn');
+            playerNameElement.classList.remove('current-turn');
+          }
+        }
+        if (opponentNameElement) {
+          opponentNameElement.textContent = `Gegner: ${clientPlayerName}`;
+          // Highlight if it's client's turn
+          if (currentPlayer === clientPlayerName) {
+            opponentNameElement.classList.add('current-turn');
+            opponentNameElement.classList.remove('waiting-turn');
+          } else {
+            opponentNameElement.classList.add('waiting-turn');
+            opponentNameElement.classList.remove('current-turn');
+          }
+        }
+      } else {
+        // Client perspective
+        if (playerNameElement) {
+          playerNameElement.textContent = `Spieler: ${clientPlayerName}`;
+          // Highlight if it's client's turn
+          if (currentPlayer === clientPlayerName) {
+            playerNameElement.classList.add('current-turn');
+            playerNameElement.classList.remove('waiting-turn');
+          } else {
+            playerNameElement.classList.add('waiting-turn');
+            playerNameElement.classList.remove('current-turn');
+          }
+        }
+        if (opponentNameElement) {
+          opponentNameElement.textContent = `Gegner: ${serverPlayerName}`;
+          // Highlight if it's server's turn
+          if (currentPlayer === serverPlayerName) {
+            opponentNameElement.classList.add('current-turn');
+            opponentNameElement.classList.remove('waiting-turn');
+          } else {
+            opponentNameElement.classList.add('waiting-turn');
+            opponentNameElement.classList.remove('current-turn');
+          }
+        }
+      }
+      
+      if (currentTurnElement) {
+        currentTurnElement.textContent = `Zug: ${currentPlayer}`;
+      }
+      
+      console.log('🎮 Current player UI updated:', currentPlayer);
+      
+    } catch (error) {
+      console.error('🎮 Failed to update current player UI:', error);
+    }
+  }
 
   /**
    * Update LAN info display with player names and current player
@@ -1303,7 +1531,7 @@ class LANGameApp {
       const isServerClient = localStorage.getItem('isServerClient') === 'true';
       let serverPlayerName = localStorage.getItem('serverPlayerName');
       let clientPlayerName = localStorage.getItem('clientPlayerName');
-      // currentPlayer logic removed - waiting for server to implement
+      // DISABLED: currentPlayer logic before card distribution
       // const currentPlayer = localStorage.getItem('currentPlayer');
       
       // If names are not in localStorage, try to get them from LANGameServer
@@ -1339,13 +1567,15 @@ class LANGameApp {
       if (isServerClient) {
         // Server-Client perspective
         if (playerNameElement) {
-          // Always in waiting mode - show waiting message
+          // DISABLED: currentPlayer logic before card distribution
+          // Always show waiting mode
           playerNameElement.textContent = 'Warte auf Spielstart...';
           playerNameElement.classList.add('waiting-turn');
           playerNameElement.classList.remove('current-turn');
         }
         if (opponentNameElement) {
-          // Always in waiting mode - show waiting message
+          // DISABLED: currentPlayer logic before card distribution
+          // Always show waiting mode
           opponentNameElement.textContent = 'Warte auf Spielstart...';
           opponentNameElement.classList.add('waiting-turn');
           opponentNameElement.classList.remove('current-turn');
@@ -1353,13 +1583,15 @@ class LANGameApp {
       } else {
         // Client perspective
         if (playerNameElement) {
-          // Always in waiting mode - show waiting message
+          // DISABLED: currentPlayer logic before card distribution
+          // Always show waiting mode
           playerNameElement.textContent = 'Warte auf Spielstart...';
           playerNameElement.classList.add('waiting-turn');
           playerNameElement.classList.remove('current-turn');
         }
         if (opponentNameElement) {
-          // Always in waiting mode - show waiting message
+          // DISABLED: currentPlayer logic before card distribution
+          // Always show waiting mode
           opponentNameElement.textContent = 'Warte auf Spielstart...';
           opponentNameElement.classList.add('waiting-turn');
           opponentNameElement.classList.remove('current-turn');
@@ -1367,11 +1599,13 @@ class LANGameApp {
       }
       
       if (currentTurnElement) {
-        // Always in waiting mode
+        // DISABLED: currentPlayer logic before card distribution
+        // Always show waiting mode
         currentTurnElement.textContent = 'Warte auf Spielstart...';
       }
       
-      console.log('🎮 LAN info updated with names:', { serverPlayerName, clientPlayerName });
+      // DISABLED: currentPlayer logging before card distribution
+      console.log('🎮 LAN info updated with names:', { serverPlayerName, clientPlayerName, currentPlayer: 'WAITING_FOR_CARD_DISTRIBUTION' });
     } catch (error) {
       console.error('🎮 Failed to update LAN info:', error);
     }
@@ -1458,6 +1692,8 @@ class LANGameApp {
       if (!this.canvas) return;
 
       const rect = this.canvas.getBoundingClientRect();
+      if (!rect) return;
+      
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
 
@@ -1491,6 +1727,8 @@ class LANGameApp {
       if (!this.canvas) return;
 
       const rect = this.canvas.getBoundingClientRect();
+      if (!rect) return;
+      
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
 
@@ -1822,11 +2060,12 @@ class LANGameApp {
         this.updatePlacedCardsVisualization(gameState.placedCards);
       }
       
+      // DISABLED: currentPlayer logging before card distribution
       logger.debug({
         scope: 'renderer/lan-game',
         msg: 'game state updated from WebSocket',
         meta: { 
-          currentPlayer: gameState.currentPlayer,
+          currentPlayer: 'DISABLED_BEFORE_CARD_DISTRIBUTION',
           placedCardsCount: gameState.placedCards?.length || 0
         }
       });

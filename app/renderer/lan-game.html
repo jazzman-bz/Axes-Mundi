@@ -44,6 +44,16 @@
             z-index: 100;
             text-align: right;
         }
+        
+        /* UI States */
+        .current-turn {
+            color: #00ff00 !important;
+            font-weight: bold;
+        }
+        
+        .waiting-turn {
+            color: #ffff00 !important;
+        }
     </style>
 </head>
 <body>
@@ -51,9 +61,9 @@
     
     <div id="lan-status">🎮 Verbinde...</div>
     <div id="lan-info">
-        <div id="player-name">Spieler: ...</div>
-        <div id="opponent-name">Gegner: ...</div>
-        <div id="current-turn">Zug: ...</div>
+        <div id="playerName">Spieler: ...</div>
+        <div id="opponentName">Gegner: ...</div>
+        <div id="currentTurn">Zug: ...</div>
     </div>
     
     <canvas id="game-canvas"></canvas>

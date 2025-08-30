@@ -43,38 +43,45 @@ export class LANGameManager {
    * Set current player randomly at game start
    */
   setCurrentPlayerRandomly(): void {
-    // Random selection: true = server starts, false = client starts
-    const serverStarts = Math.random() < 0.5;
-    this.currentPlayer = serverStarts ? this.serverPlayerName : this.clientPlayerName;
+    // DISABLED: currentPlayer logic before card distribution
+    console.log('🎮 DISABLED: setCurrentPlayerRandomly called - waiting for card distribution');
     
-    // Store current player in localStorage for consistency
-    localStorage.setItem('currentPlayer', this.currentPlayer);
-    
-    logger.info({
-      scope: 'renderer/lan',
-      msg: 'current player set randomly',
-      meta: { currentPlayer: this.currentPlayer, serverStarts }
-    });
+    // DISABLED: currentPlayer logic before card distribution
+    // const serverStarts = Math.random() < 0.5;
+    // this.currentPlayer = serverStarts ? this.serverPlayerName : this.clientPlayerName;
+    // 
+    // // Store current player in localStorage for consistency
+    // localStorage.setItem('currentPlayer', this.currentPlayer);
+    // 
+    // logger.info({
+    //   scope: 'renderer/lan',
+    //   msg: 'current player set randomly',
+    //   meta: { currentPlayer: this.currentPlayer, serverStarts }
+    // });
   }
 
   /**
    * Update current player after turn
    */
   updateCurrentPlayer(): void {
-    if (this.currentPlayer === this.serverPlayerName) {
-      this.currentPlayer = this.clientPlayerName;
-    } else {
-      this.currentPlayer = this.serverPlayerName;
-    }
+    // DISABLED: currentPlayer logic before card distribution
+    console.log('🎮 DISABLED: updateCurrentPlayer called - waiting for card distribution');
     
-    // Store updated current player
-    localStorage.setItem('currentPlayer', this.currentPlayer);
-    
-    logger.info({
-      scope: 'renderer/lan',
-      msg: 'current player updated',
-      meta: { currentPlayer: this.currentPlayer }
-    });
+    // DISABLED: currentPlayer logic before card distribution
+    // if (this.currentPlayer === this.serverPlayerName) {
+    //   this.currentPlayer = this.clientPlayerName;
+    // } else {
+    //   this.currentPlayer = this.serverPlayerName;
+    // }
+    // 
+    // // Store updated current player
+    // localStorage.setItem('currentPlayer', this.currentPlayer);
+    // 
+    // logger.info({
+    //   scope: 'renderer/lan',
+    //   msg: 'current player updated',
+    //   meta: { currentPlayer: this.currentPlayer }
+    // });
   }
 
   /**
@@ -155,12 +162,12 @@ export class LANGameManager {
     // Store player names in localStorage for overlay display
     localStorage.setItem('serverPlayerName', serverPlayerName);
     
-    // Set current player to server (server starts first)
-    localStorage.setItem('currentPlayer', serverPlayerName);
+    // DISABLED: currentPlayer logic before card distribution
+    // localStorage.setItem('currentPlayer', serverPlayerName);
     
     console.log('🎮 LANGameServer: Player names set:', this.serverPlayerName, this.clientPlayerName);
     console.log('🎮 LANGameServer: Player names stored in localStorage');
-    console.log('🎮 LANGameServer: Current player set to:', serverPlayerName);
+    console.log('🎮 LANGameServer: DISABLED - would set current player to:', serverPlayerName);
     
     logger.info({
       scope: 'renderer/lan/server',
@@ -168,7 +175,7 @@ export class LANGameManager {
       meta: { 
         serverPlayerName: this.serverPlayerName, 
         clientPlayerName: this.clientPlayerName,
-        currentPlayer: serverPlayerName
+        currentPlayer: 'WAITING_FOR_CARD_DISTRIBUTION'
       }
     });
   }
@@ -236,8 +243,8 @@ export class LANGameManager {
       // Deal cards for LAN mode
       this.dealCardsForLAN();
       
-      // Set current player randomly
-      this.setCurrentPlayerRandomly();
+      // DISABLED: currentPlayer logic before card distribution
+      // this.setCurrentPlayerRandomly();
       
       // Mark game as started
       this.gameStarted = true;
@@ -325,7 +332,8 @@ export class LANGameManager {
           this.handleRemoteGameStateUpdate(message);
           break;
         case 'currentPlayerUpdate':
-          this.handleRemoteCurrentPlayerUpdate(message);
+          // DISABLED: currentPlayer logic before card distribution
+          console.log('🎮 Received currentPlayerUpdate - IGNORED (waiting for card distribution)');
           break;
         default:
           console.log('🎮 Unknown message type:', message.type);
@@ -396,18 +404,18 @@ export class LANGameManager {
     try {
       console.log('🎮 Handling remote game state update:', message);
       
-      // Update local game state
-      this.currentPlayer = message.currentPlayer;
+      // DISABLED: currentPlayer logic before card distribution
+      // this.currentPlayer = message.currentPlayer;
       this.placedCards = message.placedCards || [];
       
-      // Update localStorage
-      localStorage.setItem('currentPlayer', this.currentPlayer);
+      // DISABLED: currentPlayer logic before card distribution
+      // localStorage.setItem('currentPlayer', this.currentPlayer);
       
       logger.info({
         scope: 'renderer/lan',
         msg: 'remote game state updated',
         meta: { 
-          currentPlayer: this.currentPlayer,
+          currentPlayer: 'DISABLED_BEFORE_CARD_DISTRIBUTION',
           placedCardsCount: this.placedCards.length
         }
       });
@@ -431,22 +439,23 @@ export class LANGameManager {
    */
   private handleRemoteCurrentPlayerUpdate(message: any): void {
     try {
-      console.log('🎮 Handling remote current player update:', message);
+      console.log('🎮 DISABLED: handleRemoteCurrentPlayerUpdate called - waiting for card distribution');
+      console.log('🎮 Would set current player to:', message.currentPlayer);
       
-      // Update local current player
-      this.currentPlayer = message.currentPlayer;
-      localStorage.setItem('currentPlayer', this.currentPlayer);
+      // DISABLED: currentPlayer logic before card distribution
+      // this.currentPlayer = message.currentPlayer;
+      // localStorage.setItem('currentPlayer', this.currentPlayer);
       
-      logger.info({
-        scope: 'renderer/lan',
-        msg: 'remote current player updated',
-        meta: { currentPlayer: this.currentPlayer }
-      });
+      // logger.info({
+      //   scope: 'renderer/lan',
+      //   msg: 'remote current player updated',
+      //   meta: { currentPlayer: this.currentPlayer }
+      // });
       
-      // Notify callback if set
-      if (this.onGameStateUpdateCallback) {
-        this.onGameStateUpdateCallback(this.getGameState());
-      }
+      // // Notify callback if set
+      // if (this.onGameStateUpdateCallback) {
+      //   this.onGameStateUpdateCallback(this.getGameState());
+      // }
       
     } catch (error) {
       logger.error({
@@ -748,10 +757,55 @@ export class LANGameManager {
         }
       });
 
+      // Send confirmation to server that client received cards
+      this.sendCardDistributionConfirmation();
+
     } catch (error) {
       logger.error({
         scope: 'renderer/lan',
         msg: 'failed to handle card distribution from server',
+        err: { message: (error as Error).message, stack: (error as Error).stack }
+      });
+    }
+  }
+
+  /**
+   * Send confirmation to server that client received card distribution
+   */
+  private sendCardDistributionConfirmation(): void {
+    try {
+      if (this.isServerClient) {
+        return; // Only client sends confirmation
+      }
+
+      logger.info({
+        scope: 'renderer/lan',
+        msg: 'sending card distribution confirmation to server'
+      });
+
+      // Send confirmation via WebSocket
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({
+          type: 'cardDistributionConfirmation',
+          playerName: this.clientPlayerName,
+          message: 'Client received card distribution successfully'
+        }));
+
+        logger.info({
+          scope: 'renderer/lan',
+          msg: 'card distribution confirmation sent to server'
+        });
+      } else {
+        logger.warn({
+          scope: 'renderer/lan',
+          msg: 'WebSocket not available for card distribution confirmation'
+        });
+      }
+
+    } catch (error) {
+      logger.error({
+        scope: 'renderer/lan',
+        msg: 'failed to send card distribution confirmation',
         err: { message: (error as Error).message, stack: (error as Error).stack }
       });
     }
@@ -1025,20 +1079,21 @@ export class LANGameManager {
         return; // Server-client doesn't receive game state updates
       }
       
-      this.currentPlayer = gameState.currentPlayer;
+      // DISABLED: currentPlayer logic before card distribution
+      // this.currentPlayer = gameState.currentPlayer;
       this.placedCards = gameState.placedCards || [];
       this.playerHand = gameState.serverHand || [];
       this.opponentHand = gameState.clientHand || [];
       this.gameStarted = gameState.gameStarted || false;
       
-      // Update localStorage
-      localStorage.setItem('currentPlayer', this.currentPlayer);
+      // DISABLED: currentPlayer logic before card distribution
+      // localStorage.setItem('currentPlayer', this.currentPlayer);
       
       logger.info({
         scope: 'renderer/lan',
         msg: 'game state updated from server',
         meta: { 
-          currentPlayer: this.currentPlayer,
+          currentPlayer: 'DISABLED_BEFORE_CARD_DISTRIBUTION',
           placedCardsCount: this.placedCards.length,
           serverHandSize: this.playerHand.length,
           clientHandSize: this.opponentHand.length

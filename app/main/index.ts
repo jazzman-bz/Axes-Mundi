@@ -352,6 +352,8 @@ function setupIPC(): void {
       throw error;
     }
   });
+
+
 }
 
 /**
