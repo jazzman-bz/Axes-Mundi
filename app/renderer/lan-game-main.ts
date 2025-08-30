@@ -214,6 +214,10 @@ class LANGameApp {
         this.lanGame.setPlayerNames(serverPlayerName, 'Waiting for client...');
         console.log('🎮 Server player name set:', serverPlayerName);
         
+        // Set server as current player for server-client
+        localStorage.setItem('currentPlayer', serverPlayerName);
+        console.log('🎮 Set server as current player:', serverPlayerName);
+        
         // Update overlay to show server name and waiting for client
         this.updateLANInfo();
       } else {
@@ -221,6 +225,8 @@ class LANGameApp {
         const defaultServerName = 'Server';
         this.lanGame.setPlayerNames(defaultServerName, 'Waiting for client...');
         localStorage.setItem('serverPlayerName', defaultServerName);
+        localStorage.setItem('currentPlayer', defaultServerName);
+        console.log('🎮 Set default server as current player:', defaultServerName);
         this.updateLANInfo();
       }
       
@@ -275,7 +281,7 @@ class LANGameApp {
         }
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('🎮 Failed to handle server-client flow:', error);
       throw error;
     }
@@ -1173,26 +1179,30 @@ class LANGameApp {
     }
   }
 
-  /**
-   * Handle remote card placement from WebSocket
-   */
-  private handleRemoteCardPlacement(data: any): void {
-    try {
-      console.log('🎮 Handling remote card placement:', data);
-      
-      const { cardId, position, playerName } = data; // 'position' here is the boardPosition number
-      
-      // Convert board position number back to left/right for local visualization
-      let placementPosition: 'left' | 'right';
-      if (position < 0) {
-        placementPosition = 'left';
-      } else if (position > 0) {
-        placementPosition = 'right';
-      } else {
-        placementPosition = 'right'; // Default for center (shouldn't happen)
-      }
-      
-      console.log('🎮 Converted board position', position, 'to', placementPosition);
+     /**
+    * Handle remote card placement from WebSocket
+    */
+   private handleRemoteCardPlacement(data: any): void {
+     try {
+       console.log('🎮 Handling remote card placement:', data);
+       
+       const { cardId, boardPosition, playerName } = data; // 'boardPosition' is the board position number
+       
+       // boardPosition ist jetzt ein absoluter Index (0 = ganz links, 1 = zweite Position, etc.)
+       console.log('🎮 Received absolute board position:', boardPosition);
+       
+       // Für jetzt verwenden wir noch die alte Logik, aber wir loggen die absolute Position
+       // TODO: Später implementieren wir die absolute Position für bessere Animationen
+       let placementPosition: 'left' | 'right';
+       if (boardPosition < 0) {
+         placementPosition = 'left';
+       } else if (boardPosition > 0) {
+         placementPosition = 'right';
+       } else {
+         placementPosition = 'right'; // Default für center (sollte nicht passieren)
+       }
+       
+       console.log('🎮 Converted board position', boardPosition, 'to', placementPosition);
       
       // Find the card in the appropriate hand
       let card = this.playerHand.find(c => c.card.id === cardId);
@@ -1220,17 +1230,17 @@ class LANGameApp {
         this.layoutOpponentHand();
         this.layoutAxisCards();
         
-        console.log('🎮 Remote card placement processed:', {
-          cardId,
-          boardPosition: position,
-          placementPosition,
-          playerName,
-          leftCount: this.placedLeft.length,
-          rightCount: this.placedRight.length
-        });
+               console.log('🎮 Remote card placement processed:', {
+         cardId,
+         boardPosition,
+         placementPosition,
+         playerName,
+         leftCount: this.placedLeft.length,
+         rightCount: this.placedRight.length
+       });
       }
       
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/lan-game',
         msg: 'failed to handle remote card placement',
@@ -1270,7 +1280,7 @@ class LANGameApp {
       } else {
         console.warn('🎮 LANGame not initialized, cannot update client player name');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('🎮 Failed to update client player name:', error);
     }
   }
@@ -1308,15 +1318,21 @@ class LANGameApp {
         }
       }
       
-      // Only log when actually updating (not on every call)
-      if (this.lastLoggedPlayer !== currentPlayer) {
-        console.log('🎮 Updating LAN info for player:', currentPlayer);
-        this.lastLoggedPlayer = currentPlayer;
-      }
-      
       if (!currentPlayer) {
         console.warn('🎮 No current player found, using server player as default');
         localStorage.setItem('currentPlayer', serverPlayerName);
+        // Force update the currentPlayer variable for this method
+        const updatedCurrentPlayer = serverPlayerName;
+        console.log('🎮 Set current player to:', updatedCurrentPlayer);
+      }
+      
+      // Get the final current player (either from localStorage or just set)
+      const finalCurrentPlayer = localStorage.getItem('currentPlayer') || serverPlayerName;
+      
+      // Only log when actually updating (not on every call)
+      if (this.lastLoggedPlayer !== finalCurrentPlayer) {
+        console.log('🎮 Updating LAN info for player:', finalCurrentPlayer);
+        this.lastLoggedPlayer = finalCurrentPlayer;
       }
       
       const playerNameElement = document.getElementById('player-name');
@@ -1328,7 +1344,7 @@ class LANGameApp {
         if (playerNameElement) {
           playerNameElement.textContent = `Spieler: ${serverPlayerName}`;
           // Highlight if it's server's turn
-          if (currentPlayer === serverPlayerName) {
+          if (finalCurrentPlayer === serverPlayerName) {
             playerNameElement.classList.add('current-turn');
             playerNameElement.classList.remove('waiting-turn');
           } else {
@@ -1339,7 +1355,7 @@ class LANGameApp {
         if (opponentNameElement) {
           opponentNameElement.textContent = `Gegner: ${clientPlayerName}`;
           // Highlight if it's client's turn
-          if (currentPlayer === clientPlayerName) {
+          if (finalCurrentPlayer === clientPlayerName) {
             opponentNameElement.classList.add('current-turn');
             opponentNameElement.classList.remove('waiting-turn');
           } else {
@@ -1352,7 +1368,7 @@ class LANGameApp {
         if (playerNameElement) {
           playerNameElement.textContent = `Spieler: ${clientPlayerName}`;
           // Highlight if it's client's turn
-          if (currentPlayer === clientPlayerName) {
+          if (finalCurrentPlayer === clientPlayerName) {
             playerNameElement.classList.add('current-turn');
             playerNameElement.classList.remove('waiting-turn');
           } else {
@@ -1363,7 +1379,7 @@ class LANGameApp {
         if (opponentNameElement) {
           opponentNameElement.textContent = `Gegner: ${serverPlayerName}`;
           // Highlight if it's server's turn
-          if (currentPlayer === serverPlayerName) {
+          if (finalCurrentPlayer === serverPlayerName) {
             opponentNameElement.classList.add('current-turn');
             opponentNameElement.classList.remove('waiting-turn');
           } else {
@@ -1374,7 +1390,7 @@ class LANGameApp {
       }
       
       if (currentTurnElement) {
-        currentTurnElement.textContent = `Zug: ${currentPlayer}`;
+        currentTurnElement.textContent = `Zug: ${finalCurrentPlayer}`;
       }
       
       // Only log when player actually changes
@@ -1500,10 +1516,9 @@ class LANGameApp {
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
 
-      // Handle dragging if active
-      if (this.isDragging && this.selectedCard) {
-        console.log('🎮 Dragging card to:', { x, y });
-        this.selectedCard.updateDrag(x, y);
+             // Handle dragging if active
+       if (this.isDragging && this.selectedCard) {
+         this.selectedCard.updateDrag(x, y);
         
         // Show preview of where card would be placed on axis
         this.showPlacementPreview(x, y);
@@ -1533,14 +1548,13 @@ class LANGameApp {
         }
       }
 
-      // Set hover effect for card under mouse in active hand
-      for (const card of activeHand) {
-        if (card.containsPoint(x, y)) {
-          card.isHovered = true;
-          console.log('🎮 Hover effect set for card:', card.card.title);
-          break;
-        }
-      }
+             // Set hover effect for card under mouse in active hand
+       for (const card of activeHand) {
+         if (card.containsPoint(x, y)) {
+           card.isHovered = true;
+           break;
+         }
+       }
 
     } catch (error) {
       console.error('🎮 Failed to handle mouse move:', error);
@@ -1632,22 +1646,8 @@ class LANGameApp {
             
             console.log('🎮 Calculated board position:', boardPosition, 'for card:', releasedCard.card.title);
             
-            // Always use WebSocket communication for card placement
-            if (this.lanGame && this.lanGame.lanClient) {
-              try {
-                // Send card placement via WebSocket with board position number
-                this.lanGame.lanClient.sendCardPlacement(releasedCard.card.id, boardPosition);
-                console.log('🎮 Card placement sent via WebSocket:', { 
-                  cardId: releasedCard.card.id, 
-                  boardPosition,
-                  originalPosition: position 
-                });
-              } catch (error) {
-                console.error('🎮 Failed to send card placement via WebSocket:', error);
-              }
-            } else {
-              console.warn('🎮 No WebSocket client available for card placement');
-            }
+            // Send card placement via WebSocket to synchronize with other player
+            this.sendCardPlacementViaWebSocket(releasedCard.card.id, boardPosition);
            
            console.log('🎮 Card successfully placed on axis');
         } else {
@@ -1918,17 +1918,67 @@ class LANGameApp {
     }
   }
 
-  /**
-   * Show error message
-   */
-  private showError(message: string): void {
-    try {
-      console.error('🎮 Error:', message);
-      alert(`LAN-Spiel Fehler: ${message}`);
-    } catch (error) {
-      console.error('🎮 Failed to show error:', error);
-    }
-  }
+     /**
+    * Send card placement via WebSocket to synchronize with other player
+    * This method handles both server-client and client scenarios
+    */
+   private sendCardPlacementViaWebSocket(cardId: string, boardPosition: number): void {
+     try {
+       const isServerClient = localStorage.getItem('isServerClient') === 'true';
+       const currentPlayer = localStorage.getItem('currentPlayer');
+       
+       console.log('🎮 Sending card placement via WebSocket:', {
+         cardId,
+         boardPosition,
+         isServerClient,
+         currentPlayer
+       });
+       
+                if (isServerClient) {
+           // Server-Client: Send via IPC to main process WebSocket server
+           if (window.AXM && window.AXM.placeLANCard) {
+             try {
+               window.AXM.placeLANCard(cardId, boardPosition).then((result: any) => {
+                 if (result.success) {
+                   console.log('🎮 Server-Client: Card placement sent via IPC successfully');
+                 } else {
+                   console.warn('🎮 Server-Client: Failed to send card placement via IPC:', result.message);
+                 }
+               }).catch((error: any) => {
+                 console.error('🎮 Server-Client: Error sending card placement via IPC:', error);
+               });
+             } catch (error) {
+               console.error('🎮 Server-Client: Failed to call placeLANCard:', error);
+             }
+           } else {
+             console.warn('🎮 Server-Client: AXM.placeLANCard not available');
+           }
+         } else {
+         // Client: Send via LANGameClient WebSocket
+         if (this.lanGame && this.lanGame.lanClient) {
+           this.lanGame.lanClient.sendCardPlacement(cardId, boardPosition);
+           console.log('🎮 Client: Card placement sent via WebSocket client');
+         } else {
+           console.warn('🎮 Client: No WebSocket client available for card placement');
+         }
+       }
+       
+     } catch (error) {
+       console.error('🎮 Failed to send card placement via WebSocket:', error);
+     }
+   }
+
+   /**
+    * Show error message
+    */
+   private showError(message: string): void {
+     try {
+       console.error('🎮 Error:', message);
+       alert(`LAN-Spiel Fehler: ${message}`);
+     } catch (error) {
+       console.error('🎮 Failed to show error:', error);
+     }
+   }
 }
 
 // Initialize LAN game when DOM is ready

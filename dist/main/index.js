@@ -188,29 +188,29 @@ function setupIPC() {
         }
     });
     // LAN card placement with WebSocket integration
-    electron_1.ipcMain.handle('lan-place-card', async (_, cardId, position) => {
+    electron_1.ipcMain.handle('lan-place-card', async (_, cardId, boardPosition) => {
         try {
             logger_1.logger.info({
                 scope: 'main/lan',
                 msg: 'LAN card placement requested',
-                meta: { cardId, position }
+                meta: { cardId, boardPosition }
             });
             // Validate input
             if (typeof cardId !== 'string' || !cardId) {
                 throw new Error('Invalid card ID');
             }
-            if (position !== 'left' && position !== 'right') {
-                throw new Error('Invalid position - must be left or right');
+            if (typeof boardPosition !== 'number') {
+                throw new Error('Invalid board position - must be a number');
             }
             // Send card placement to all connected clients via WebSocket
             if (lanServer) {
                 // Get current player from renderer (this would need to be passed)
                 const currentPlayer = 'Server'; // TODO: Get actual current player
-                await lanServer.sendCardPlacement(cardId, position, currentPlayer);
+                await lanServer.sendCardPlacement(cardId, boardPosition, currentPlayer);
                 logger_1.logger.info({
                     scope: 'main/lan',
                     msg: 'card placement sent to clients via WebSocket',
-                    meta: { cardId, position, currentPlayer }
+                    meta: { cardId, boardPosition, currentPlayer }
                 });
                 return { success: true, message: 'Card placement sent to clients' };
             }

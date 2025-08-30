@@ -23,7 +23,7 @@ contextBridge.exposeInMainWorld('AXM', {
   sendGameStartTrigger: () => ipcRenderer.invoke('send-game-start-trigger'),
   
   // LAN Game actions
-  placeLANCard: (cardId: string, position: 'left' | 'right') => ipcRenderer.invoke('lan-place-card', cardId, position),
+  placeLANCard: (cardId: string, boardPosition: number) => ipcRenderer.invoke('lan-place-card', cardId, boardPosition),
   updateGameState: (gameState: any) => ipcRenderer.invoke('update-lan-game-state', gameState),
   
   // Test IPC connection
@@ -63,7 +63,7 @@ declare global {
       sendGameStartTrigger: () => Promise<{ success: boolean }>;
       
       // LAN Game actions
-      placeLANCard: (cardId: string, position: 'left' | 'right') => Promise<{ success: boolean; message: string }>;
+      placeLANCard: (cardId: string, boardPosition: number) => Promise<{ success: boolean; message: string }>;
       updateGameState: (gameState: any) => Promise<{ success: boolean; message: string }>;
       
       testIPC: () => Promise<{ success: boolean; message: string }>;

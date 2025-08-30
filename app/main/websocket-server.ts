@@ -541,11 +541,11 @@ export class LANWebSocketServer {
   /**
    * Send card placement to all connected clients
    */
-  async sendCardPlacement(cardId: string, position: 'left' | 'right', playerName: string): Promise<void> {
+  async sendCardPlacement(cardId: string, boardPosition: number, playerName: string): Promise<void> {
     logger.info({
       scope: 'main/websocket',
       msg: 'Sending card placement to clients',
-      meta: { cardId, position, playerName }
+      meta: { cardId, boardPosition, playerName }
     });
 
     // Send to all connected clients
@@ -553,7 +553,7 @@ export class LANWebSocketServer {
       player.ws.send(JSON.stringify({
         type: 'cardPlacement',
         cardId,
-        position,
+        boardPosition,
         playerName
       }));
     }
@@ -563,9 +563,9 @@ export class LANWebSocketServer {
       global.mainWindow.webContents.send('lan-status-update', {
         type: 'cardPlacement',
         cardId,
-        position,
+        boardPosition,
         playerName,
-        message: `Card ${cardId} placed at ${position} by ${playerName}`
+        message: `Card ${cardId} placed at board position ${boardPosition} by ${playerName}`
       });
     }
   }
@@ -584,7 +584,7 @@ export class LANWebSocketServer {
         playerId, 
         playerName: player.name,
         cardId: message.cardId,
-        position: message.position
+        boardPosition: message.boardPosition
       } 
     });
 
@@ -592,7 +592,7 @@ export class LANWebSocketServer {
     this.broadcastToOthers(playerId, {
       type: 'cardPlacement',
       cardId: message.cardId,
-      position: message.position,
+      boardPosition: message.boardPosition,
       playerName: player.name
     });
 
@@ -601,9 +601,9 @@ export class LANWebSocketServer {
       global.mainWindow.webContents.send('lan-status-update', {
         type: 'cardPlacement',
         cardId: message.cardId,
-        position: message.position,
+        boardPosition: message.boardPosition,
         playerName: player.name,
-        message: `Karte ${message.cardId} wurde von ${player.name} platziert`
+        message: `Karte ${message.cardId} wurde von ${player.name} an Board-Position ${message.boardPosition} platziert`
       });
     }
   }

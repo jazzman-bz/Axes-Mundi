@@ -21,7 +21,7 @@ electron_1.contextBridge.exposeInMainWorld('AXM', {
     sendCardDistribution: (distribution) => electron_1.ipcRenderer.invoke('send-card-distribution', distribution),
     sendGameStartTrigger: () => electron_1.ipcRenderer.invoke('send-game-start-trigger'),
     // LAN Game actions
-    placeLANCard: (cardId, position) => electron_1.ipcRenderer.invoke('lan-place-card', cardId, position),
+    placeLANCard: (cardId, boardPosition) => electron_1.ipcRenderer.invoke('lan-place-card', cardId, boardPosition),
     updateGameState: (gameState) => electron_1.ipcRenderer.invoke('update-lan-game-state', gameState),
     // Test IPC connection
     testIPC: () => electron_1.ipcRenderer.invoke('test-ipc'),
