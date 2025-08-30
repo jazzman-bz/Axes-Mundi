@@ -28,13 +28,13 @@ electron_1.contextBridge.exposeInMainWorld('AXM', {
     // Event listeners
     on: (channel, func) => {
         // Whitelist channels
-        const validChannels = ['game-update', 'score-update', 'lan-status-update'];
+        const validChannels = ['game-update', 'score-update', 'lan-status-update', 'client-player-joined'];
         if (validChannels.includes(channel)) {
             electron_1.ipcRenderer.on(channel, (_event, ...args) => func(...args));
         }
     },
     removeAllListeners: (channel) => {
-        const validChannels = ['game-update', 'score-update', 'lan-status-update'];
+        const validChannels = ['game-update', 'score-update', 'lan-status-update', 'client-player-joined'];
         if (validChannels.includes(channel)) {
             electron_1.ipcRenderer.removeAllListeners(channel);
         }

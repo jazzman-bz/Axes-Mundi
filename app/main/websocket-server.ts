@@ -174,6 +174,24 @@ export class LANWebSocketServer {
         message: joinedMessage 
       } 
     });
+    
+              // IMPORTANT: Notify the server-client (Electron) about the new client player name
+          // This ensures the overlay shows the real client name instead of "Waiting for client..."
+          if (global.mainWindow && global.mainWindow.webContents) {
+            global.mainWindow.webContents.send('client-player-joined', {
+              clientPlayerName: playerName,
+              playerId
+            });
+            
+            logger.info({ 
+              scope: 'main/websocket', 
+              msg: 'Notified server-client about new client player', 
+              meta: { 
+                clientPlayerName: playerName, 
+                playerId 
+              } 
+            });
+          }
 
     // Notify all other players about the new player
     this.broadcastToOthers(playerId, {

@@ -144,14 +144,32 @@ export class LANGameManager {
    */
   setPlayerNames(serverPlayerName: string, clientPlayerName: string): void {
     this.serverPlayerName = serverPlayerName;
-    this.clientPlayerName = clientPlayerName;
     
-    console.log('🎮 LANGameManager: Player names set:', this.serverPlayerName, this.clientPlayerName);
+    // Nur den Client-Namen setzen, wenn noch kein echter Name via WebSocket gesetzt wurde
+    // oder wenn es der Platzhalter "Waiting for client..." ist
+    if (!this.clientPlayerName || this.clientPlayerName === 'Waiting for client...' || this.clientPlayerName === 'Client') {
+      this.clientPlayerName = clientPlayerName;
+      localStorage.setItem('clientPlayerName', clientPlayerName);
+    }
+    
+    // Store player names in localStorage for overlay display
+    localStorage.setItem('serverPlayerName', serverPlayerName);
+    
+    // Set current player to server (server starts first)
+    localStorage.setItem('currentPlayer', serverPlayerName);
+    
+    console.log('🎮 LANGameServer: Player names set:', this.serverPlayerName, this.clientPlayerName);
+    console.log('🎮 LANGameServer: Player names stored in localStorage');
+    console.log('🎮 LANGameServer: Current player set to:', serverPlayerName);
     
     logger.info({
-      scope: 'renderer/lan',
-      msg: 'player names set',
-      meta: { serverPlayerName: this.serverPlayerName, clientPlayerName: this.clientPlayerName }
+      scope: 'renderer/lan/server',
+      msg: 'player names set and stored in localStorage',
+      meta: { 
+        serverPlayerName: this.serverPlayerName, 
+        clientPlayerName: this.clientPlayerName,
+        currentPlayer: serverPlayerName
+      }
     });
   }
 
@@ -437,6 +455,51 @@ export class LANGameManager {
         err: { message: error.message, stack: error.stack }
       });
     }
+  }
+
+  /**
+   * Update client player name when received via WebSocket
+   * This is called when the browser client connects and sends their name
+   */
+  updateClientPlayerName(clientPlayerName: string): void {
+    this.clientPlayerName = clientPlayerName;
+    
+    // Store updated client player name in localStorage
+    localStorage.setItem('clientPlayerName', clientPlayerName);
+    
+    console.log('🎮 LANGameServer: Client player name updated via WebSocket:', clientPlayerName);
+    
+    logger.info({
+      scope: 'renderer/lan/server',
+      msg: 'client player name updated via WebSocket',
+      meta: { clientPlayerName }
+    });
+  }
+
+  /**
+   * Get server player name
+   */
+  getServerPlayerName(): string {
+    // Load names from localStorage if not already set
+    if (!this.serverPlayerName) {
+      this.serverPlayerName = localStorage.getItem('serverPlayerName') || 'Server';
+      console.log('🎮 LANGameServer: Loaded server player name from localStorage:', this.serverPlayerName);
+    }
+    
+    return this.serverPlayerName;
+  }
+
+  /**
+   * Get client player name
+   */
+  getClientPlayerName(): string {
+    // Load names from localStorage if not already set
+    if (!this.clientPlayerName) {
+      this.clientPlayerName = localStorage.getItem('clientPlayerName') || 'Client';
+      console.log('🎮 LANGameServer: Loaded client player name from localStorage:', this.clientPlayerName);
+    }
+    
+    return this.clientPlayerName;
   }
 
   /**

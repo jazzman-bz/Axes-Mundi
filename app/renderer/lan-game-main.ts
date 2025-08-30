@@ -1,4 +1,6 @@
 import { LANGameManager } from './lan-game';
+import { LANGameClient } from './lan-client';
+import { LANGameProtocol } from './lan-game-protocol';
 import { logger } from '@/utils/logger';
 import { GameCard } from './game/Card';
 
@@ -69,15 +71,8 @@ class LANGameApp {
        // Load logo image
        this.loadLogoImage();
        
-             // Initialize LAN game manager
+             // Initialize LAN game server
       await this.initLANGame();
-      
-      // Set up game state update callback for WebSocket integration
-      if (this.lanGame) {
-        this.lanGame.onGameStateUpdate((gameState: any) => {
-          this.handleGameStateUpdate(gameState);
-        });
-      }
       
       // Start game loop (like Single-Player)
       this.startGameLoop();
@@ -93,11 +88,14 @@ class LANGameApp {
               // Update LAN info display AFTER card distribution is handled
        this.updateLANInfo();
        
-       // Initialize current player display
-       this.initializeCurrentPlayer();
-       
-             // Set up periodic refresh of LAN info to catch current player changes
-      this.setupLANInfoRefresh();
+               // Initialize current player display
+        this.initializeCurrentPlayer();
+        
+        // Force update LAN info to show correct player names and current player
+        this.updateLANInfo();
+        
+        // Set up periodic refresh of LAN info to catch current player changes
+        this.setupLANInfoRefresh();
       
       // Set up WebSocket event listeners for real-time updates
       this.setupWebSocketEventListeners();
@@ -199,30 +197,43 @@ class LANGameApp {
   }
 
   /**
-   * Initialize LAN game manager
+   * Initialize LAN game server
    */
   private async initLANGame(): Promise<void> {
     try {
-      console.log('🎮 Initializing LANGameManager...');
+      console.log('🎮 Initializing LANGameServer...');
       
       this.lanGame = new LANGameManager();
       
-      // Set player names from localStorage
+      // For Server-Client (Electron): Set server player name from localStorage
+      // Client player name will come via WebSocket from the browser client
       const serverPlayerName = localStorage.getItem('serverPlayerName');
-      const clientPlayerName = localStorage.getItem('clientPlayerName');
       
-      if (serverPlayerName && clientPlayerName) {
-        this.lanGame.setPlayerNames(serverPlayerName, clientPlayerName);
-        console.log('🎮 Player names set:', { serverPlayerName, clientPlayerName });
+      if (serverPlayerName) {
+        // Set server player name immediately
+        this.lanGame.setPlayerNames(serverPlayerName, 'Waiting for client...');
+        console.log('🎮 Server player name set:', serverPlayerName);
+        
+        // Update overlay to show server name and waiting for client
+        this.updateLANInfo();
+      } else {
+        console.warn('🎮 No server player name found in localStorage, using default');
+        const defaultServerName = 'Server';
+        this.lanGame.setPlayerNames(defaultServerName, 'Waiting for client...');
+        localStorage.setItem('serverPlayerName', defaultServerName);
+        this.updateLANInfo();
       }
+      
+      // Note: Client player name will be set when received via WebSocket
+      // This happens in the WebSocket event handlers
       
       // Initialize LAN game (this prepares card distribution but doesn't send it)
       await this.lanGame.initializeLANGame();
       
-      console.log('🎮 LANGameManager initialized successfully');
+      console.log('🎮 LANGameServer initialized successfully');
       
     } catch (error) {
-      console.error('🎮 Failed to initialize LANGameManager:', error);
+      console.error('🎮 Failed to initialize LANGameServer:', error);
       throw error;
     }
   }
@@ -255,9 +266,12 @@ class LANGameApp {
         // Then: send card distribution to client
         console.log('🎮 Sending card distribution to client...');
         this.lanGame.sendCardDistributionAfterCanvasInit();
+        
+        // Update LAN info after sending card distribution to ensure current player is shown
+        this.updateLANInfo();
           
-          this.updateLANStatus('Kartenverteilung an Client gesendet!');
-          console.log('🎮 Card distribution sent to client successfully');
+        this.updateLANStatus('Kartenverteilung an Client gesendet!');
+        console.log('🎮 Card distribution sent to client successfully');
         }
       }
       
@@ -1091,6 +1105,11 @@ class LANGameApp {
           this.handleLANStatusUpdate(data);
         });
         
+        // Listen for client player joined events from main process
+        window.AXM.on('client-player-joined', (data: any) => {
+          this.handleClientPlayerJoined(data);
+        });
+        
         console.log('🎮 WebSocket event listeners set up');
       } else {
         console.warn('🎮 AXM.on not available for WebSocket events');
@@ -1127,6 +1146,30 @@ class LANGameApp {
         msg: 'failed to handle LAN status update',
         err: { message: error.message, stack: error.stack }
       });
+    }
+  }
+  
+  /**
+   * Handle client player joined event from main process
+   * This is called when a browser client connects via WebSocket
+   */
+  private handleClientPlayerJoined(data: any): void {
+    try {
+      console.log('🎮 Received client player joined event:', data);
+      
+      const { clientPlayerName } = data;
+      
+      if (clientPlayerName) {
+        // Update the client player name in the LAN game
+        this.updateClientPlayerName(clientPlayerName);
+        
+        console.log('🎮 Client player name updated successfully:', clientPlayerName);
+      } else {
+        console.warn('🎮 No client player name in data:', data);
+      }
+      
+    } catch (error) {
+      console.error('🎮 Failed to handle client player joined event:', error);
     }
   }
 
@@ -1208,6 +1251,29 @@ class LANGameApp {
       console.error('🎮 Failed to update current player:', error);
     }
   }
+  
+  /**
+   * Update client player name when received via WebSocket
+   * This is called from the main process when the browser client connects
+   */
+  public updateClientPlayerName(clientPlayerName: string): void {
+    try {
+      console.log('🎮 Updating client player name via WebSocket:', clientPlayerName);
+      
+      if (this.lanGame) {
+        this.lanGame.updateClientPlayerName(clientPlayerName);
+        
+        // Update overlay to show the real client name
+        this.updateLANInfo();
+        
+        console.log('🎮 Client player name updated successfully');
+      } else {
+        console.warn('🎮 LANGame not initialized, cannot update client player name');
+      }
+    } catch (error) {
+      console.error('🎮 Failed to update client player name:', error);
+    }
+  }
 
   /**
    * Update LAN info display with player names and current player
@@ -1215,9 +1281,32 @@ class LANGameApp {
   private updateLANInfo(): void {
     try {
       const isServerClient = localStorage.getItem('isServerClient') === 'true';
-      const serverPlayerName = localStorage.getItem('serverPlayerName') || 'Server';
-      const clientPlayerName = localStorage.getItem('clientPlayerName') || 'Client';
+      let serverPlayerName = localStorage.getItem('serverPlayerName');
+      let clientPlayerName = localStorage.getItem('clientPlayerName');
       const currentPlayer = localStorage.getItem('currentPlayer');
+      
+      // If names are not in localStorage, try to get them from LANGameServer
+      if (!serverPlayerName || !clientPlayerName) {
+        if (this.lanGame) {
+          // Try to get names from LANGameServer instance
+          serverPlayerName = this.lanGame.getServerPlayerName() || 'Server';
+          clientPlayerName = this.lanGame.getClientPlayerName() || 'Client';
+          
+          // Store them in localStorage for future use
+          if (serverPlayerName && serverPlayerName !== 'Server') {
+            localStorage.setItem('serverPlayerName', serverPlayerName);
+          }
+          if (clientPlayerName && clientPlayerName !== 'Client') {
+            localStorage.setItem('clientPlayerName', clientPlayerName);
+          }
+          
+          console.log('🎮 Loaded names from LANGameServer:', { serverPlayerName, clientPlayerName });
+        } else {
+          // Fallback to localStorage defaults
+          serverPlayerName = serverPlayerName || 'Server';
+          clientPlayerName = clientPlayerName || 'Client';
+        }
+      }
       
       // Only log when actually updating (not on every call)
       if (this.lastLoggedPlayer !== currentPlayer) {
@@ -1292,6 +1381,8 @@ class LANGameApp {
       if (this.lastLoggedPlayer !== currentPlayer) {
         console.log('🎮 LAN info updated for player:', currentPlayer);
       }
+      
+      console.log('🎮 LAN info updated with names:', { serverPlayerName, clientPlayerName, currentPlayer });
     } catch (error) {
       console.error('🎮 Failed to update LAN info:', error);
     }
