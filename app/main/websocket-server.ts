@@ -119,8 +119,11 @@ export class LANWebSocketServer {
       case 'deckResponse':
         this.handleDeckResponse(playerId, message.deckId, message.available);
         break;
-      case 'currentPlayerUpdate':
-        this.handleCurrentPlayerUpdate(playerId, message.currentPlayer);
+      case 'currentPlayerSet':
+        this.handleCurrentPlayerSet(playerId, message.currentPlayer);
+        break;
+      case 'playerTurnChanged':
+        this.handlePlayerTurnChanged(playerId, message.currentPlayer);
         break;
       case 'cardDistribution':
         this.handleCardDistribution(playerId, message);
@@ -332,7 +335,7 @@ export class LANWebSocketServer {
         serverHandSize: distribution.serverHand?.length || 0,
         clientHandSize: distribution.clientHand?.length || 0,
         deckSize: distribution.deckOrder?.length || 0,
-        currentPlayer: distribution.currentPlayer
+        // currentPlayer will be set separately after distribution
       }
     });
 
@@ -369,30 +372,30 @@ export class LANWebSocketServer {
   }
 
   /**
-   * Send current player update to all connected clients
+   * Send current player set event to all connected clients
    */
-  async sendCurrentPlayerUpdate(currentPlayer: string): Promise<void> {
+  async sendCurrentPlayerSet(currentPlayer: string): Promise<void> {
     logger.info({
       scope: 'main/websocket',
-      msg: 'Sending current player update to client',
+      msg: 'Sending current player set event to clients',
       meta: { currentPlayer }
     });
 
     // Send to all connected clients
     for (const [, player] of this.players) {
       player.ws.send(JSON.stringify({
-        type: 'currentPlayerUpdate',
+        type: 'currentPlayerSet',
         currentPlayer,
-        message: `Current player: ${currentPlayer}`
+        message: `Spiel gestartet! ${currentPlayer} beginnt.`
       }));
     }
 
     // Send notification to renderer process to update UI
     if (global.mainWindow && global.mainWindow.webContents) {
       global.mainWindow.webContents.send('lan-status-update', {
-        type: 'currentPlayerUpdate',
+        type: 'currentPlayerSet',
         currentPlayer,
-        message: `Spieler ${currentPlayer} ist am Zug!`
+        message: `Spiel gestartet! ${currentPlayer} beginnt.`
       });
     }
   }
@@ -516,24 +519,47 @@ export class LANWebSocketServer {
   }
 
   /**
-   * Handle current player update from client
+   * Handle current player set event from client
    */
-  private handleCurrentPlayerUpdate(playerId: string, currentPlayer: string): void {
+  private handleCurrentPlayerSet(playerId: string, currentPlayer: string): void {
     const player = this.players.get(playerId);
     if (!player) return;
 
     logger.info({ 
       scope: 'main/websocket', 
-      msg: 'Received current player update from client', 
+      msg: 'Received current player set event from client', 
       meta: { playerId, playerName: player.name, currentPlayer } 
     });
 
     // Send notification to renderer process to update UI
     if (global.mainWindow && global.mainWindow.webContents) {
       global.mainWindow.webContents.send('lan-status-update', {
-        type: 'currentPlayerUpdate',
+        type: 'currentPlayerSet',
         currentPlayer,
-        message: `Spieler ${currentPlayer} ist am Zug!`
+        message: `Spiel gestartet! ${currentPlayer} beginnt.`
+      });
+    }
+  }
+
+  /**
+   * Handle player turn changed event from client
+   */
+  private handlePlayerTurnChanged(playerId: string, currentPlayer: string): void {
+    const player = this.players.get(playerId);
+    if (!player) return;
+
+    logger.info({ 
+      scope: 'main/websocket', 
+      msg: 'Received player turn changed event from client', 
+      meta: { playerId, playerName: player.name, currentPlayer } 
+    });
+
+    // Send notification to renderer process to update UI
+    if (global.mainWindow && global.mainWindow.webContents) {
+      global.mainWindow.webContents.send('lan-status-update', {
+        type: 'playerTurnChanged',
+        currentPlayer,
+        message: `${currentPlayer} ist am Zug!`
       });
     }
   }
@@ -643,11 +669,11 @@ export class LANWebSocketServer {
         message: 'Game state updated from client'
       });
       
-      // Also send current player update separately for UI synchronization
+      // Also send current player set event separately for UI synchronization
       global.mainWindow.webContents.send('lan-status-update', {
-        type: 'currentPlayerUpdate',
+        type: 'currentPlayerSet',
         currentPlayer: message.currentPlayer,
-        message: `Spieler ${message.currentPlayer} ist am Zug!`
+        message: `Spiel gestartet! ${message.currentPlayer} beginnt.`
       });
     }
   }

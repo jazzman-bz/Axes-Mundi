@@ -1,6 +1,4 @@
 import { LANGameManager } from './lan-game';
-import { LANGameClient } from './lan-client';
-import { LANGameProtocol } from './lan-game-protocol';
 import { logger } from '@/utils/logger';
 import { GameCard } from './game/Card';
 
@@ -13,7 +11,6 @@ class LANGameApp {
   private lanGame: LANGameManager | null = null;
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
-  private isInitialized: boolean = false;
   private lastLoggedPlayer: string | null = null;
   private logoImage: HTMLImageElement | null = null;
   
@@ -33,7 +30,7 @@ class LANGameApp {
   private placedLeft: any[] = []; // Cards placed to the left of center
   private placedRight: any[] = []; // Cards placed to the right of center
   private isPreviewActive: boolean = false; // Track if preview is currently active
-  private readonly stackSpacing: number = 140; // px spacing between placed cards
+  private lastSentCardPlacement: string | null = null; // Prevent duplicate card placement sends
 
   constructor() {
     console.log('🎮 LANGameApp constructor called');
@@ -88,8 +85,8 @@ class LANGameApp {
               // Update LAN info display AFTER card distribution is handled
        this.updateLANInfo();
        
-               // Initialize current player display
-        this.initializeCurrentPlayer();
+               // Initialize game state - both sides start in waiting mode
+        this.initializeGameState();
         
         // Force update LAN info to show correct player names and current player
         this.updateLANInfo();
@@ -100,7 +97,6 @@ class LANGameApp {
       // Set up WebSocket event listeners for real-time updates
       this.setupWebSocketEventListeners();
       
-      this.isInitialized = true;
       console.log('🎮 LAN game application initialized successfully');
       
     } catch (error) {
@@ -205,6 +201,9 @@ class LANGameApp {
       
       this.lanGame = new LANGameManager();
       
+      // Get isServerClient from localStorage
+      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      
       // For Server-Client (Electron): Set server player name from localStorage
       // Client player name will come via WebSocket from the browser client
       const serverPlayerName = localStorage.getItem('serverPlayerName');
@@ -214,9 +213,8 @@ class LANGameApp {
         this.lanGame.setPlayerNames(serverPlayerName, 'Waiting for client...');
         console.log('🎮 Server player name set:', serverPlayerName);
         
-        // Set server as current player for server-client
-        localStorage.setItem('currentPlayer', serverPlayerName);
-        console.log('🎮 Set server as current player:', serverPlayerName);
+        // Server starts in waiting mode - no current player set yet
+        console.log('🎮 Server starts in waiting mode - no current player set yet');
         
         // Update overlay to show server name and waiting for client
         this.updateLANInfo();
@@ -225,9 +223,14 @@ class LANGameApp {
         const defaultServerName = 'Server';
         this.lanGame.setPlayerNames(defaultServerName, 'Waiting for client...');
         localStorage.setItem('serverPlayerName', defaultServerName);
-        localStorage.setItem('currentPlayer', defaultServerName);
-        console.log('🎮 Set default server as current player:', defaultServerName);
+        // Default server starts in waiting mode - no current player set yet
+        console.log('🎮 Default server starts in waiting mode - no current player set yet');
         this.updateLANInfo();
+      }
+      
+      // For Client: Start in waiting mode - no current player loaded
+      if (!isServerClient) {
+        console.log('🎮 Client: Starting in waiting mode - no current player loaded yet');
       }
       
       // Note: Client player name will be set when received via WebSocket
@@ -1065,25 +1068,30 @@ class LANGameApp {
         statusElement.textContent = message;
         console.log('🎮 LAN status updated:', message);
       }
+      
+      // Also update the current turn element if it shows waiting status
+      const currentTurnElement = document.getElementById('current-turn');
+      if (currentTurnElement && !localStorage.getItem('currentPlayer')) {
+        currentTurnElement.textContent = 'Warte auf Spielstart...';
+      }
     } catch (error) {
       console.error('🎮 Failed to update LAN status:', error);
     }
   }
 
   /**
-   * Initialize current player from localStorage and update overlay
+   * Initialize game state - both sides start in waiting mode
    */
-  public initializeCurrentPlayer(): void {
+  public initializeGameState(): void {
     try {
-      const currentPlayer = localStorage.getItem('currentPlayer');
-      if (currentPlayer) {
-        console.log('🎮 Initializing current player from localStorage:', currentPlayer);
-        this.updateLANInfo();
-      } else {
-        console.warn('🎮 No current player found in localStorage');
-      }
+      console.log('🎮 Initializing game state - both sides start in waiting mode');
+      
+      // Both sides start in waiting mode - no current player set
+      // Server will determine current player after everything is ready
+      this.updateLANInfo();
+      
     } catch (error) {
-      console.error('🎮 Failed to initialize current player:', error);
+      console.error('🎮 Failed to initialize game state:', error);
     }
   }
 
@@ -1139,9 +1147,9 @@ class LANGameApp {
         case 'gameStateUpdate':
           this.handleGameStateUpdate(data);
           break;
-        case 'currentPlayerUpdate':
-          this.updateCurrentPlayer(data.currentPlayer);
-          break;
+        // currentPlayer events removed - waiting for server to implement
+        // case 'currentPlayerSet':
+        // case 'playerTurnChanged':
         default:
           console.log('🎮 Unknown LAN status update type:', data.type);
       }
@@ -1173,6 +1181,12 @@ class LANGameApp {
       } else {
         console.warn('🎮 No client player name in data:', data);
       }
+      
+      // Both sides start in waiting mode - no current player set yet
+      console.log('🎮 Client joined - both sides now in waiting mode for game start');
+      
+      // Update UI to show waiting status
+      this.updateLANStatus('Client verbunden. Warte auf Spielstart...');
       
     } catch (error) {
       console.error('🎮 Failed to handle client player joined event:', error);
@@ -1230,6 +1244,9 @@ class LANGameApp {
         this.layoutOpponentHand();
         this.layoutAxisCards();
         
+        // Remote card placed - server will handle player turn change
+        console.log('🎮 Remote card placed - waiting for server to change player turn');
+        
                console.log('🎮 Remote card placement processed:', {
          cardId,
          boardPosition,
@@ -1249,18 +1266,8 @@ class LANGameApp {
     }
   }
 
-  /**
-   * Update current player and refresh overlay
-   */
-  public updateCurrentPlayer(newCurrentPlayer: string): void {
-    try {
-      console.log('🎮 Updating current player to:', newCurrentPlayer);
-      localStorage.setItem('currentPlayer', newCurrentPlayer);
-      this.updateLANInfo();
-    } catch (error) {
-      console.error('🎮 Failed to update current player:', error);
-    }
-  }
+  // currentPlayer methods removed - waiting for server to implement
+  // public updateCurrentPlayerFromServer(newCurrentPlayer: string): void { ... }
   
   /**
    * Update client player name when received via WebSocket
@@ -1285,6 +1292,9 @@ class LANGameApp {
     }
   }
 
+  // currentPlayer methods removed - waiting for server to implement
+  // private handlePlayerTurnChange(newCurrentPlayer: string): void { ... }
+
   /**
    * Update LAN info display with player names and current player
    */
@@ -1293,7 +1303,8 @@ class LANGameApp {
       const isServerClient = localStorage.getItem('isServerClient') === 'true';
       let serverPlayerName = localStorage.getItem('serverPlayerName');
       let clientPlayerName = localStorage.getItem('clientPlayerName');
-      const currentPlayer = localStorage.getItem('currentPlayer');
+      // currentPlayer logic removed - waiting for server to implement
+      // const currentPlayer = localStorage.getItem('currentPlayer');
       
       // If names are not in localStorage, try to get them from LANGameServer
       if (!serverPlayerName || !clientPlayerName) {
@@ -1318,22 +1329,8 @@ class LANGameApp {
         }
       }
       
-      if (!currentPlayer) {
-        console.warn('🎮 No current player found, using server player as default');
-        localStorage.setItem('currentPlayer', serverPlayerName);
-        // Force update the currentPlayer variable for this method
-        const updatedCurrentPlayer = serverPlayerName;
-        console.log('🎮 Set current player to:', updatedCurrentPlayer);
-      }
-      
-      // Get the final current player (either from localStorage or just set)
-      const finalCurrentPlayer = localStorage.getItem('currentPlayer') || serverPlayerName;
-      
-      // Only log when actually updating (not on every call)
-      if (this.lastLoggedPlayer !== finalCurrentPlayer) {
-        console.log('🎮 Updating LAN info for player:', finalCurrentPlayer);
-        this.lastLoggedPlayer = finalCurrentPlayer;
-      }
+      // Log when names are loaded
+      console.log('🎮 Updating LAN info with names:', { serverPlayerName, clientPlayerName });
       
       const playerNameElement = document.getElementById('player-name');
       const opponentNameElement = document.getElementById('opponent-name');
@@ -1342,63 +1339,39 @@ class LANGameApp {
       if (isServerClient) {
         // Server-Client perspective
         if (playerNameElement) {
-          playerNameElement.textContent = `Spieler: ${serverPlayerName}`;
-          // Highlight if it's server's turn
-          if (finalCurrentPlayer === serverPlayerName) {
-            playerNameElement.classList.add('current-turn');
-            playerNameElement.classList.remove('waiting-turn');
-          } else {
-            playerNameElement.classList.add('waiting-turn');
-            playerNameElement.classList.remove('current-turn');
-          }
+          // Always in waiting mode - show waiting message
+          playerNameElement.textContent = 'Warte auf Spielstart...';
+          playerNameElement.classList.add('waiting-turn');
+          playerNameElement.classList.remove('current-turn');
         }
         if (opponentNameElement) {
-          opponentNameElement.textContent = `Gegner: ${clientPlayerName}`;
-          // Highlight if it's client's turn
-          if (finalCurrentPlayer === clientPlayerName) {
-            opponentNameElement.classList.add('current-turn');
-            opponentNameElement.classList.remove('waiting-turn');
-          } else {
-            opponentNameElement.classList.add('waiting-turn');
-            opponentNameElement.classList.remove('current-turn');
-          }
+          // Always in waiting mode - show waiting message
+          opponentNameElement.textContent = 'Warte auf Spielstart...';
+          opponentNameElement.classList.add('waiting-turn');
+          opponentNameElement.classList.remove('current-turn');
         }
       } else {
         // Client perspective
         if (playerNameElement) {
-          playerNameElement.textContent = `Spieler: ${clientPlayerName}`;
-          // Highlight if it's client's turn
-          if (finalCurrentPlayer === clientPlayerName) {
-            playerNameElement.classList.add('current-turn');
-            playerNameElement.classList.remove('waiting-turn');
-          } else {
-            playerNameElement.classList.add('waiting-turn');
-            playerNameElement.classList.remove('current-turn');
-          }
+          // Always in waiting mode - show waiting message
+          playerNameElement.textContent = 'Warte auf Spielstart...';
+          playerNameElement.classList.add('waiting-turn');
+          playerNameElement.classList.remove('current-turn');
         }
         if (opponentNameElement) {
-          opponentNameElement.textContent = `Gegner: ${serverPlayerName}`;
-          // Highlight if it's server's turn
-          if (finalCurrentPlayer === serverPlayerName) {
-            opponentNameElement.classList.add('current-turn');
-            opponentNameElement.classList.remove('waiting-turn');
-          } else {
-            opponentNameElement.classList.add('waiting-turn');
-            opponentNameElement.classList.remove('current-turn');
-          }
+          // Always in waiting mode - show waiting message
+          opponentNameElement.textContent = 'Warte auf Spielstart...';
+          opponentNameElement.classList.add('waiting-turn');
+          opponentNameElement.classList.remove('current-turn');
         }
       }
       
       if (currentTurnElement) {
-        currentTurnElement.textContent = `Zug: ${finalCurrentPlayer}`;
+        // Always in waiting mode
+        currentTurnElement.textContent = 'Warte auf Spielstart...';
       }
       
-      // Only log when player actually changes
-      if (this.lastLoggedPlayer !== currentPlayer) {
-        console.log('🎮 LAN info updated for player:', currentPlayer);
-      }
-      
-      console.log('🎮 LAN info updated with names:', { serverPlayerName, clientPlayerName, currentPlayer });
+      console.log('🎮 LAN info updated with names:', { serverPlayerName, clientPlayerName });
     } catch (error) {
       console.error('🎮 Failed to update LAN info:', error);
     }
@@ -1451,31 +1424,36 @@ class LANGameApp {
    */
   private handleMouseDown(event: MouseEvent): void {
     try {
-      // Only allow interaction during current player's turn
-      const currentPlayer = localStorage.getItem('currentPlayer');
-      const isServerClient = localStorage.getItem('isServerClient') === 'true';
-      const serverPlayerName = localStorage.getItem('serverPlayerName');
-      const clientPlayerName = localStorage.getItem('clientPlayerName');
+      // Game not started yet - no interaction possible
+      console.log('🎮 Game not started yet - waiting for server to start game');
+      return;
       
-      if (!currentPlayer) {
-        console.warn('🎮 No current player set, cannot start drag');
-        return;
-      }
+      // currentPlayer logic removed - waiting for server to implement
+      // const currentPlayer = localStorage.getItem('currentPlayer');
+      // const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      // const serverPlayerName = localStorage.getItem('serverPlayerName');
+      // const clientPlayerName = localStorage.getItem('clientPlayerName');
       
-      // Check if it's the current player's turn
-      let isCurrentPlayerTurn = false;
-      if (isServerClient) {
-        // Server-client: check if server is current player
-        isCurrentPlayerTurn = currentPlayer === serverPlayerName;
-      } else {
-        // Client: check if client is current player
-        isCurrentPlayerTurn = currentPlayer === clientPlayerName;
-      }
+      // // Check if game has started (current player is set)
+      // if (!currentPlayer) {
+      //   console.log('🎮 Game not started yet - waiting for server to set current player');
+      //   return;
+      // }
       
-      if (!isCurrentPlayerTurn) {
-        console.log('🎮 Not current player turn, cannot start drag');
-        return;
-      }
+      // // Check if it's the current player's turn
+      // let isCurrentPlayerTurn = false;
+      // if (isServerClient) {
+      //   // Server-client: check if server is current player
+      //   isCurrentPlayerTurn = currentPlayer === serverPlayerName;
+      // } else {
+      //   // Client: check if client is current player
+      //   isCurrentPlayerTurn = currentPlayer === clientPlayerName;
+      // }
+      
+      // if (!isCurrentPlayerTurn) {
+      //   console.log('🎮 Not current player turn, cannot start drag');
+      //   return;
+      // }
       
       if (!this.canvas) return;
 
@@ -1483,7 +1461,7 @@ class LANGameApp {
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
 
-      console.log('🎮 Mouse down at:', { x, y, isCurrentPlayerTurn });
+      console.log('🎮 Mouse down at:', { x, y, gameStarted: false });
 
       // Check player hand cards for drag start
       for (const card of this.playerHand) {
@@ -1528,33 +1506,39 @@ class LANGameApp {
       // Clear all hover effects first
       this.clearAllHoverEffects();
 
-      // Only show hover effects for current player's turn
-      const currentPlayer = localStorage.getItem('currentPlayer');
-      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      // Game not started yet - no hover effects
+      return;
       
-      if (!currentPlayer) return;
+      // currentPlayer logic removed - waiting for server to implement
+      // const currentPlayer = localStorage.getItem('currentPlayer');
+      // const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      
+      // if (!currentPlayer) {
+      //   // Game not started yet - no hover effects
+      //   return;
+      // }
 
-      // Determine which hand should show hover effects
-      let activeHand: any[] = [];
-      if (isServerClient) {
-        // Server-client: hover over server hand (playerHand) if it's server's turn
-        if (currentPlayer === localStorage.getItem('serverPlayerName')) {
-          activeHand = this.playerHand;
-        }
-      } else {
-        // Client: hover over client hand (playerHand) if it's client's turn
-        if (currentPlayer === localStorage.getItem('clientPlayerName')) {
-          activeHand = this.playerHand;
-        }
-      }
+      // // Determine which hand should show hover effects
+      // let activeHand: any[] = [];
+      // if (isServerClient) {
+      //   // Server-client: hover over server hand (playerHand) if it's server's turn
+      //   if (currentPlayer === localStorage.getItem('serverPlayerName')) {
+      //   activeHand = this.playerHand;
+      //   }
+      // } else {
+      //   // Client: hover over client hand (playerHand) if it's client's turn
+      //   if (currentPlayer === localStorage.getItem('clientPlayerName')) {
+      //   activeHand = this.playerHand;
+      //   }
+      // }
 
-             // Set hover effect for card under mouse in active hand
-       for (const card of activeHand) {
-         if (card.containsPoint(x, y)) {
-           card.isHovered = true;
-           break;
-         }
-       }
+             // currentPlayer hover effects removed - waiting for server to implement
+             // for (const card of activeHand) {
+             //   if (card.containsPoint(x, y)) {
+             //     card.isHovered = true;
+             //     break;
+             //   }
+             // }
 
     } catch (error) {
       console.error('🎮 Failed to handle mouse move:', error);
@@ -1564,7 +1548,7 @@ class LANGameApp {
   /**
    * Handle mouse up for drag & drop completion
    */
-  private handleMouseUp(event: MouseEvent): void {
+  private handleMouseUp(_event: MouseEvent): void {
     try {
       if (this.isDragging && this.selectedCard) {
         // Snap logic: if released near axis, place left/right of center
@@ -1630,24 +1614,30 @@ class LANGameApp {
             
             console.log('🎮 Card placement:', { cardId: releasedCard.card.id, position, boardCenterX, snapX });
             
-            // Calculate the actual position number on the board (0 = center, 1 = right, -1 = left, etc.)
+            // Calculate the absolute position on the board (0 = ganz links, 1 = zweite Position, etc.)
             let boardPosition = 0; // Default to center
             
             if (this.boardCard) {
-              // If we have a board card, calculate relative position
+              // Calculate absolute position based on where the card was dropped
+              const allPlacedCards = [...this.placedLeft, ...this.placedRight];
+              const totalPlacedCards = allPlacedCards.length;
+              
               if (position === 'left') {
-                // Count how many cards are already to the left
-                boardPosition = -this.placedLeft.length - 1;
+                // Card is to the left of center
+                boardPosition = 0; // Ganz links
               } else {
-                // Count how many cards are already to the right
-                boardPosition = this.placedRight.length + 1;
+                // Card is to the right of center
+                boardPosition = totalPlacedCards + 1; // Nach rechts
               }
             }
             
-            console.log('🎮 Calculated board position:', boardPosition, 'for card:', releasedCard.card.title);
+            console.log('🎮 Calculated absolute board position:', boardPosition, 'for card:', releasedCard.card.title);
             
             // Send card placement via WebSocket to synchronize with other player
             this.sendCardPlacementViaWebSocket(releasedCard.card.id, boardPosition);
+            
+            // Card placed successfully - server will handle player turn change
+            console.log('🎮 Card placed successfully - waiting for server to change player turn');
            
            console.log('🎮 Card successfully placed on axis');
         } else {
@@ -1822,10 +1812,10 @@ class LANGameApp {
     try {
       console.log('🎮 Handling game state update:', gameState);
       
-      // Update current player
-      if (gameState.currentPlayer) {
-        this.updateCurrentPlayer(gameState.currentPlayer);
-      }
+      // currentPlayer update removed - waiting for server to implement
+      // if (gameState.currentPlayer) {
+      //   this.updateCurrentPlayerFromServer(gameState.currentPlayer);
+      // }
       
       // Update placed cards visualization
       if (gameState.placedCards) {
@@ -1922,51 +1912,63 @@ class LANGameApp {
     * Send card placement via WebSocket to synchronize with other player
     * This method handles both server-client and client scenarios
     */
-   private sendCardPlacementViaWebSocket(cardId: string, boardPosition: number): void {
-     try {
-       const isServerClient = localStorage.getItem('isServerClient') === 'true';
-       const currentPlayer = localStorage.getItem('currentPlayer');
-       
-       console.log('🎮 Sending card placement via WebSocket:', {
-         cardId,
-         boardPosition,
-         isServerClient,
-         currentPlayer
-       });
-       
-                if (isServerClient) {
-           // Server-Client: Send via IPC to main process WebSocket server
-           if (window.AXM && window.AXM.placeLANCard) {
-             try {
-               window.AXM.placeLANCard(cardId, boardPosition).then((result: any) => {
-                 if (result.success) {
-                   console.log('🎮 Server-Client: Card placement sent via IPC successfully');
-                 } else {
-                   console.warn('🎮 Server-Client: Failed to send card placement via IPC:', result.message);
-                 }
-               }).catch((error: any) => {
-                 console.error('🎮 Server-Client: Error sending card placement via IPC:', error);
-               });
-             } catch (error) {
-               console.error('🎮 Server-Client: Failed to call placeLANCard:', error);
-             }
-           } else {
-             console.warn('🎮 Server-Client: AXM.placeLANCard not available');
-           }
-         } else {
-         // Client: Send via LANGameClient WebSocket
-         if (this.lanGame && this.lanGame.lanClient) {
-           this.lanGame.lanClient.sendCardPlacement(cardId, boardPosition);
-           console.log('🎮 Client: Card placement sent via WebSocket client');
-         } else {
-           console.warn('🎮 Client: No WebSocket client available for card placement');
-         }
-       }
-       
-     } catch (error) {
-       console.error('🎮 Failed to send card placement via WebSocket:', error);
-     }
-   }
+     private sendCardPlacementViaWebSocket(cardId: string, boardPosition: number): void {
+    try {
+      // Prevent duplicate sends for the same card
+      const sendKey = `${cardId}-${boardPosition}`;
+      if (this.lastSentCardPlacement === sendKey) {
+        console.log('🎮 Card placement already sent, skipping duplicate:', sendKey);
+        return;
+      }
+      
+      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      // currentPlayer removed - waiting for server to implement
+      // const currentPlayer = localStorage.getItem('currentPlayer');
+      
+      console.log('🎮 Sending card placement via WebSocket:', {
+        cardId,
+        boardPosition,
+        isServerClient
+        // currentPlayer removed
+      });
+      
+      if (isServerClient) {
+        // Server-Client: Send via IPC to main process WebSocket server
+        if (window.AXM && window.AXM.placeLANCard) {
+          try {
+            window.AXM.placeLANCard(cardId, boardPosition).then((result: any) => {
+              if (result.success) {
+                console.log('🎮 Server-Client: Card placement sent via IPC successfully');
+                // Mark as sent to prevent duplicates
+                this.lastSentCardPlacement = sendKey;
+              } else {
+                console.warn('🎮 Server-Client: Failed to send card placement via IPC:', result.message);
+              }
+            }).catch((error: any) => {
+              console.error('🎮 Server-Client: Error sending card placement via IPC:', error);
+            });
+          } catch (error) {
+            console.error('🎮 Server-Client: Failed to call placeLANCard:', error);
+          }
+        } else {
+          console.warn('🎮 Server-Client: AXM.placeLANCard not available');
+        }
+      } else {
+        // Client: Send via LANGameClient WebSocket
+        if (this.lanGame && this.lanGame.lanClient) {
+          this.lanGame.lanClient.sendCardPlacement(cardId, boardPosition);
+          console.log('🎮 Client: Card placement sent via WebSocket client');
+          // Mark as sent to prevent duplicates
+          this.lastSentCardPlacement = sendKey;
+        } else {
+          console.warn('🎮 Client: No WebSocket client available for card placement');
+        }
+      }
+      
+    } catch (error) {
+      console.error('🎮 Failed to send card placement via WebSocket:', error);
+    }
+  }
 
    /**
     * Show error message

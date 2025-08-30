@@ -170,7 +170,7 @@ function setupIPC() {
                 meta: { currentPlayer }
             });
             if (lanServer) {
-                await lanServer.sendCurrentPlayerUpdate(currentPlayer);
+                await lanServer.sendCurrentPlayerSet(currentPlayer);
                 return { success: true };
             }
             else {

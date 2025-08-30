@@ -183,7 +183,7 @@ function setupIPC(): void {
       });
 
       if (lanServer) {
-        await lanServer.sendCurrentPlayerUpdate(currentPlayer);
+        await lanServer.sendCurrentPlayerSet(currentPlayer);
         return { success: true };
       } else {
         logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
