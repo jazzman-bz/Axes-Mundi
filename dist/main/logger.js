@@ -46,14 +46,14 @@ function rotateIfNeeded() {
         }
         // Clean up old logs (keep last 14 days)
         const files = node_fs_1.default.readdirSync(logDir)
-            .filter(file => file.startsWith('app-') && file.endsWith('.log'))
-            .map(file => ({ name: file, path: node_path_1.default.join(logDir, file) }))
-            .map(file => ({ ...file, stat: node_fs_1.default.statSync(file.path) }))
+            .filter((file) => file.startsWith('app-') && file.endsWith('.log'))
+            .map((file) => ({ name: file, path: node_path_1.default.join(logDir, file) }))
+            .map((file) => ({ ...file, stat: node_fs_1.default.statSync(file.path) }))
             .sort((a, b) => b.stat.mtime.getTime() - a.stat.mtime.getTime());
         // Remove files older than 14 days
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - 14);
-        files.slice(14).forEach(file => {
+        files.slice(14).forEach((file) => {
             if (file.stat.mtime < cutoff) {
                 node_fs_1.default.unlinkSync(file.path);
                 exports.logger.debug({ scope: 'main/logger', msg: 'removed old log', meta: { file: file.name } });
@@ -64,7 +64,7 @@ function rotateIfNeeded() {
         exports.logger.error({
             scope: 'main/logger',
             msg: 'log rotation failed',
-            err: { message: error.message, stack: error.stack }
+            err: { message: error.message, stack: error.stack },
         });
     }
 }

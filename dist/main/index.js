@@ -57,7 +57,7 @@ function createWindow() {
         logger_1.logger.error({
             scope: 'main/window',
             msg: 'failed to create window',
-            err: { message: error.message, stack: error.stack }
+            err: { message: error.message, stack: error.stack },
         });
     }
 }
@@ -91,16 +91,14 @@ function setupIPC() {
                 await lanServer.sendDeckSelection(deckId);
                 return { success: true };
             }
-            else {
-                logger_1.logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
-                return { success: false, error: 'No LAN server running' };
-            }
+            logger_1.logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
+            return { success: false, error: 'No LAN server running' };
         }
         catch (error) {
             logger_1.logger.error({
                 scope: 'main/lan',
                 msg: 'Failed to send deck selection',
-                err: { message: error.message }
+                err: { message: error.message },
             });
             return { success: false, error: error.message };
         }
@@ -115,23 +113,21 @@ function setupIPC() {
                     boardCard: distribution.boardCard?.id,
                     serverHandSize: distribution.serverHand?.length,
                     clientHandSize: distribution.clientHand?.length,
-                    deckSize: distribution.deckOrder?.length
-                }
+                    deckSize: distribution.deckOrder?.length,
+                },
             });
             if (lanServer) {
                 await lanServer.sendCardDistribution(distribution);
                 return { success: true };
             }
-            else {
-                logger_1.logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
-                return { success: false, error: 'No LAN server running' };
-            }
+            logger_1.logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
+            return { success: false, error: 'No LAN server running' };
         }
         catch (error) {
             logger_1.logger.error({
                 scope: 'main/lan',
                 msg: 'Failed to send card distribution',
-                err: { message: error.message }
+                err: { message: error.message },
             });
             return { success: false, error: error.message };
         }
@@ -141,22 +137,20 @@ function setupIPC() {
         try {
             logger_1.logger.info({
                 scope: 'main/lan',
-                msg: 'Sending game start trigger to client'
+                msg: 'Sending game start trigger to client',
             });
             if (lanServer) {
                 await lanServer.sendGameStartTrigger();
                 return { success: true };
             }
-            else {
-                logger_1.logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
-                return { success: false, error: 'No LAN server running' };
-            }
+            logger_1.logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
+            return { success: false, error: 'No LAN server running' };
         }
         catch (error) {
             logger_1.logger.error({
                 scope: 'main/lan',
                 msg: 'Failed to send game start trigger',
-                err: { message: error.message }
+                err: { message: error.message },
             });
             return { success: false, error: error.message };
         }
@@ -167,22 +161,20 @@ function setupIPC() {
             logger_1.logger.info({
                 scope: 'main/lan',
                 msg: 'Sending current player update to client',
-                meta: { currentPlayer }
+                meta: { currentPlayer },
             });
             if (lanServer) {
                 await lanServer.sendCurrentPlayerSet(currentPlayer);
                 return { success: true };
             }
-            else {
-                logger_1.logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
-                return { success: false, error: 'No LAN server running' };
-            }
+            logger_1.logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
+            return { success: false, error: 'No LAN server running' };
         }
         catch (error) {
             logger_1.logger.error({
                 scope: 'main/lan',
                 msg: 'Failed to send current player update',
-                err: { message: error.message }
+                err: { message: error.message },
             });
             return { success: false, error: error.message };
         }
@@ -193,7 +185,7 @@ function setupIPC() {
             logger_1.logger.info({
                 scope: 'main/lan',
                 msg: 'LAN card placement requested',
-                meta: { cardId, boardPosition }
+                meta: { cardId, boardPosition },
             });
             // Validate input
             if (typeof cardId !== 'string' || !cardId) {
@@ -210,20 +202,18 @@ function setupIPC() {
                 logger_1.logger.info({
                     scope: 'main/lan',
                     msg: 'card placement sent to clients via WebSocket',
-                    meta: { cardId, boardPosition, currentPlayer }
+                    meta: { cardId, boardPosition, currentPlayer },
                 });
                 return { success: true, message: 'Card placement sent to clients' };
             }
-            else {
-                logger_1.logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
-                return { success: false, error: 'No LAN server running' };
-            }
+            logger_1.logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
+            return { success: false, error: 'No LAN server running' };
         }
         catch (error) {
             logger_1.logger.error({
                 scope: 'main/lan',
                 msg: 'Failed to handle LAN card placement',
-                err: { message: error.message }
+                err: { message: error.message },
             });
             return { success: false, error: error.message };
         }
@@ -236,8 +226,8 @@ function setupIPC() {
                 msg: 'LAN game state update requested (local only)',
                 meta: {
                     currentPlayer: gameState.currentPlayer,
-                    placedCardsCount: gameState.placedCards?.length || 0
-                }
+                    placedCardsCount: gameState.placedCards?.length || 0,
+                },
             });
             // For now, just log the game state update - no WebSocket transmission
             // Later we can add WebSocket functionality here
@@ -246,8 +236,8 @@ function setupIPC() {
                 msg: 'game state updated locally',
                 meta: {
                     currentPlayer: gameState.currentPlayer,
-                    placedCardsCount: gameState.placedCards?.length || 0
-                }
+                    placedCardsCount: gameState.placedCards?.length || 0,
+                },
             });
             return { success: true, message: 'Game state updated locally' };
         }
@@ -255,7 +245,7 @@ function setupIPC() {
             logger_1.logger.error({
                 scope: 'main/lan',
                 msg: 'Failed to update LAN game state',
-                err: { message: error.message }
+                err: { message: error.message },
             });
             return { success: false, error: error.message };
         }
@@ -286,7 +276,7 @@ function setupIPC() {
                     logger_1.logger.warn({
                         scope: 'main/lan',
                         msg: `Port ${port} failed: ${error.message}`,
-                        err: { message: error.message }
+                        err: { message: error.message },
                     });
                 }
             }
@@ -294,21 +284,19 @@ function setupIPC() {
                 logger_1.logger.info({ scope: 'main/lan', msg: 'LAN server started successfully', meta: { port: startedPort, playerName } });
                 return { success: true, port: startedPort };
             }
-            else {
-                const errorMsg = lastError ? lastError.message : 'No available ports';
-                logger_1.logger.error({
-                    scope: 'main/lan',
-                    msg: 'All ports failed',
-                    err: { message: errorMsg }
-                });
-                return { success: false, error: errorMsg };
-            }
+            const errorMsg = lastError ? lastError.message : 'No available ports';
+            logger_1.logger.error({
+                scope: 'main/lan',
+                msg: 'All ports failed',
+                err: { message: errorMsg },
+            });
+            return { success: false, error: errorMsg };
         }
         catch (error) {
             logger_1.logger.error({
                 scope: 'main/lan',
                 msg: 'Failed to start LAN server',
-                err: { message: error.message, stack: error.stack }
+                err: { message: error.message, stack: error.stack },
             });
             return { success: false, error: error.message };
         }
@@ -326,7 +314,7 @@ function setupIPC() {
             logger_1.logger.error({
                 scope: 'main/lan',
                 msg: 'Failed to stop LAN server',
-                err: { message: error.message }
+                err: { message: error.message },
             });
             throw error;
         }
@@ -369,7 +357,7 @@ process.on('uncaughtException', (error) => {
     logger_1.logger.error({
         scope: 'main/uncaught',
         msg: 'uncaught exception',
-        err: { message: error.message, stack: error.stack }
+        err: { message: error.message, stack: error.stack },
     });
     electron_1.app.quit();
 });
@@ -377,7 +365,7 @@ process.on('unhandledRejection', (reason) => {
     logger_1.logger.error({
         scope: 'main/unhandled',
         msg: 'unhandled rejection',
-        err: { reason: String(reason) }
+        err: { reason: String(reason) },
     });
 });
 // Initialize the app

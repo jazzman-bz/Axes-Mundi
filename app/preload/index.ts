@@ -13,19 +13,19 @@ contextBridge.exposeInMainWorld('AXM', {
   getVersion: () => ipcRenderer.invoke('get-version'),
   getEnvironment: () => ipcRenderer.invoke('get-environment'),
   placeCard: (index: number) => ipcRenderer.invoke('place-card', index),
-  
-     // LAN Server management
+
+  // LAN Server management
   startLANServer: (playerName: string) => ipcRenderer.invoke('start-lan-server', playerName),
   stopLANServer: () => ipcRenderer.invoke('stop-lan-server'),
   sendDeckSelection: (deckId: string) => ipcRenderer.invoke('send-deck-selection', deckId),
   sendCurrentPlayerUpdate: (currentPlayer: string) => ipcRenderer.invoke('send-current-player-update', currentPlayer),
   sendCardDistribution: (distribution: any) => ipcRenderer.invoke('send-card-distribution', distribution),
   sendGameStartTrigger: () => ipcRenderer.invoke('send-game-start-trigger'),
-  
+
   // LAN Game actions
   placeLANCard: (cardId: string, boardPosition: number) => ipcRenderer.invoke('lan-place-card', cardId, boardPosition),
   updateGameState: (gameState: any) => ipcRenderer.invoke('update-lan-game-state', gameState),
-  
+
   // Test IPC connection
   testIPC: () => ipcRenderer.invoke('test-ipc'),
 
@@ -55,17 +55,17 @@ declare global {
       getVersion: () => Promise<string>;
       getEnvironment: () => Promise<{ env: string; logLevel: string }>;
       placeCard: (index: number) => Promise<{ success: boolean; score: number }>;
-             startLANServer: (playerName: string) => Promise<{ success: boolean; port: number }>;
+      startLANServer: (playerName: string) => Promise<{ success: boolean; port: number }>;
       stopLANServer: () => Promise<{ success: boolean }>;
       sendDeckSelection: (deckId: string) => Promise<{ success: boolean }>;
       sendCurrentPlayerUpdate: (currentPlayer: string) => Promise<{ success: boolean }>;
       sendCardDistribution: (distribution: any) => Promise<{ success: boolean }>;
       sendGameStartTrigger: () => Promise<{ success: boolean }>;
-      
+
       // LAN Game actions
       placeLANCard: (cardId: string, boardPosition: number) => Promise<{ success: boolean; message: string }>;
       updateGameState: (gameState: any) => Promise<{ success: boolean; message: string }>;
-      
+
       testIPC: () => Promise<{ success: boolean; message: string }>;
       on: (channel: string, func: (...args: any[]) => void) => void;
       removeAllListeners: (channel: string) => void;

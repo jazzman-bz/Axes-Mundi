@@ -51,5 +51,3 @@ export interface CardPosition {
   y: number;
   card: Card;
 }
-
-

@@ -62,10 +62,10 @@ function createWindow(): void {
 
     logger.info({ scope: 'main/window', msg: 'window created' });
   } catch (error: any) {
-    logger.error({ 
-      scope: 'main/window', 
-      msg: 'failed to create window', 
-      err: { message: error.message, stack: error.stack } 
+    logger.error({
+      scope: 'main/window',
+      msg: 'failed to create window',
+      err: { message: error.message, stack: error.stack },
     });
   }
 }
@@ -95,7 +95,7 @@ function setupIPC(): void {
     return { success: true, message: 'IPC connection working' };
   });
 
-    // Send deck selection to client
+  // Send deck selection to client
   ipcMain.handle('send-deck-selection', async (_, deckId: string) => {
     try {
       logger.info({ scope: 'main/lan', msg: 'Sending deck selection to client', meta: { deckId } });
@@ -103,15 +103,14 @@ function setupIPC(): void {
       if (lanServer) {
         await lanServer.sendDeckSelection(deckId);
         return { success: true };
-      } else {
-        logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
-        return { success: false, error: 'No LAN server running' };
       }
+      logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
+      return { success: false, error: 'No LAN server running' };
     } catch (error: any) {
       logger.error({
         scope: 'main/lan',
         msg: 'Failed to send deck selection',
-        err: { message: error.message }
+        err: { message: error.message },
       });
       return { success: false, error: error.message };
     }
@@ -120,29 +119,28 @@ function setupIPC(): void {
   // Send card distribution to client
   ipcMain.handle('send-card-distribution', async (_, distribution: any) => {
     try {
-      logger.info({ 
-        scope: 'main/lan', 
-        msg: 'Sending card distribution to client', 
-        meta: { 
+      logger.info({
+        scope: 'main/lan',
+        msg: 'Sending card distribution to client',
+        meta: {
           boardCard: distribution.boardCard?.id,
           serverHandSize: distribution.serverHand?.length,
           clientHandSize: distribution.clientHand?.length,
-          deckSize: distribution.deckOrder?.length
-        } 
+          deckSize: distribution.deckOrder?.length,
+        },
       });
 
       if (lanServer) {
         await lanServer.sendCardDistribution(distribution);
         return { success: true };
-      } else {
-        logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
-        return { success: false, error: 'No LAN server running' };
       }
+      logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
+      return { success: false, error: 'No LAN server running' };
     } catch (error: any) {
       logger.error({
         scope: 'main/lan',
         msg: 'Failed to send card distribution',
-        err: { message: error.message }
+        err: { message: error.message },
       });
       return { success: false, error: error.message };
     }
@@ -151,23 +149,22 @@ function setupIPC(): void {
   // Send game start trigger to client
   ipcMain.handle('send-game-start-trigger', async () => {
     try {
-      logger.info({ 
-        scope: 'main/lan', 
-        msg: 'Sending game start trigger to client'
+      logger.info({
+        scope: 'main/lan',
+        msg: 'Sending game start trigger to client',
       });
 
       if (lanServer) {
         await lanServer.sendGameStartTrigger();
         return { success: true };
-      } else {
-        logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
-        return { success: false, error: 'No LAN server running' };
       }
+      logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
+      return { success: false, error: 'No LAN server running' };
     } catch (error: any) {
       logger.error({
         scope: 'main/lan',
         msg: 'Failed to send game start trigger',
-        err: { message: error.message }
+        err: { message: error.message },
       });
       return { success: false, error: error.message };
     }
@@ -176,24 +173,23 @@ function setupIPC(): void {
   // Send current player update to client
   ipcMain.handle('send-current-player-update', async (_, currentPlayer: string) => {
     try {
-      logger.info({ 
-        scope: 'main/lan', 
-        msg: 'Sending current player update to client', 
-        meta: { currentPlayer } 
+      logger.info({
+        scope: 'main/lan',
+        msg: 'Sending current player update to client',
+        meta: { currentPlayer },
       });
 
       if (lanServer) {
         await lanServer.sendCurrentPlayerSet(currentPlayer);
         return { success: true };
-      } else {
-        logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
-        return { success: false, error: 'No LAN server running' };
       }
+      logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
+      return { success: false, error: 'No LAN server running' };
     } catch (error: any) {
       logger.error({
         scope: 'main/lan',
         msg: 'Failed to send current player update',
-        err: { message: error.message }
+        err: { message: error.message },
       });
       return { success: false, error: error.message };
     }
@@ -202,12 +198,12 @@ function setupIPC(): void {
   // LAN card placement with WebSocket integration
   ipcMain.handle('lan-place-card', async (_, cardId: string, boardPosition: number) => {
     try {
-      logger.info({ 
-        scope: 'main/lan', 
-        msg: 'LAN card placement requested', 
-        meta: { cardId, boardPosition } 
+      logger.info({
+        scope: 'main/lan',
+        msg: 'LAN card placement requested',
+        meta: { cardId, boardPosition },
       });
-      
+
       // Validate input
       if (typeof cardId !== 'string' || !cardId) {
         throw new Error('Invalid card ID');
@@ -220,26 +216,24 @@ function setupIPC(): void {
       if (lanServer) {
         // Get the actual server player name from the WebSocket server
         const currentPlayer = lanServer.getServerPlayerName();
-        
+
         await lanServer.sendCardPlacement(cardId, boardPosition, currentPlayer);
-        
-        logger.info({ 
-          scope: 'main/lan', 
-          msg: 'card placement sent to clients via WebSocket', 
-          meta: { cardId, boardPosition, currentPlayer } 
+
+        logger.info({
+          scope: 'main/lan',
+          msg: 'card placement sent to clients via WebSocket',
+          meta: { cardId, boardPosition, currentPlayer },
         });
-        
+
         return { success: true, message: 'Card placement sent to clients' };
-      } else {
-        logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
-        return { success: false, error: 'No LAN server running' };
       }
-      
+      logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
+      return { success: false, error: 'No LAN server running' };
     } catch (error: any) {
       logger.error({
         scope: 'main/lan',
         msg: 'Failed to handle LAN card placement',
-        err: { message: error.message }
+        err: { message: error.message },
       });
       return { success: false, error: error.message };
     }
@@ -248,33 +242,32 @@ function setupIPC(): void {
   // Update LAN game state (local only, no WebSocket)
   ipcMain.handle('update-lan-game-state', async (_, gameState: any) => {
     try {
-      logger.info({ 
-        scope: 'main/lan', 
+      logger.info({
+        scope: 'main/lan',
         msg: 'LAN game state update requested (local only)',
-        meta: { 
+        meta: {
           currentPlayer: gameState.currentPlayer,
-          placedCardsCount: gameState.placedCards?.length || 0
-        }
+          placedCardsCount: gameState.placedCards?.length || 0,
+        },
       });
-      
+
       // For now, just log the game state update - no WebSocket transmission
       // Later we can add WebSocket functionality here
-      logger.info({ 
-        scope: 'main/lan', 
-        msg: 'game state updated locally', 
-        meta: { 
+      logger.info({
+        scope: 'main/lan',
+        msg: 'game state updated locally',
+        meta: {
           currentPlayer: gameState.currentPlayer,
-          placedCardsCount: gameState.placedCards?.length || 0
-        }
+          placedCardsCount: gameState.placedCards?.length || 0,
+        },
       });
-      
+
       return { success: true, message: 'Game state updated locally' };
-      
     } catch (error: any) {
       logger.error({
         scope: 'main/lan',
         msg: 'Failed to update LAN game state',
-        err: { message: error.message }
+        err: { message: error.message },
       });
       return { success: false, error: error.message };
     }
@@ -284,12 +277,12 @@ function setupIPC(): void {
   ipcMain.handle('start-lan-server', async (_, playerName: string) => {
     try {
       logger.info({ scope: 'main/lan', msg: 'Starting LAN server...', meta: { playerName } });
-      
+
       if (lanServer) {
         logger.info({ scope: 'main/lan', msg: 'Stopping existing server' });
         lanServer.stop();
       }
-      
+
       // Try different ports if 8080 is busy
       const ports = [8080, 8081, 8082, 8083, 8084];
       let startedPort = null;
@@ -305,10 +298,10 @@ function setupIPC(): void {
           break;
         } catch (error: any) {
           lastError = error;
-          logger.warn({ 
-            scope: 'main/lan', 
-            msg: `Port ${port} failed: ${error.message}`, 
-            err: { message: error.message } 
+          logger.warn({
+            scope: 'main/lan',
+            msg: `Port ${port} failed: ${error.message}`,
+            err: { message: error.message },
           });
         }
       }
@@ -316,20 +309,19 @@ function setupIPC(): void {
       if (startedPort) {
         logger.info({ scope: 'main/lan', msg: 'LAN server started successfully', meta: { port: startedPort, playerName } });
         return { success: true, port: startedPort };
-      } else {
-        const errorMsg = lastError ? lastError.message : 'No available ports';
-        logger.error({ 
-          scope: 'main/lan', 
-          msg: 'All ports failed', 
-          err: { message: errorMsg } 
-        });
-        return { success: false, error: errorMsg };
       }
+      const errorMsg = lastError ? lastError.message : 'No available ports';
+      logger.error({
+        scope: 'main/lan',
+        msg: 'All ports failed',
+        err: { message: errorMsg },
+      });
+      return { success: false, error: errorMsg };
     } catch (error: any) {
-      logger.error({ 
-        scope: 'main/lan', 
-        msg: 'Failed to start LAN server', 
-        err: { message: error.message, stack: error.stack } 
+      logger.error({
+        scope: 'main/lan',
+        msg: 'Failed to start LAN server',
+        err: { message: error.message, stack: error.stack },
       });
       return { success: false, error: error.message };
     }
@@ -344,16 +336,14 @@ function setupIPC(): void {
       }
       return { success: true };
     } catch (error: any) {
-      logger.error({ 
-        scope: 'main/lan', 
-        msg: 'Failed to stop LAN server', 
-        err: { message: error.message } 
+      logger.error({
+        scope: 'main/lan',
+        msg: 'Failed to stop LAN server',
+        err: { message: error.message },
       });
       throw error;
     }
   });
-
-
 }
 
 /**
@@ -394,19 +384,19 @@ function setupAppEvents(): void {
 
 // Set up global error handlers
 process.on('uncaughtException', (error) => {
-  logger.error({ 
-    scope: 'main/uncaught', 
-    msg: 'uncaught exception', 
-    err: { message: error.message, stack: error.stack } 
+  logger.error({
+    scope: 'main/uncaught',
+    msg: 'uncaught exception',
+    err: { message: error.message, stack: error.stack },
   });
   app.quit();
 });
 
 process.on('unhandledRejection', (reason) => {
-  logger.error({ 
-    scope: 'main/unhandled', 
-    msg: 'unhandled rejection', 
-    err: { reason: String(reason) } 
+  logger.error({
+    scope: 'main/unhandled',
+    msg: 'unhandled rejection',
+    err: { reason: String(reason) },
   });
 });
 
