@@ -204,10 +204,18 @@ export class LANGameClient {
    */
   private handleRemoteCardPlacement(message: any): void {
     try {
-      console.log('🎮 Handling remote card placement:', message);
+      console.log('🎮 LAN Client: Handling remote card placement:', message);
       
-      // Update local game state
-      const { cardId, position, playerName } = message;
+      // IMPORTANT: Forward this message to the main callback so lan-game-main.ts can process it
+      if (this.onMessageCallback) {
+        console.log('🎮 LAN Client: Forwarding cardPlacement to main callback');
+        this.onMessageCallback(message);
+      } else {
+        console.warn('🎮 LAN Client: No main callback set for cardPlacement');
+      }
+      
+      // Also update local game state for consistency
+      const { cardId, boardPosition, playerName } = message;
       
       // Find the card in the appropriate hand
       let card: CardData | undefined;
@@ -230,7 +238,7 @@ export class LANGameClient {
         logger.info({
           scope: 'lan/client',
           msg: 'remote card placement processed',
-          meta: { cardId, position, playerName, placedCardsCount: this.placedCards.length }
+          meta: { cardId, boardPosition, playerName, placedCardsCount: this.placedCards.length }
         });
         
         // Notify callback if set

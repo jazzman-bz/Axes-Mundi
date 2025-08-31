@@ -20,6 +20,7 @@ export class LANGameManager {
   // WebSocket client for non-server clients
   public lanClient: any = null;
   private onGameStateUpdateCallback: ((gameState: any) => void) | null = null;
+  private onMessageCallback: ((message: any) => void) | null = null;
   
   // Game state for card placement validation
   private placedCards: CardData[] = []; // Cards placed on the axis
@@ -292,6 +293,7 @@ export class LANGameManager {
       
       // Set up message handlers
       this.lanClient.onMessage((message: any) => {
+        console.log('🎮 LANGameManager: Received WebSocket message:', message.type);
         this.handleWebSocketMessage(message);
       });
       
@@ -326,8 +328,13 @@ export class LANGameManager {
       
       switch (message.type) {
         case 'cardPlacement':
-          // DISABLED: Duplicate handler removed - main processing happens in lan-game-main.ts
-          console.log('🎮 Received cardPlacement - IGNORED (main processing in lan-game-main.ts)');
+          // IMPORTANT: Forward cardPlacement messages to lan-game-main.ts for processing
+          console.log('🎮 LANGameManager: Forwarding cardPlacement to lan-game-main.ts');
+          if (this.onMessageCallback) {
+            this.onMessageCallback(message);
+          } else {
+            console.warn('🎮 LANGameManager: No message callback set for cardPlacement');
+          }
           break;
         case 'gameStateUpdate':
           this.handleRemoteGameStateUpdate(message);
@@ -1076,5 +1083,12 @@ export class LANGameManager {
    */
   onGameStateUpdate(callback: (gameState: any) => void): void {
     this.onGameStateUpdateCallback = callback;
+  }
+
+  /**
+   * Set callback for WebSocket messages
+   */
+  onMessage(callback: (message: any) => void): void {
+    this.onMessageCallback = callback;
   }
 }
