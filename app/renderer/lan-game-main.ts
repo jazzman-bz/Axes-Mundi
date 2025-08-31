@@ -1292,6 +1292,8 @@ class LANGameApp {
       // Update status
       this.updateLANStatus(`Spiel gestartet! ${newCurrentPlayer} beginnt.`);
       
+
+      
     } catch (error) {
       console.error('🎮 Failed to update current player from server:', error);
     }
@@ -1658,37 +1660,6 @@ class LANGameApp {
    */
   private handleMouseDown(event: MouseEvent): void {
     try {
-      // Game not started yet - no interaction possible
-      console.log('🎮 Game not started yet - waiting for server to start game');
-      return;
-      
-      // currentPlayer logic removed - waiting for server to implement
-      // const currentPlayer = localStorage.getItem('currentPlayer');
-      // const isServerClient = localStorage.getItem('isServerClient') === 'true';
-      // const serverPlayerName = localStorage.getItem('serverPlayerName');
-      // const clientPlayerName = localStorage.getItem('clientPlayerName');
-      
-      // // Check if game has started (current player is set)
-      // if (!currentPlayer) {
-      //   console.log('🎮 Game not started yet - waiting for server to set current player');
-      //   return;
-      // }
-      
-      // // Check if it's the current player's turn
-      // let isCurrentPlayerTurn = false;
-      // if (isServerClient) {
-      //   // Server-client: check if server is current player
-      //   isCurrentPlayerTurn = currentPlayer === serverPlayerName;
-      // } else {
-      //   // Client: check if client is current player
-      //   isCurrentPlayerTurn = currentPlayer === clientPlayerName;
-      // }
-      
-      // if (!isCurrentPlayerTurn) {
-      //   console.log('🎮 Not current player turn, cannot start drag');
-      //   return;
-      // }
-      
       if (!this.canvas) return;
 
       const rect = this.canvas.getBoundingClientRect();
@@ -1697,9 +1668,35 @@ class LANGameApp {
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
 
-      console.log('🎮 Mouse down at:', { x, y, gameStarted: false });
+      // Check if game has started (current player is set)
+      const currentPlayer = localStorage.getItem('currentPlayer');
+      if (!currentPlayer || currentPlayer === 'WAITING_FOR_CARD_DISTRIBUTION') {
+        console.log('🎮 Game not started yet - waiting for server to start game');
+        return;
+      }
+      
+      // Check if it's the current player's turn
+      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      const serverPlayerName = localStorage.getItem('serverPlayerName');
+      const clientPlayerName = localStorage.getItem('clientPlayerName');
+      
+      let isCurrentPlayerTurn = false;
+      if (isServerClient) {
+        // Server-client: check if server is current player
+        isCurrentPlayerTurn = currentPlayer === serverPlayerName;
+      } else {
+        // Client: check if client is current player
+        isCurrentPlayerTurn = currentPlayer === clientPlayerName;
+      }
+      
+      if (!isCurrentPlayerTurn) {
+        console.log('🎮 Not current player turn, cannot start drag');
+        return;
+      }
 
-      // Check player hand cards for drag start
+      console.log('🎮 Mouse down at:', { x, y, gameStarted: true, isCurrentPlayerTurn });
+
+      // Check player hand cards for drag start (only for current player)
       for (const card of this.playerHand) {
         if (card.containsPoint(x, y)) {
           console.log('🎮 Card selected for drag:', card.card.title);
@@ -1744,39 +1741,40 @@ class LANGameApp {
       // Clear all hover effects first
       this.clearAllHoverEffects();
 
-      // Game not started yet - no hover effects
-      return;
+      // Check if game has started (current player is set)
+      const currentPlayer = localStorage.getItem('currentPlayer');
+      if (!currentPlayer || currentPlayer === 'WAITING_FOR_CARD_DISTRIBUTION') {
+        // Game not started yet - no hover effects
+        return;
+      }
       
-      // currentPlayer logic removed - waiting for server to implement
-      // const currentPlayer = localStorage.getItem('currentPlayer');
-      // const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      // Determine which hand should show hover effects based on current player
+      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      const serverPlayerName = localStorage.getItem('serverPlayerName');
+      const clientPlayerName = localStorage.getItem('clientPlayerName');
       
-      // if (!currentPlayer) {
-      //   // Game not started yet - no hover effects
-      //   return;
-      // }
+      let activeHand: any[] = [];
+      if (isServerClient) {
+        // Server-client: hover over server hand (playerHand) if it's server's turn
+        if (currentPlayer === serverPlayerName) {
+          activeHand = this.playerHand;
+        }
+      } else {
+        // Client: hover over client hand (playerHand) if it's client's turn
+        if (currentPlayer === clientPlayerName) {
+          activeHand = this.playerHand;
+        }
+      }
+      
+      // Apply hover effects only for the active player's hand
+      for (const card of activeHand) {
+        if (card.containsPoint(x, y)) {
+          card.isHovered = true;
+          break;
+        }
+      }
+      
 
-      // // Determine which hand should show hover effects
-      // let activeHand: any[] = [];
-      // if (isServerClient) {
-      //   // Server-client: hover over server hand (playerHand) if it's server's turn
-      //   if (currentPlayer === localStorage.getItem('serverPlayerName')) {
-      //   activeHand = this.playerHand;
-      //   }
-      // } else {
-      //   // Client: hover over client hand (playerHand) if it's client's turn
-      //   if (currentPlayer === localStorage.getItem('clientPlayerName')) {
-      //   activeHand = this.playerHand;
-      //   }
-      // }
-
-             // currentPlayer hover effects removed - waiting for server to implement
-             // for (const card of activeHand) {
-             //   if (card.containsPoint(x, y)) {
-             //     card.isHovered = true;
-             //     break;
-             //   }
-             // }
 
     } catch (error) {
       console.error('🎮 Failed to handle mouse move:', error);
@@ -1788,6 +1786,32 @@ class LANGameApp {
    */
   private handleMouseUp(_event: MouseEvent): void {
     try {
+      // Check if it's the current player's turn before allowing card placement
+      const currentPlayer = localStorage.getItem('currentPlayer');
+      if (!currentPlayer || currentPlayer === 'WAITING_FOR_CARD_DISTRIBUTION') {
+        console.log('🎮 Game not started yet - cannot place cards');
+        return;
+      }
+      
+      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      const serverPlayerName = localStorage.getItem('serverPlayerName');
+      const clientPlayerName = localStorage.getItem('clientPlayerName');
+      
+      let isCurrentPlayerTurn = false;
+      if (isServerClient) {
+        isCurrentPlayerTurn = currentPlayer === serverPlayerName;
+      } else {
+        isCurrentPlayerTurn = currentPlayer === clientPlayerName;
+      }
+      
+      if (!isCurrentPlayerTurn) {
+        console.log('🎮 Not current player turn, cannot place cards');
+        
+
+        
+        return;
+      }
+      
       if (this.isDragging && this.selectedCard) {
         // Snap logic: if released near axis, place left/right of center
         const releasedCard = this.selectedCard;
@@ -2042,6 +2066,16 @@ class LANGameApp {
       console.error('🎮 Failed to clear hover effects:', error);
     }
   }
+
+
+
+
+
+
+
+
+
+
 
   /**
    * Handle game state updates from WebSocket
