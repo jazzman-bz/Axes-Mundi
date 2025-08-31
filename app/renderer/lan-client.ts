@@ -384,14 +384,27 @@ export class LANGameClient {
    * Send a message to the server
    */
   sendMessage(message: LANMessage): void {
+    console.log('🎮 LAN Client: sendMessage called with:', message);
+    console.log('🎮 LAN Client: WebSocket available:', !!this.ws);
+    console.log('🎮 LAN Client: WebSocket readyState:', this.ws?.readyState);
+    console.log('🎮 LAN Client: WebSocket.OPEN constant:', WebSocket.OPEN);
+    
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(message));
+      const messageStr = JSON.stringify(message);
+      console.log('🎮 LAN Client: Sending message string:', messageStr);
+      
+      this.ws.send(messageStr);
+      console.log('🎮 LAN Client: Message sent successfully');
+      
       logger.debug({ 
         scope: 'lan/client', 
         msg: 'Sent message', 
         meta: { type: message.type } 
       });
     } else {
+      console.warn('🎮 LAN Client: Cannot send message - not connected');
+      console.warn('🎮 LAN Client: WebSocket state:', this.ws?.readyState);
+      
       logger.warn({ 
         scope: 'lan/client', 
         msg: 'Cannot send message - not connected' 
@@ -412,12 +425,18 @@ export class LANGameClient {
   /**
    * Send card placement
    */
-  sendCardPlacement(cardId: string, position: number): void {
+  sendCardPlacement(cardId: string, boardPosition: number): void {
+    console.log('🎮 LAN Client: Sending card placement:', { cardId, boardPosition });
+    console.log('🎮 LAN Client: WebSocket state:', this.ws?.readyState);
+    console.log('🎮 LAN Client: Is connected:', this.isConnected());
+    
     this.sendMessage({
-      type: 'placeCard',
+      type: 'cardPlacement',
       cardId,
-      position
+      boardPosition
     });
+    
+    console.log('🎮 LAN Client: Card placement message sent');
   }
 
   /**
@@ -646,6 +665,45 @@ export class LANGameClient {
         err: { message: error.message, stack: error.stack }
       });
     }
+  }
+
+  /**
+   * Send card distribution confirmation to server
+   */
+  sendCardDistributionConfirmation(confirmation: any): void {
+    try {
+      logger.info({
+        scope: 'lan/client',
+        msg: 'sending card distribution confirmation to server'
+      });
+
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify(confirmation));
+        
+        logger.info({
+          scope: 'lan/client',
+          msg: 'card distribution confirmation sent to server'
+        });
+      } else {
+        logger.warn({
+          scope: 'lan/client',
+          msg: 'WebSocket not available for card distribution confirmation'
+        });
+      }
+    } catch (error) {
+      logger.error({
+        scope: 'lan/client',
+        msg: 'failed to send card distribution confirmation',
+        err: { message: error.message, stack: error.stack }
+      });
+    }
+  }
+
+  /**
+   * Check if client is connected
+   */
+  isConnected(): boolean {
+    return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
   }
 }
 

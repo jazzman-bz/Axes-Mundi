@@ -100,6 +100,13 @@ export class LANWebSocketServer {
   }
 
   private handleMessage(playerId: string, ws: WebSocket, message: any): void {
+    // Add console.log for debugging
+    console.log('🎮 WebSocket Server: Received message from client:', {
+      playerId,
+      messageType: message.type,
+      message
+    });
+    
     logger.info({ 
       scope: 'main/websocket', 
       msg: 'Received message from client', 
@@ -129,6 +136,9 @@ export class LANWebSocketServer {
          this.handleCardDistribution(playerId, message);
          break;
       case 'placeCard':
+        this.handleCardPlacement(playerId, message);
+        break;
+      case 'cardPlacement':
         this.handleCardPlacement(playerId, message);
         break;
       case 'gameStateUpdate':
@@ -583,6 +593,13 @@ export class LANWebSocketServer {
   }
 
   /**
+   * Get the server player name
+   */
+  getServerPlayerName(): string {
+    return this.serverPlayerName;
+  }
+
+  /**
    * Send card placement to all connected clients
    */
   async sendCardPlacement(cardId: string, boardPosition: number, playerName: string): Promise<void> {
@@ -619,7 +636,17 @@ export class LANWebSocketServer {
    */
   private handleCardPlacement(playerId: string, message: any): void {
     const player = this.players.get(playerId);
-    if (!player) return;
+    if (!player) {
+      console.error('🎮 WebSocket Server: Player not found for cardPlacement:', playerId);
+      return;
+    }
+
+    console.log('🎮 WebSocket Server: Received cardPlacement from client:', {
+      playerId,
+      playerName: player.name,
+      cardId: message.cardId,
+      boardPosition: message.boardPosition
+    });
 
     logger.info({ 
       scope: 'main/websocket', 
@@ -642,13 +669,27 @@ export class LANWebSocketServer {
 
     // Send notification to renderer process to update UI
     if (global.mainWindow && global.mainWindow.webContents) {
-      global.mainWindow.webContents.send('lan-status-update', {
+      const statusUpdate = {
         type: 'cardPlacement',
         cardId: message.cardId,
         boardPosition: message.boardPosition,
         playerName: player.name,
         message: `Karte ${message.cardId} wurde von ${player.name} an Board-Position ${message.boardPosition} platziert`
-      });
+      };
+      
+      console.log('🎮 WebSocket Server: Sending lan-status-update to renderer:', statusUpdate);
+      console.log('🎮 WebSocket Server: mainWindow available:', !!global.mainWindow);
+      console.log('🎮 WebSocket Server: webContents available:', !!(global.mainWindow && global.mainWindow.webContents));
+      
+      global.mainWindow.webContents.send('lan-status-update', statusUpdate);
+      console.log('🎮 WebSocket Server: lan-status-update sent to renderer successfully');
+      
+      // Also log the broadcast to other WebSocket clients
+      console.log('🎮 WebSocket Server: Broadcasting cardPlacement to other WebSocket clients');
+    } else {
+      console.error('🎮 WebSocket Server: Cannot send lan-status-update - mainWindow not available');
+      console.error('🎮 WebSocket Server: mainWindow:', !!global.mainWindow);
+      console.error('🎮 WebSocket Server: webContents:', !!(global.mainWindow && global.mainWindow.webContents));
     }
   }
 

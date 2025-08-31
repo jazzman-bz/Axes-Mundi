@@ -218,8 +218,8 @@ function setupIPC(): void {
 
       // Send card placement to all connected clients via WebSocket
       if (lanServer) {
-        // Get current player from renderer (this would need to be passed)
-        const currentPlayer = 'Server'; // TODO: Get actual current player
+        // Get the actual server player name from the WebSocket server
+        const currentPlayer = lanServer.getServerPlayerName();
         
         await lanServer.sendCardPlacement(cardId, boardPosition, currentPlayer);
         

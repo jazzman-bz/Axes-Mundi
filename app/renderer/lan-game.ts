@@ -18,7 +18,7 @@ export class LANGameManager {
   private currentPlayer: string = ''; // Wer ist am Zug
   
   // WebSocket client for non-server clients
-  private lanClient: any = null;
+  public lanClient: any = null;
   private onGameStateUpdateCallback: ((gameState: any) => void) | null = null;
   
   // Game state for card placement validation
@@ -326,7 +326,8 @@ export class LANGameManager {
       
       switch (message.type) {
         case 'cardPlacement':
-          this.handleRemoteCardPlacement(message);
+          // DISABLED: Duplicate handler removed - main processing happens in lan-game-main.ts
+          console.log('🎮 Received cardPlacement - IGNORED (main processing in lan-game-main.ts)');
           break;
         case 'gameStateUpdate':
           this.handleRemoteGameStateUpdate(message);
@@ -350,51 +351,12 @@ export class LANGameManager {
 
   /**
    * Handle remote card placement from server
+   * DISABLED: Duplicate handler removed - main processing happens in lan-game-main.ts
    */
   private handleRemoteCardPlacement(message: any): void {
-    try {
-      console.log('🎮 Handling remote card placement:', message);
-      
-      // Update local game state
-      const { cardId, position, playerName } = message;
-      
-      // Find the card in the appropriate hand
-      let card: CardData | undefined;
-      if (playerName === this.serverPlayerName) {
-        card = this.opponentHand.find(c => c.id === cardId);
-      } else {
-        card = this.playerHand.find(c => c.id === cardId);
-      }
-      
-      if (card) {
-        // Remove from hand and add to placed cards
-        if (playerName === this.serverPlayerName) {
-          this.opponentHand = this.opponentHand.filter(c => c.id !== cardId);
-        } else {
-          this.playerHand = this.playerHand.filter(c => c.id !== cardId);
-        }
-        
-        this.placedCards.push(card);
-        
-        logger.info({
-          scope: 'renderer/lan',
-          msg: 'remote card placement processed',
-          meta: { cardId, position, playerName, placedCardsCount: this.placedCards.length }
-        });
-        
-        // Notify callback if set
-        if (this.onGameStateUpdateCallback) {
-          this.onGameStateUpdateCallback(this.getGameState());
-        }
-      }
-      
-    } catch (error) {
-      logger.error({
-        scope: 'renderer/lan',
-        msg: 'failed to handle remote card placement',
-        err: { message: error.message, stack: error.stack }
-      });
-    }
+    // This method is disabled to prevent duplicate processing
+    // Main card placement handling happens in lan-game-main.ts
+    console.log('🎮 handleRemoteCardPlacement disabled - main processing in lan-game-main.ts');
   }
 
   /**
@@ -783,13 +745,13 @@ export class LANGameManager {
         msg: 'sending card distribution confirmation to server'
       });
 
-      // Send confirmation via WebSocket
-      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send(JSON.stringify({
+      // Send confirmation via WebSocket client
+      if (this.lanClient && this.lanClient.isConnected()) {
+        this.lanClient.sendCardDistributionConfirmation({
           type: 'cardDistributionConfirmation',
           playerName: this.clientPlayerName,
           message: 'Client received card distribution successfully'
-        }));
+        });
 
         logger.info({
           scope: 'renderer/lan',
@@ -798,7 +760,7 @@ export class LANGameManager {
       } else {
         logger.warn({
           scope: 'renderer/lan',
-          msg: 'WebSocket not available for card distribution confirmation'
+          msg: 'WebSocket client not available for card distribution confirmation'
         });
       }
 
