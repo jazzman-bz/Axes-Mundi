@@ -23,7 +23,7 @@ class LANGameApp {
 
   private opponentHand: any[] = [];
 
-  private boardCard: any = null;
+  private board: any[] = []; // Alle Karten auf der Achse (inkl. zentrale Karte)
 
   private remainingCards: any[] = [];
 
@@ -35,11 +35,6 @@ class LANGameApp {
   private selectedCard: any = null;
 
   private snapThreshold: number = 50; // Distance to axis for snapping
-
-  // Card placement arrays (like Single-Player)
-  private placedLeft: any[] = []; // Cards placed to the left of center
-
-  private placedRight: any[] = []; // Cards placed to the right of center
 
   private isPreviewActive: boolean = false; // Track if preview is currently active
 
@@ -295,9 +290,9 @@ class LANGameApp {
           // Small delay to ensure cards are visible
           await new Promise((resolve) => setTimeout(resolve, 2000));
 
-          // Animate board card to center
-          if (this.boardCard) {
-            this.animateBoardCardToCenter();
+          // Position board card at center
+          if (this.board.length > 0) {
+            this.layoutAxisCards(); // Alle Karten auf der Achse positionieren
           }
 
           // Then: send card distribution to client
@@ -343,13 +338,13 @@ class LANGameApp {
       // Store remaining cards for deck visualization
       this.remainingCards = [...deck.cards];
 
-      // Create board card
+      // Create board card (zentrale Karte)
       if (distribution.boardCard) {
         // Find the actual card data by ID
         const boardCardData = deck.cards.find((card) => card.id === distribution.boardCard.id);
         if (boardCardData) {
-          console.log('🎮 Creating board card with data:', boardCardData);
-          this.boardCard = new GameCard(
+          console.log('🎮 Creating central board card with data:', boardCardData);
+          const centralCard = new GameCard(
             boardCardData,
             deck,
             50 * this.scale, // Start at deck position
@@ -357,10 +352,11 @@ class LANGameApp {
             this.scale,
           );
           // Board card is on axis, not in hand - so show the measurement value
-          this.boardCard.isInHand = false;
-          console.log('🎮 Board card created:', boardCardData.title);
-          console.log('🎮 Board card object:', this.boardCard);
-          console.log('🎮 Board card isInHand set to false for measurement display');
+          centralCard.isInHand = false;
+          this.board.push(centralCard); // Erste Karte im Board-Array
+          console.log('🎮 Central board card created:', boardCardData.title);
+          console.log('🎮 Central board card object:', centralCard);
+          console.log('🎮 Central board card isInHand set to false for measurement display');
         } else {
           console.error('🎮 Board card data not found for ID:', distribution.boardCard.id);
         }
@@ -602,37 +598,14 @@ class LANGameApp {
     this.ctx.fillText('Höhe (m)', this.canvas.width / 2, this.canvas.height / 2 - 50 * this.scale);
   }
 
-  /**
-   * Animate board card to center
-   */
-  private animateBoardCardToCenter(): void {
-    if (!this.boardCard) return;
 
-    // Calculate center position
-    const centerX = this.canvas!.width / 2 - this.boardCard.width / 2;
-    const centerY = this.canvas!.height / 2 - this.boardCard.height / 2;
-
-    // Set target position for animation
-    this.boardCard.setTargetPosition(centerX, centerY);
-
-    console.log('🎮 Board card animating to center:', { centerX, centerY });
-  }
 
   /**
    * Update all cards (animate to target positions)
    */
   private updateCards(): void {
-    // Update board card
-    if (this.boardCard) {
-      this.boardCard.tick();
-    }
-
-    // Update placed cards on the axis (left and right of center)
-    this.placedLeft.forEach((card) => {
-      card.tick();
-    });
-
-    this.placedRight.forEach((card) => {
+    // Update all board cards (inkl. zentrale Karte)
+    this.board.forEach((card) => {
       card.tick();
     });
 
@@ -651,19 +624,8 @@ class LANGameApp {
    * Draw all cards (like Single-Player)
    */
   private drawCards(): void {
-    // Draw board card with front side
-    if (this.boardCard) {
-      this.boardCard.showCardBack = false; // ← Vorderseite zeigen
-      this.boardCard.render(this.ctx!);
-    }
-
-    // Draw placed cards on the axis with front side
-    this.placedLeft.forEach((card) => {
-      card.showCardBack = false; // ← Vorderseite zeigen
-      card.render(this.ctx!);
-    });
-
-    this.placedRight.forEach((card) => {
+    // Draw all board cards with front side (inkl. zentrale Karte)
+    this.board.forEach((card) => {
       card.showCardBack = false; // ← Vorderseite zeigen
       card.render(this.ctx!);
     });
@@ -803,7 +765,7 @@ class LANGameApp {
     this.ctx.fillText(`🃏 Hands: Server(${this.playerHand.length}) Client(${this.opponentHand.length})`, debugX + 10, yOffset);
 
     yOffset += 20 * this.scale;
-    this.ctx.fillText(`📍 Board: Left(${this.placedLeft.length}) Right(${this.placedRight.length})`, debugX + 10, yOffset);
+    this.ctx.fillText(`📍 Board: ${this.board.length} cards (central: ${this.board.length > 0 ? 'yes' : 'no'})`, debugX + 10, yOffset);
 
     yOffset += 20 * this.scale;
 
@@ -1000,12 +962,12 @@ class LANGameApp {
         // - Client sees server's hand (serverHand) at the top (card backs)
         // - Board card is in the center
 
-        // Create board card
+        // Create board card (zentrale Karte)
         if (distribution.boardCard) {
           const boardCardData = deck.cards.find((card) => card.id === distribution.boardCard.id);
           if (boardCardData) {
-            console.log('🎮 Client: Creating board card:', boardCardData.title);
-            this.boardCard = new GameCard(
+            console.log('🎮 Client: Creating central board card:', boardCardData.title);
+            const centralCard = new GameCard(
               boardCardData,
               deck,
               50 * this.scale,
@@ -1013,8 +975,9 @@ class LANGameApp {
               this.scale,
             );
             // Board card is on axis, not in hand - so show the measurement value
-            this.boardCard.isInHand = false;
-            console.log('🎮 Client: Board card created with measurement display');
+            centralCard.isInHand = false;
+            this.board.push(centralCard); // Erste Karte im Board-Array
+            console.log('🎮 Client: Central board card created with measurement display');
           }
         }
 
@@ -1038,10 +1001,10 @@ class LANGameApp {
           }
         }
 
-        // Animate board card to center
+        // Position board card at center
         setTimeout(() => {
-          if (this.boardCard) {
-            this.animateBoardCardToCenter();
+          if (this.board.length > 0) {
+            this.layoutAxisCards(); // Alle Karten auf der Achse positionieren
           }
         }, 3000);
 
@@ -1137,34 +1100,31 @@ class LANGameApp {
     * Layout all cards on the axis - center them with proper spacing (like Single-Player)
     */
   private layoutAxisCards(): void {
-    if (!this.boardCard) return;
+    if (this.board.length === 0) return;
 
-    // Combine all placed cards with the board card
-    const allCards = [
-      this.boardCard,
-      ...this.placedLeft,
-      ...this.placedRight,
-    ];
-
-    if (allCards.length <= 1) return; // No need to spread if only one card
-
-    // Sort cards by their current X position to maintain relative order
-    const sortedCards = allCards.sort((a, b) => a.x - b.x);
-
-    // Use fixed spacing between cards (like Single-Player)
+    // Sortiere alle Board-Karten nach X-Position
+    const sortedCards = [...this.board].sort((a, b) => a.x - b.x);
+    
+    // Zentrale Karte (board[0]) in der Mitte positionieren
+    const centralCard = sortedCards[0];
+    const centerX = this.canvas!.width / 2 - centralCard.width / 2;
+    const centerY = this.canvas!.height / 2 - centralCard.height / 2;
+    centralCard.setTargetPosition(centerX, centerY);
+    
+    // Wenn nur eine zentrale Karte vorhanden ist, fertig
+    if (this.board.length === 1) {
+      console.log('🎮 Central card positioned at center:', { centerX, centerY });
+      return;
+    }
+    
+    // Andere Karten um die zentrale Karte herum verteilen
+    const otherCards = sortedCards.slice(1);
     const cardWidth = 200 * this.scale;
     const spacing = 5 * this.scale; // Fixed 5px spacing
-
-    // Calculate total width needed
-    const totalWidth = sortedCards.length * cardWidth + (sortedCards.length - 1) * spacing;
-    const startX = (this.canvas!.width - totalWidth) / 2; // Center the entire spread
-
-    // Set target positions for smooth animation
-    const axisY = this.canvas!.height / 2;
-
-    sortedCards.forEach((card, index) => {
-      const x = startX + index * (cardWidth + spacing);
-      const y = axisY - card.height / 2;
+    
+    otherCards.forEach((card, index) => {
+      const x = centerX + (index + 1) * (cardWidth + spacing);
+      const y = centerY;
       card.setTargetPosition(x, y);
     });
 
@@ -1454,14 +1414,9 @@ class LANGameApp {
       const targetCoords = this.calculateTargetCoordinates(boardPosition);
       console.log('🎮 Calculated target coordinates for remote placement:', targetCoords);
 
-      // Add to placed cards array (let layoutAxisCards handle the positioning)
-      if (targetCoords.x < this.canvas!.width / 2) {
-        this.placedLeft.push(card);
-        console.log('🎮 Card added to placedLeft array:', { cardId: card.card.id, arraySize: this.placedLeft.length });
-      } else {
-        this.placedRight.push(card);
-        console.log('🎮 Card added to placedRight array:', { cardId: card.card.id, arraySize: this.placedRight.length });
-      }
+      // Add to board array (let layoutAxisCards handle the positioning)
+      this.board.push(card);
+      console.log('🎮 Card added to board array:', { cardId: card.card.id, arraySize: this.board.length });
 
       // Start animation to calculated coordinates
       card.setTargetPosition(targetCoords.x, targetCoords.y);
@@ -1477,8 +1432,7 @@ class LANGameApp {
         boardPosition,
         targetCoords,
         playerName,
-        leftCount: this.placedLeft.length,
-        rightCount: this.placedRight.length,
+        boardCount: this.board.length,
       });
     } catch (error: any) {
       logger.error({
@@ -2043,15 +1997,9 @@ class LANGameApp {
             releasedCard.isInHand = false;
 
             // Add to appropriate array based on absolute position
-            // For now, we'll use the existing left/right logic, but in the future
-            // we should maintain a single array with absolute positions
-            if (isLeft) {
-              this.placedLeft.push(releasedCard);
-              console.log('🎮 Card placed to LEFT of center:', releasedCard.card.title);
-            } else {
-              this.placedRight.push(releasedCard);
-              console.log('🎮 Card placed to RIGHT of center:', releasedCard.card.title);
-            }
+            // Add card to board array
+            this.board.push(releasedCard);
+            console.log('🎮 Card added to board array:', releasedCard.card.title);
 
             // Log the new board state with absolute positions
             const updatedAllPlacedCards = this.getAllPlacedCardsInOrder();
@@ -2168,16 +2116,8 @@ class LANGameApp {
    */
   private getAllPlacedCardsInOrder(): any[] {
     try {
-      // Combine all placed cards
-      const allCards = [...this.placedLeft, ...this.placedRight];
-      if (this.boardCard) {
-        allCards.push(this.boardCard);
-      }
-
-      // Sort by X position (left to right)
-      allCards.sort((a, b) => a.x - b.x);
-
-      return allCards;
+      // Alle Board-Karten nach X-Position sortieren
+      return [...this.board].sort((a, b) => a.x - b.x);
     } catch (error) {
       console.error('🎮 Failed to get placed cards in order:', error);
       return [];
@@ -2275,11 +2215,7 @@ class LANGameApp {
       console.log('🎮 showAxisPreview called with previewX:', previewX);
 
       // Combine all cards in their current order (board + left + right)
-      const allCards = [
-        this.boardCard,
-        ...this.placedLeft,
-        ...this.placedRight,
-      ];
+      const allCards = [...this.board];
 
       if (allCards.length === 0) return;
 
@@ -2326,9 +2262,8 @@ class LANGameApp {
       console.log('🎮 Hiding placement preview, restoring original positions');
 
       // Restore original positions for all cards
-      if (this.boardCard) this.boardCard.clearPreviewPosition();
-      for (const card of this.placedLeft) card.clearPreviewPosition();
-      for (const card of this.placedRight) card.clearPreviewPosition();
+              // Clear preview for all board cards
+      for (const card of this.board) card.clearPreviewPosition();
 
       // Mark preview as inactive
       this.isPreviewActive = false;
@@ -2406,8 +2341,7 @@ class LANGameApp {
       console.log('🎮 Updating placed cards visualization:', placedCards.length, 'cards');
 
       // Clear current placed cards arrays
-      this.placedLeft = [];
-      this.placedRight = [];
+      this.board = [];
 
       // Rebuild placed cards arrays based on new game state
       if (this.boardCard && placedCards.length > 0) {
@@ -2430,12 +2364,8 @@ class LANGameApp {
             const cardCenterX = card.x + card.width / 2;
             const isLeft = cardCenterX < boardCenterX;
 
-            // Add to appropriate array
-            if (isLeft) {
-              this.placedLeft.push(card);
-            } else {
-              this.placedRight.push(card);
-            }
+                        // Add to board array
+            this.board.push(card);
 
             // Remove from hand
             this.playerHand = this.playerHand.filter((c) => c !== card);
@@ -2452,8 +2382,7 @@ class LANGameApp {
         this.layoutAxisCards();
 
         console.log('🎮 Placed cards visualization updated:', {
-          left: this.placedLeft.length,
-          right: this.placedRight.length,
+          boardCount: this.board.length,
         });
       }
     } catch (error) {
