@@ -25,6 +25,8 @@ class LANGameApp {
 
   private board: any[] = []; // Alle Karten auf der Achse (inkl. zentrale Karte)
 
+  private graveyard: any[] = []; // Karten, die falsch gelegt wurden
+
   private remainingCards: any[] = [];
 
   private scale: number = 1;
@@ -616,6 +618,11 @@ class LANGameApp {
     this.opponentHand.forEach((card) => {
       card.tick();
     });
+
+    // Update graveyard cards
+    this.graveyard.forEach((card) => {
+      card.tick();
+    });
   }
 
   /**
@@ -640,6 +647,11 @@ class LANGameApp {
       } else {
         card.render(this.ctx!);
       }
+    });
+
+    // Draw graveyard cards
+    this.graveyard.forEach((card) => {
+      card.render(this.ctx!);
     });
 
     // Draw debug information
@@ -733,7 +745,7 @@ class LANGameApp {
     const debugX = 10 * this.scale;
     const debugY = 150 * this.scale; // Moved down from 10 to 150
     const debugWidth = 300 * this.scale;
-    const debugHeight = 140 * this.scale; // Increased height for new line
+    const debugHeight = 160 * this.scale; // Increased height for graveyard line
 
     // Background
     this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -764,6 +776,9 @@ class LANGameApp {
 
     yOffset += 20 * this.scale;
     this.ctx.fillText(`📍 Board: ${this.board.length} cards (central: ${this.board.length > 0 ? 'yes' : 'no'})`, debugX + 10, yOffset);
+
+    yOffset += 20 * this.scale;
+    this.ctx.fillText(`⚰️ Graveyard: ${this.graveyard.length} cards`, debugX + 10, yOffset);
 
     yOffset += 20 * this.scale;
 
@@ -1691,6 +1706,12 @@ class LANGameApp {
       // This will position the new card at the correct location
       this.recenterBoard();
 
+      // VALIDATION: Check if the remote card was placed correctly AFTER animations complete
+      // Wait for animations to finish before validating
+      setTimeout(() => {
+        this.validateCardPlacement(card);
+      }, 1000); // Wait 1 second for animations to complete
+
       console.log('🎮 Remote card placement completed:', {
         cardId,
         boardPosition,
@@ -2319,6 +2340,12 @@ class LANGameApp {
             // Only send the board position (0,1,2,3...), not coordinates
             this.sendCardPlacementViaWebSocket(releasedCard.card.id, boardPosition);
 
+            // VALIDATION: Check if the card was placed correctly AFTER animations complete
+            // Wait for animations to finish before validating
+            setTimeout(() => {
+              this.validateCardPlacement(releasedCard);
+            }, 1000); // Wait 1 second for animations to complete
+
             // Card placed successfully - server will handle player turn change
             console.log('🎮 Card placed successfully - waiting for server to change player turn');
 
@@ -2731,6 +2758,229 @@ class LANGameApp {
       }
     } catch (error) {
       console.error('🎮 Failed to send card placement via WebSocket:', error);
+    }
+  }
+
+  /**
+   * Move incorrect card to graveyard and give player a new card
+   * This method removes the card from the board and animates it to graveyard
+   */
+  private moveCardToGraveyard(card: GameCard): void {
+    try {
+      console.log('🎮 Moving incorrect card to graveyard:', card.card.title);
+
+      // Remove from board array
+      this.board = this.board.filter((c) => c !== card);
+
+      // Add to graveyard and animate
+      this.graveyard.push(card);
+      this.animateCardToGraveyard(card);
+
+      // Give player a new card
+      this.giveNewCard();
+
+      // Re-center the board after removing the incorrect card
+      this.recenterBoard();
+
+      console.log('🎮 Card moved to graveyard successfully:', {
+        cardTitle: card.card.title,
+        graveyardSize: this.graveyard.length,
+        boardSize: this.board.length
+      });
+
+    } catch (error) {
+      console.error('🎮 Failed to move card to graveyard:', error);
+    }
+  }
+
+  /**
+   * Animate card to graveyard position (top right corner)
+   */
+  private animateCardToGraveyard(card: GameCard): void {
+    try {
+      // Calculate graveyard position (top right corner)
+      const graveyardX = this.canvas!.width - 150 * this.scale; // 150px from right edge
+      const graveyardY = 50 * this.scale; // 50px from top
+
+      // Set target position for smooth animation
+      card.setTargetPosition(graveyardX, graveyardY);
+
+      console.log('🎮 Card animated to graveyard:', {
+        cardTitle: card.card.title,
+        graveyardX,
+        graveyardY
+      });
+
+    } catch (error) {
+      console.error('🎮 Failed to animate card to graveyard:', error);
+    }
+  }
+
+  /**
+   * Give a new card to the player who placed the incorrect card
+   * For active player: give to own hand
+   * For passive player: give to opponent's hand (the one who placed the card)
+   */
+  private giveNewCard(): void {
+    try {
+      if (this.remainingCards.length > 0) {
+        const newCardData = this.remainingCards.shift()!;
+        
+        // Use the same deck that was used for the original card distribution
+        // This ensures the correct imageFolder is used
+        const originalDeckId = localStorage.getItem('lanCardDistribution') 
+          ? JSON.parse(localStorage.getItem('lanCardDistribution')!).deckId 
+          : 'space-height-de';
+        
+        import('@/data/deckLoader').then(({ loadDeck }) => {
+          return loadDeck(originalDeckId);
+        }).then((deck) => {
+          if (!deck) {
+            console.error('🎮 Failed to load deck for new card');
+            return;
+          }
+
+          // IMPORTANT: Determine who should get the new card
+          const isServerClient = localStorage.getItem('isServerClient') === 'true';
+          const currentPlayer = localStorage.getItem('currentPlayer');
+          const serverPlayerName = localStorage.getItem('serverPlayerName');
+          const clientPlayerName = localStorage.getItem('clientPlayerName');
+
+          // Determine who placed the incorrect card (and should get a new card)
+          let shouldGiveToServer = false;
+          if (isServerClient) {
+            // Server-Client: If it's server's turn, give to server (playerHand)
+            shouldGiveToServer = currentPlayer === serverPlayerName;
+          } else {
+            // Browser-Client: If it's server's turn, give to server (opponentHand)
+            shouldGiveToServer = currentPlayer === serverPlayerName;
+          }
+
+          // Create the new card directly (since it's from remainingCards, not from deck.cards)
+          const newCard = new GameCard(
+            newCardData,
+            deck,
+            50 * this.scale, // Start position at deck (left)
+            this.canvas!.height - 320 * this.scale, // Deck Y position
+            this.scale,
+          );
+
+          // Use the existing dealCard methods for proper animation and image loading
+          if (shouldGiveToServer) {
+            // Give to server's hand
+            if (isServerClient) {
+              // Add to player hand and layout
+              this.playerHand.push(newCard);
+              this.layoutHand();
+              console.log('🎮 New card given to server (playerHand):', newCardData.title);
+            } else {
+              // Show as card back for browser client
+              newCard.showCardBack = true;
+              this.opponentHand.push(newCard);
+              this.layoutOpponentHand();
+              console.log('🎮 New card given to server (opponentHand, card back):', newCardData.title);
+            }
+          } else {
+            // Give to client's hand
+            if (isServerClient) {
+              // Show as card back for server client
+              newCard.showCardBack = true;
+              this.opponentHand.push(newCard);
+              this.layoutOpponentHand();
+              console.log('🎮 New card given to client (opponentHand, card back):', newCardData.title);
+            } else {
+              // Add to player hand and layout
+              this.playerHand.push(newCard);
+              this.layoutHand();
+              console.log('🎮 New card given to client (playerHand):', newCardData.title);
+            }
+          }
+
+          console.log('🎮 New card given successfully:', {
+            cardTitle: newCardData.title,
+            remainingCards: this.remainingCards.length,
+            playerHandSize: this.playerHand.length,
+            opponentHandSize: this.opponentHand.length,
+            shouldGiveToServer,
+            isServerClient,
+            currentPlayer
+          });
+
+        }).catch((error) => {
+          console.error('🎮 Failed to load deck for new card:', error);
+        });
+
+      } else {
+        console.log('🎮 No more cards available to give to player');
+      }
+
+    } catch (error) {
+      console.error('🎮 Failed to give new card:', error);
+    }
+  }
+
+  /**
+   * Validate card placement and provide visual feedback
+   * This method checks if the placed card is in the correct position
+   * and provides green/red color feedback for 2 seconds
+   */
+  private validateCardPlacement(placedCard: GameCard): void {
+    try {
+      console.log('🎮 Validating card placement for:', placedCard.card.title);
+
+      // Get all cards currently on the axis (board array)
+      const allAxisCards = [...this.board];
+
+      // IMPORTANT: The board array is already in the correct order (sorted by insertion)
+      // We don't need to sort by X position - the array order IS the logical order
+      // The cards are positioned based on their array index, not their X coordinates
+      
+      // Extract just the card data for evaluation (in array order)
+      const sortedCardData = allAxisCards.map((gc) => gc.card);
+
+      console.log('🎮 Board array order for validation:', {
+        totalCards: sortedCardData.length,
+        cardOrder: sortedCardData.map((c, index) => `${index}: ${c.title} (${c.value} ${c.unit})`)
+      });
+
+      // Import the validation function from scoring module
+      import('@/data/scoring').then(({ isAxisCorrectlySorted }) => {
+        const isCorrect = sortedCardData.length > 0
+          ? isAxisCorrectlySorted(sortedCardData)
+          : true; // Default to correct if no cards
+
+        console.log('🎮 Card placement validation result:', {
+          cardTitle: placedCard.card.title,
+          isCorrect,
+          totalCards: sortedCardData.length,
+          arrayOrder: sortedCardData.map(c => c.title),
+          values: sortedCardData.map(c => `${c.value} ${c.unit}`)
+        });
+
+        if (isCorrect) {
+          // Correct placement - show green feedback for 2 seconds
+          placedCard.setCorrect();
+          console.log('🎮 Card placed correctly - showing green feedback');
+        } else {
+          // Incorrect placement - show red feedback for 2 seconds, then move to graveyard
+          placedCard.setIncorrect();
+          console.log('🎮 Card placed incorrectly - showing red feedback');
+          
+          // After 2 seconds, move the incorrect card to graveyard
+          setTimeout(() => {
+            this.moveCardToGraveyard(placedCard);
+          }, 2000); // Wait 2 seconds for red feedback
+        }
+      }).catch((error) => {
+        console.error('🎮 Failed to import scoring module:', error);
+        // Fallback: assume correct if import fails
+        placedCard.setCorrect();
+      });
+
+    } catch (error) {
+      console.error('🎮 Failed to validate card placement:', error);
+      // Fallback: assume correct if validation fails
+      placedCard.setCorrect();
     }
   }
 
