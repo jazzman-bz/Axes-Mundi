@@ -29,6 +29,8 @@ class LANGameApp {
 
   private remainingCards: any[] = [];
 
+  private gameWon: boolean = false; // Track if game has been won
+
   private scale: number = 1;
 
   // Drag & Drop variables
@@ -224,6 +226,9 @@ class LANGameApp {
 
         // Update overlay to show server name and waiting for client
         this.updateLANInfo();
+        
+        // Initialize current player display
+        this.updateCurrentPlayerDisplay();
       } else {
         console.warn('🎮 No server player name found in localStorage, using default');
         const defaultServerName = 'Server';
@@ -232,6 +237,9 @@ class LANGameApp {
         // Default server starts in waiting mode - no current player set yet
         console.log('🎮 Default server starts in waiting mode - no current player set yet');
         this.updateLANInfo();
+        
+        // Initialize current player display
+        this.updateCurrentPlayerDisplay();
       }
 
       // For Client: Start in waiting mode - no current player loaded
@@ -338,7 +346,19 @@ class LANGameApp {
       });
 
       // Store remaining cards for deck visualization
-      this.remainingCards = [...deck.cards];
+      // IMPORTANT: Use the deckOrder from the distribution, not the full deck
+      // This ensures both players have the same remaining cards
+      if (distribution.deckOrder && distribution.deckOrder.length > 0) {
+        // Use the deckOrder from server (correct remaining cards)
+        this.remainingCards = distribution.deckOrder.map((cardRef: any) => 
+          deck.cards.find((card: any) => card.id === cardRef.id)
+        ).filter((card: any) => card !== undefined);
+        console.log('🎮 Server: Using deckOrder from distribution for remainingCards:', this.remainingCards.length);
+      } else {
+        // Fallback: use full deck (should not happen)
+        this.remainingCards = [...deck.cards];
+        console.warn('🎮 Server: No deckOrder found, using full deck as fallback');
+      }
 
       // Create board card (zentrale Karte)
       if (distribution.boardCard) {
@@ -803,139 +823,8 @@ class LANGameApp {
 
     // Restore context
     this.ctx.restore();
-
-    // Draw board state debug information on the right side of the canvas
-    this.drawBoardStateDebug();
   }
 
-  /**
-   * Draw board state debug information on canvas
-   * Shows detailed information about board cards with their array positions
-   */
-  private drawBoardStateDebug(): void {
-    if (!this.ctx || !this.canvas) return;
-
-    // Save context
-    this.ctx.save();
-
-    // Set text style
-    this.ctx.fillStyle = '#00ff00'; // Green color for board debug info
-    this.ctx.font = `${14 * this.scale}px Arial`;
-    this.ctx.textAlign = 'left';
-    this.ctx.strokeStyle = '#000000';
-    this.ctx.lineWidth = 1;
-
-    // Position on the right side of the canvas
-    const debugX = this.canvas.width - 350 * this.scale;
-    const debugY = 10 * this.scale;
-    const debugWidth = 340 * this.scale;
-    const maxHeight = this.canvas.height - 20 * this.scale;
-
-    // Background
-    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-    this.roundRect(this.ctx, debugX, debugY, debugWidth, maxHeight, 8);
-    this.ctx.fill();
-
-    // Border
-    this.ctx.strokeStyle = '#00ff00';
-    this.ctx.lineWidth = 2;
-    this.ctx.stroke();
-
-    // Title
-    this.ctx.fillStyle = '#00ff00';
-    this.ctx.font = `${16 * this.scale}px Arial`;
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText('🎯 BOARD STATE DEBUG', debugX + debugWidth / 2, debugY + 25 * this.scale);
-
-    // Reset text alignment for content
-    this.ctx.textAlign = 'left';
-    this.ctx.font = `${12 * this.scale}px Arial`;
-
-    let yOffset = debugY + 50 * this.scale;
-
-    // Board array information
-    this.ctx.fillStyle = '#ffff00'; // Yellow for array info
-    this.ctx.fillText(`📋 Board Array: ${this.board.length} cards`, debugX + 10, yOffset);
-    yOffset += 20 * this.scale;
-
-    if (this.board.length === 0) {
-      this.ctx.fillStyle = '#ff6666'; // Red for empty
-      this.ctx.fillText('   Board is empty', debugX + 10, yOffset);
-      this.ctx.restore();
-      return;
-    }
-
-    // Draw each card in the board array with its index and details
-    this.board.forEach((card, arrayIndex) => {
-      if (yOffset > maxHeight - 60) return; // Don't draw beyond canvas height
-      if (!card || !card.card) return; // Skip invalid cards
-
-      const cardData = card.card;
-      const cardColor = arrayIndex === 0 ? '#ffaa00' : '#00aaff'; // Orange for central, blue for others
-      this.ctx.fillStyle = cardColor;
-
-      // Card info line
-      const cardInfo = `[${arrayIndex}] ${cardData.title}`;
-      this.ctx.fillText(cardInfo, debugX + 10, yOffset);
-      yOffset += 15 * this.scale;
-
-      // Card details (smaller font)
-      this.ctx.font = `${10 * this.scale}px Arial`;
-      this.ctx.fillStyle = '#cccccc';
-
-      // ID and coordinates
-      this.ctx.fillText(`   ID: ${cardData.id}`, debugX + 10, yOffset);
-      yOffset += 12 * this.scale;
-
-      this.ctx.fillText(`   Pos: (${Math.round(card.x)}, ${Math.round(card.y)})`, debugX + 10, yOffset);
-      yOffset += 12 * this.scale;
-
-      // Status flags
-      const statusFlags = [];
-      if (card.isInHand) statusFlags.push('inHand');
-      if (card.isHovered) statusFlags.push('hovered');
-      if (card.showCardBack) statusFlags.push('cardBack');
-
-      if (statusFlags.length > 0) {
-        this.ctx.fillText(`   Status: ${statusFlags.join(', ')}`, debugX + 10, yOffset);
-        yOffset += 12 * this.scale;
-      }
-
-      // Reset font for next card
-      this.ctx.font = `${12 * this.scale}px Arial`;
-      yOffset += 5 * this.scale; // Extra spacing between cards
-    });
-
-    // Draw sorted order information
-    if (yOffset < maxHeight - 80) {
-      yOffset += 10 * this.scale;
-      this.ctx.fillStyle = '#ff00ff'; // Magenta for sorted info
-      this.ctx.font = `${14 * this.scale}px Arial`;
-      this.ctx.fillText('🔄 Array Order:', debugX + 10, yOffset);
-      yOffset += 20 * this.scale;
-
-      const sortedCards = this.getAllPlacedCardsInOrder();
-      this.ctx.font = `${11 * this.scale}px Arial`;
-
-      sortedCards.forEach((card, sortedIndex) => {
-        if (yOffset > maxHeight - 40) return;
-        if (!card || !card.card) return; // Skip invalid cards
-
-        const cardData = card.card;
-        const arrayIndex = this.board.indexOf(card);
-        this.ctx.fillStyle = '#ffaa00'; // Orange for sorted info
-        this.ctx.fillText(`   [${sortedIndex}] ${cardData.title}`, debugX + 10, yOffset);
-        yOffset += 12 * this.scale;
-
-        this.ctx.fillStyle = '#cccccc';
-        this.ctx.fillText(`      Array Index: [${arrayIndex}]`, debugX + 10, yOffset);
-        yOffset += 12 * this.scale;
-      });
-    }
-
-    // Restore context
-    this.ctx.restore();
-  }
 
   /**
    * Draw rounded rectangle
@@ -1100,7 +989,40 @@ class LANGameApp {
         console.log('🎮 Client: Deck loaded successfully:', deck.name);
 
         // Store remaining cards for deck visualization
-        this.remainingCards = [...deck.cards];
+        // IMPORTANT: Use the deckOrder from the distribution, not the full deck
+        // This ensures both players have the same remaining cards
+        if (distribution.deckOrder && distribution.deckOrder.length > 0) {
+          // Use the deckOrder from server (correct remaining cards)
+          this.remainingCards = distribution.deckOrder.map((cardRef: any) => 
+            deck.cards.find((card: any) => card.id === cardRef.id)
+          ).filter((card: any) => card !== undefined);
+          console.log('🎮 Client: Using deckOrder from server for remainingCards:', this.remainingCards.length);
+        } else {
+          // Fallback: use full deck and remove distributed cards
+          this.remainingCards = [...deck.cards];
+          
+          // Remove board card if it exists
+          if (distribution.boardCard) {
+            this.remainingCards = this.remainingCards.filter(card => card.id !== distribution.boardCard.id);
+            console.log('🎮 Client: Removed board card from remainingCards:', distribution.boardCard.id);
+          }
+          
+          // Remove server hand cards
+          if (distribution.serverHand && distribution.serverHand.length > 0) {
+            const serverHandIds = distribution.serverHand.map((cardRef: any) => cardRef.id);
+            this.remainingCards = this.remainingCards.filter(card => !serverHandIds.includes(card.id));
+            console.log('🎮 Client: Removed server hand cards from remainingCards:', serverHandIds);
+          }
+          
+          // Remove client hand cards
+          if (distribution.clientHand && distribution.clientHand.length > 0) {
+            const clientHandIds = distribution.clientHand.map((cardRef: any) => cardRef.id);
+            this.remainingCards = this.remainingCards.filter(card => !clientHandIds.includes(card.id));
+            console.log('🎮 Client: Removed client hand cards from remainingCards:', clientHandIds);
+          }
+          
+          console.log('🎮 Client: Fallback - remainingCards after removing distributed cards:', this.remainingCards.length);
+        }
 
         // CLIENT PERSPECTIVE:
         // - Client sees their own hand (clientHand) at the bottom
@@ -1280,57 +1202,11 @@ class LANGameApp {
       this.board = [...allPlacedCards];
 
       console.log('🎮 Board recentering completed');
-
-      // Log detailed board state for debugging
-      this.logBoardState();
     } catch (error) {
       console.error('🎮 Failed to recenter board:', error);
     }
   }
 
-  /**
-   * Log detailed information about the current board state
-   * This helps debug card positioning and array order issues
-   */
-  private logBoardState(): void {
-    try {
-      console.log('🎮 === BOARD STATE DEBUG ===');
-      console.log('🎮 Board array length:', this.board.length);
-
-      if (this.board.length === 0) {
-        console.log('🎮 Board is empty');
-        return;
-      }
-
-      // Log each card in the board array with its index and details
-      this.board.forEach((card, arrayIndex) => {
-        console.log('🎮 Board Card [', arrayIndex, ']:', {
-          id: card.card.id,
-          title: card.card.title,
-          x: Math.round(card.x),
-          y: Math.round(card.y),
-          isInHand: card.isInHand,
-          isHovered: card.isHovered,
-        });
-      });
-
-      // Also log the array order
-      const sortedCards = this.getAllPlacedCardsInOrder();
-      console.log('🎮 Array order:');
-      sortedCards.forEach((card, sortedIndex) => {
-        console.log('🎮 Sorted [', sortedIndex, ']:', {
-          id: card.card.id,
-          title: card.card.title,
-          x: Math.round(card.x),
-          arrayIndex: this.board.indexOf(card),
-        });
-      });
-
-      console.log('🎮 === END BOARD STATE ===');
-    } catch (error) {
-      console.error('🎮 Failed to log board state:', error);
-    }
-  }
 
   /**
    * Layout all cards on the axis - center them with proper spacing (like Single-Player)
@@ -1481,6 +1357,12 @@ class LANGameApp {
         case 'playerSwitch':
           this.handleRemotePlayerSwitch(data);
           break;
+        case 'gameRestart':
+          this.handleRemoteGameRestart(data);
+          break;
+        case 'remainingCardsUpdate':
+          this.handleRemoteRemainingCardsUpdate(data);
+          break;
         case 'gameStateUpdate':
           this.handleGameStateUpdate(data);
           break;
@@ -1595,6 +1477,79 @@ class LANGameApp {
   }
 
   /**
+   * Handle remote game restart from WebSocket
+   * This method is called when the other player requests a game restart
+   */
+  private handleRemoteGameRestart(data: any): void {
+    try {
+      console.log('🎮 Handling remote game restart:', data);
+      
+      const playerName = data.playerName;
+      if (!playerName) {
+        console.error('🎮 Invalid game restart data - missing playerName');
+        return;
+      }
+      
+      console.log('🎮 Remote game restart requested by:', playerName);
+      
+      // Restart the game on this client as well
+      this.restartLANGame();
+      
+      console.log('🎮 Remote game restart completed');
+      
+    } catch (error) {
+      console.error('🎮 Failed to handle remote game restart:', error);
+    }
+  }
+
+  /**
+   * Handle remote remaining cards update from WebSocket
+   * This method synchronizes the remaining cards count between players
+   */
+  private handleRemoteRemainingCardsUpdate(data: any): void {
+    try {
+      console.log('🎮 Handling remote remaining cards update:', data);
+      
+      const remainingCardsCount = data.remainingCardsCount;
+      const playerName = data.playerName;
+      
+      if (typeof remainingCardsCount !== 'number') {
+        console.error('🎮 Invalid remaining cards update data - missing or invalid remainingCardsCount');
+        return;
+      }
+      
+      console.log('🎮 Remote remaining cards update from:', playerName, 'count:', remainingCardsCount);
+      
+      // Update local remaining cards array to match the remote count
+      // This ensures both players have the same remaining cards count
+      if (this.remainingCards.length !== remainingCardsCount) {
+        console.log('🎮 Synchronizing remaining cards:', {
+          localCount: this.remainingCards.length,
+          remoteCount: remainingCardsCount,
+          difference: this.remainingCards.length - remainingCardsCount
+        });
+        
+        // Adjust local remaining cards array to match remote count
+        if (this.remainingCards.length > remainingCardsCount) {
+          // Remove excess cards from the end
+          this.remainingCards = this.remainingCards.slice(0, remainingCardsCount);
+        } else if (this.remainingCards.length < remainingCardsCount) {
+          // This shouldn't happen, but log it
+          console.warn('🎮 Local remaining cards count is less than remote count - this is unexpected');
+        }
+        
+        console.log('🎮 Remaining cards synchronized:', {
+          newLocalCount: this.remainingCards.length,
+          remoteCount: remainingCardsCount
+        });
+      }
+      
+    } catch (error) {
+      console.error('🎮 Failed to handle remote remaining cards update:', error);
+    }
+  }
+
+  /**
    * Handle remote card placement from WebSocket
    */
   private handleRemoteCardPlacement(data: any): void {
@@ -1623,7 +1578,17 @@ class LANGameApp {
         return; // Exit early - don't process own placement
       }
 
-      // Find the card in the OPPONENT's hand (the hand where we found it)
+      // Find the card in the appropriate hand
+      // First, let's debug what we have in our hands
+      console.log('🎮 Debug: Looking for card in hands:', {
+        cardId,
+        playerName,
+        isServerClient,
+        serverPlayerName,
+        playerHandCards: this.playerHand.map(c => c.card.id),
+        opponentHandCards: this.opponentHand.map(c => c.card.id)
+      });
+
       if (isServerClient) {
         // Server-Client: playerHand = server cards, opponentHand = client cards
         if (playerName === serverPlayerName) {
@@ -1699,7 +1664,6 @@ class LANGameApp {
 
       // Log board state BEFORE adding remote card
       console.log('🎮 === BEFORE REMOTE CARD PLACEMENT ===');
-      this.logBoardState();
 
       // Add to board array at the CORRECT position based on received boardPosition
       // This ensures the passive player maintains the same sorted array order as the active player
@@ -1722,7 +1686,6 @@ class LANGameApp {
 
       // Log board state AFTER adding remote card
       console.log('🎮 === AFTER REMOTE CARD ADDED ===');
-      this.logBoardState();
 
       // Calculate target coordinates based on board position (AFTER adding to array)
       const targetCoords = this.calculateTargetCoordinates(boardPosition);
@@ -1732,15 +1695,15 @@ class LANGameApp {
       this.layoutHand();
       this.layoutOpponentHand();
 
-      // IMPORTANT: Re-center the board to position all cards correctly
+      // IMPORTANT: Layout all cards on the axis with proper spacing
       // This will position the new card at the correct location
-      this.recenterBoard();
+      this.layoutAxisCards();
 
       // VALIDATION: Check if the remote card was placed correctly AFTER animations complete
       // Wait for animations to finish before validating
       setTimeout(() => {
         this.validateCardPlacement(card);
-      }, 1000); // Wait 1 second for animations to complete
+      }, 1500); // Wait 1.5 seconds for animations to complete
 
       console.log('🎮 Remote card placement completed:', {
         cardId,
@@ -1879,6 +1842,9 @@ class LANGameApp {
 
       // Update ONLY the current player UI elements (no full LAN update)
       this.updateCurrentPlayerUI(currentPlayer);
+      
+      // Also update the current player display
+      this.updateCurrentPlayerDisplay();
 
       // Send current player to client via WebSocket
       console.log('🎮 About to send current player to client:', currentPlayer);
@@ -2145,6 +2111,12 @@ class LANGameApp {
         return;
       }
 
+      // Check if game has been won
+      if (this.gameWon) {
+        console.log('🎮 Game has ended - no more moves allowed');
+        return;
+      }
+
       // Check if it's the current player's turn
       const isServerClient = localStorage.getItem('isServerClient') === 'true';
       const serverPlayerName = localStorage.getItem('serverPlayerName');
@@ -2309,7 +2281,6 @@ class LANGameApp {
 
             // Log board state BEFORE adding the card
             console.log('🎮 === BEFORE CARD PLACEMENT ===');
-            this.logBoardState();
 
             // Calculate the correct insertion index based on visual position
             const cardCenterX = snapX;
@@ -2333,7 +2304,6 @@ class LANGameApp {
 
             // Log board state AFTER adding the card
             console.log('🎮 === AFTER CARD ADDED TO BOARD ===');
-            this.logBoardState();
 
             // Remove from hand AFTER adding to board
             this.playerHand = this.playerHand.filter((c) => c !== releasedCard);
@@ -2351,9 +2321,6 @@ class LANGameApp {
             // Center all cards on the axis with proper spacing
             this.layoutAxisCards();
 
-            // IMPORTANT: Re-center the board after layout to ensure proper positioning
-            this.recenterBoard();
-
             // The board position is now the same as the insertion index
             const boardPosition = insertIndex;
 
@@ -2370,11 +2337,11 @@ class LANGameApp {
             // Only send the board position (0,1,2,3...), not coordinates
             this.sendCardPlacementViaWebSocket(releasedCard.card.id, boardPosition);
 
-            // VALIDATION: Check if the card was placed correctly AFTER animations complete
-            // Wait for animations to finish before validating
-            setTimeout(() => {
-              this.validateCardPlacement(releasedCard);
-            }, 1000); // Wait 1 second for animations to complete
+                  // VALIDATION: Check if the card was placed correctly AFTER animations complete
+      // Wait for animations to finish before validating
+      setTimeout(() => {
+        this.validateCardPlacement(releasedCard);
+      }, 1500); // Wait 1.5 seconds for animations to complete
 
             // Card placed successfully - server will handle player turn change
             console.log('🎮 Card placed successfully - waiting for server to change player turn');
@@ -2568,13 +2535,52 @@ class LANGameApp {
 
       if (allCards.length === 0) return;
 
-      // No more left/right logic - cards stay in their array positions
-      // Preview is now just visual feedback without position changes
+      // Calculate where the new card would be inserted
+      const cardWidth = 200 * this.scale;
+      const cardSpacing = 20 * this.scale;
+      const axisY = this.canvas!.height / 2;
+      const centerY = axisY - (300 * this.scale) / 2;
+
+      // Find the insertion point based on previewX
+      let insertIndex = allCards.length; // Default to end
+      
+      for (let i = 0; i < allCards.length; i++) {
+        const existingCard = allCards[i];
+        const existingCardCenterX = existingCard.x + existingCard.width / 2;
+        
+        if (previewX < existingCardCenterX) {
+          insertIndex = i;
+          break;
+        }
+      }
+
+      console.log('🎮 Preview insertion point:', insertIndex, 'for previewX:', previewX);
+
+      // Calculate new positions for all cards to make space
+      const totalWidth = (allCards.length + 1) * cardWidth + allCards.length * cardSpacing;
+      const startX = (this.canvas!.width - totalWidth) / 2;
+
+      // Move cards to make space for the new card
+      for (let i = 0; i < allCards.length; i++) {
+        const card = allCards[i];
+        let targetX: number;
+        
+        if (i < insertIndex) {
+          // Cards before insertion point stay in their original positions
+          targetX = startX + i * (cardWidth + cardSpacing);
+        } else {
+          // Cards at and after insertion point move right to make space
+          targetX = startX + (i + 1) * (cardWidth + cardSpacing);
+        }
+        
+        // Set preview position for smooth animation
+        card.setPreviewPosition(targetX, centerY);
+      }
 
       // Mark preview as active
       this.isPreviewActive = true;
 
-      console.log('🎮 Preview activated with', allCards.length, 'cards');
+      console.log('🎮 Preview activated with', allCards.length, 'cards, making space at index:', insertIndex);
     } catch (error) {
       console.error('🎮 Failed to show axis preview:', error);
     }
@@ -2809,8 +2815,8 @@ class LANGameApp {
       // Give player a new card
       this.giveNewCard();
 
-      // Re-center the board after removing the incorrect card
-      this.recenterBoard();
+      // Layout all cards on the axis with proper spacing after removing the incorrect card
+      this.layoutAxisCards();
 
       console.log('🎮 Card moved to graveyard successfully:', {
         cardTitle: card.card.title,
@@ -2936,6 +2942,9 @@ class LANGameApp {
             currentPlayer
           });
 
+          // No need to send remaining cards update - both players have the same remainingCards list
+          // The remainingCards are synchronized via the initial card distribution
+
           // Switch to the next player after giving the new card
           this.switchToNextPlayer();
 
@@ -3010,23 +3019,73 @@ class LANGameApp {
       const clientPlayerName = localStorage.getItem('clientPlayerName');
       const isServerClient = localStorage.getItem('isServerClient') === 'true';
       
-      // Update the current player indicator
-      const currentPlayerElement = document.getElementById('currentPlayer');
-      if (currentPlayerElement) {
-        currentPlayerElement.textContent = currentPlayer || 'Unknown';
+      console.log('🎮 Updating current player display:', {
+        currentPlayer,
+        serverPlayerName,
+        clientPlayerName,
+        isServerClient
+      });
+      
+      // Update the current turn indicator (matches HTML element id="currentTurn")
+      const currentTurnElement = document.getElementById('currentTurn');
+      if (currentTurnElement) {
+        currentTurnElement.textContent = `Zug: ${currentPlayer || 'Unknown'}`;
+        console.log('🎮 Updated currentTurn element:', currentTurnElement.textContent);
+      } else {
+        console.warn('🎮 currentTurn element not found in DOM');
       }
       
-      // Update the turn indicator
-      const turnIndicatorElement = document.getElementById('turnIndicator');
-      if (turnIndicatorElement) {
-        if (currentPlayer === serverPlayerName) {
-          turnIndicatorElement.textContent = isServerClient ? 'Your Turn' : `${serverPlayerName}'s Turn`;
-        } else {
-          turnIndicatorElement.textContent = isServerClient ? `${clientPlayerName}'s Turn` : 'Your Turn';
+      // Update player name elements with turn highlighting
+      const playerNameElement = document.getElementById('playerName');
+      const opponentNameElement = document.getElementById('opponentName');
+      
+      if (isServerClient) {
+        // Server perspective
+        if (playerNameElement) {
+          playerNameElement.textContent = `Spieler: ${serverPlayerName}`;
+          if (currentPlayer === serverPlayerName) {
+            playerNameElement.classList.add('current-turn');
+            playerNameElement.classList.remove('waiting-turn');
+          } else {
+            playerNameElement.classList.add('waiting-turn');
+            playerNameElement.classList.remove('current-turn');
+          }
+        }
+        if (opponentNameElement) {
+          opponentNameElement.textContent = `Gegner: ${clientPlayerName}`;
+          if (currentPlayer === clientPlayerName) {
+            opponentNameElement.classList.add('current-turn');
+            opponentNameElement.classList.remove('waiting-turn');
+          } else {
+            opponentNameElement.classList.add('waiting-turn');
+            opponentNameElement.classList.remove('current-turn');
+          }
+        }
+      } else {
+        // Client perspective
+        if (playerNameElement) {
+          playerNameElement.textContent = `Spieler: ${clientPlayerName}`;
+          if (currentPlayer === clientPlayerName) {
+            playerNameElement.classList.add('current-turn');
+            playerNameElement.classList.remove('waiting-turn');
+          } else {
+            playerNameElement.classList.add('waiting-turn');
+            playerNameElement.classList.remove('current-turn');
+          }
+        }
+        if (opponentNameElement) {
+          opponentNameElement.textContent = `Gegner: ${serverPlayerName}`;
+          if (currentPlayer === serverPlayerName) {
+            opponentNameElement.classList.add('current-turn');
+            opponentNameElement.classList.remove('waiting-turn');
+          } else {
+            opponentNameElement.classList.add('waiting-turn');
+            opponentNameElement.classList.remove('current-turn');
+          }
         }
       }
       
-      console.log('🎮 Updated current player display:', {
+      console.log('🎮 Updated current player display successfully:', {
         currentPlayer,
         isServerClient,
         isMyTurn: (isServerClient && currentPlayer === serverPlayerName) || 
@@ -3081,6 +3140,9 @@ class LANGameApp {
           placedCard.setCorrect();
           console.log('🎮 Card placed correctly - showing green feedback');
           
+          // Check for win condition after correct placement
+          this.checkForWin();
+          
           // Switch to the next player after correct placement
           setTimeout(() => {
             this.switchToNextPlayer();
@@ -3118,6 +3180,455 @@ class LANGameApp {
       console.error(`LAN-Spiel Fehler: ${message}`);
     } catch (error) {
       console.error('🎮 Failed to show error:', error);
+    }
+  }
+
+  /**
+   * Check if current player has won the game
+   * Win condition: Player has no cards left in hand after placing a correct card
+   */
+  private checkForWin(): void {
+    try {
+      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      const currentPlayer = localStorage.getItem('currentPlayer');
+      const serverPlayerName = localStorage.getItem('serverPlayerName');
+      const clientPlayerName = localStorage.getItem('clientPlayerName');
+      
+      // Determine which hand to check based on current player
+      let currentPlayerHandLength = 0;
+      let winnerName = '';
+      
+      if (currentPlayer === serverPlayerName) {
+        // Server player's turn
+        if (isServerClient) {
+          // Server-Client: check playerHand
+          currentPlayerHandLength = this.playerHand.length;
+          winnerName = serverPlayerName || 'Server';
+        } else {
+          // Browser-Client: check opponentHand (server's hand)
+          currentPlayerHandLength = this.opponentHand.length;
+          winnerName = serverPlayerName || 'Server';
+        }
+      } else {
+        // Client player's turn
+        if (isServerClient) {
+          // Server-Client: check opponentHand (client's hand)
+          currentPlayerHandLength = this.opponentHand.length;
+          winnerName = clientPlayerName || 'Client';
+        } else {
+          // Browser-Client: check playerHand
+          currentPlayerHandLength = this.playerHand.length;
+          winnerName = clientPlayerName || 'Client';
+        }
+      }
+      
+      console.log('🎮 Checking for win condition:', {
+        currentPlayer,
+        currentPlayerHandLength,
+        winnerName,
+        isServerClient,
+        serverPlayerName,
+        clientPlayerName
+      });
+      
+      // Win condition: current player has no cards left
+      if (currentPlayerHandLength === 0) {
+        this.gameWon = true; // Mark game as won to prevent further moves
+        
+        console.log('🎮 GAME WON!', {
+          winnerName,
+          currentPlayer,
+          currentPlayerHandLength,
+          remainingCards: this.remainingCards.length,
+          boardCards: this.board.length
+        });
+        
+        // Show win dialog after 2 seconds delay
+        setTimeout(() => {
+          this.showLANWinDialog(winnerName);
+        }, 2000);
+      }
+      
+    } catch (error) {
+      console.error('🎮 Failed to check for win condition:', error);
+    }
+  }
+
+  /**
+   * Show LAN win dialog with two buttons
+   * Based on the hotseat implementation but with custom dialog
+   */
+  private showLANWinDialog(winnerName: string): void {
+    try {
+      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      const currentPlayer = localStorage.getItem('currentPlayer');
+      const serverPlayerName = localStorage.getItem('serverPlayerName');
+      const clientPlayerName = localStorage.getItem('clientPlayerName');
+      
+      // Determine if this client is the winner
+      const isWinner = (isServerClient && currentPlayer === serverPlayerName) || 
+                      (!isServerClient && currentPlayer === clientPlayerName);
+      
+      let title = '';
+      let message = '';
+      if (isWinner) {
+        title = '🎉 Glückwunsch! 🎉';
+        message = `Du hast das Spiel gewonnen!\n\nAlle deine Karten wurden erfolgreich sortiert!\n\nGewinner: ${winnerName}`;
+      } else {
+        title = '🎉 Spiel beendet! 🎉';
+        message = `${winnerName} hat das Spiel gewonnen!\n\nAlle Karten wurden erfolgreich sortiert!`;
+      }
+      
+      this.showCustomWinDialog(title, message);
+      
+    } catch (error) {
+      console.error('🎮 Failed to show LAN win dialog:', error);
+    }
+  }
+
+  /**
+   * Show custom win dialog with two buttons
+   */
+  private showCustomWinDialog(title: string, message: string): void {
+    try {
+      // Create dialog overlay
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        font-family: Arial, sans-serif;
+      `;
+
+      // Create dialog box
+      const dialog = document.createElement('div');
+      dialog.style.cssText = `
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        padding: 40px;
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+      `;
+
+      // Create title
+      const titleElement = document.createElement('h2');
+      titleElement.textContent = title;
+      titleElement.style.cssText = `
+        margin: 0 0 20px 0;
+        font-size: 28px;
+        font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      `;
+
+      // Create message
+      const messageElement = document.createElement('p');
+      messageElement.textContent = message;
+      messageElement.style.cssText = `
+        margin: 0 0 30px 0;
+        font-size: 16px;
+        line-height: 1.5;
+        white-space: pre-line;
+      `;
+
+      // Create button container
+      const buttonContainer = document.createElement('div');
+      buttonContainer.style.cssText = `
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+      `;
+
+      // Create "Nochmal spielen" button
+      const playAgainButton = document.createElement('button');
+      playAgainButton.textContent = 'Nochmal spielen';
+      playAgainButton.style.cssText = `
+        background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 25px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        min-width: 150px;
+      `;
+
+      // Create "Hauptmenü" button
+      const mainMenuButton = document.createElement('button');
+      mainMenuButton.textContent = 'Hauptmenü';
+      mainMenuButton.style.cssText = `
+        background: linear-gradient(135deg, #FF6B6B 0%, #ee5a52 100%);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 25px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        min-width: 150px;
+      `;
+
+      // Add hover effects
+      playAgainButton.addEventListener('mouseenter', () => {
+        playAgainButton.style.transform = 'translateY(-2px)';
+        playAgainButton.style.boxShadow = '0 6px 20px rgba(76, 175, 80, 0.4)';
+      });
+      playAgainButton.addEventListener('mouseleave', () => {
+        playAgainButton.style.transform = 'translateY(0)';
+        playAgainButton.style.boxShadow = '0 4px 15px rgba(76, 175, 80, 0.3)';
+      });
+
+      mainMenuButton.addEventListener('mouseenter', () => {
+        mainMenuButton.style.transform = 'translateY(-2px)';
+        mainMenuButton.style.boxShadow = '0 6px 20px rgba(255, 107, 107, 0.4)';
+      });
+      mainMenuButton.addEventListener('mouseleave', () => {
+        mainMenuButton.style.transform = 'translateY(0)';
+        mainMenuButton.style.boxShadow = '0 4px 15px rgba(255, 107, 107, 0.3)';
+      });
+
+      // Add click handlers
+      playAgainButton.addEventListener('click', () => {
+        document.body.removeChild(overlay);
+        this.restartLANGameWithNotification();
+      });
+
+      mainMenuButton.addEventListener('click', () => {
+        document.body.removeChild(overlay);
+        this.goToMainMenu();
+      });
+
+      // Assemble dialog
+      buttonContainer.appendChild(playAgainButton);
+      buttonContainer.appendChild(mainMenuButton);
+      dialog.appendChild(titleElement);
+      dialog.appendChild(messageElement);
+      dialog.appendChild(buttonContainer);
+      overlay.appendChild(dialog);
+
+      // Add to page
+      document.body.appendChild(overlay);
+
+      console.log('🎮 Custom win dialog displayed');
+
+    } catch (error) {
+      console.error('🎮 Failed to show custom win dialog:', error);
+      // Fallback to simple confirm
+      const playAgain = confirm(`${title}\n\n${message}\n\nNochmal spielen?`);
+      if (playAgain) {
+        this.restartLANGame();
+      } else {
+        this.goToMainMenu();
+      }
+    }
+  }
+
+  /**
+   * Navigate to main menu
+   */
+  private goToMainMenu(): void {
+    try {
+      console.log('🎮 Navigating to main menu...');
+      window.location.href = './index.html';
+    } catch (error) {
+      console.error('🎮 Failed to navigate to main menu:', error);
+    }
+  }
+
+  /**
+   * Send remaining cards update to other player
+   */
+  private sendRemainingCardsUpdate(): void {
+    try {
+      console.log('🎮 Sending remaining cards update to other player...');
+      
+      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      
+      if (isServerClient && this.lanGame?.lanClient) {
+        // Server-Client: Send via WebSocket client
+        this.lanGame.lanClient.sendRemainingCardsUpdate(this.remainingCards.length);
+        console.log('🎮 Sent remaining cards update via WebSocket client:', this.remainingCards.length);
+      } else if (!isServerClient && this.lanGame?.lanClient) {
+        // Browser-Client: Send via WebSocket client
+        this.lanGame.lanClient.sendRemainingCardsUpdate(this.remainingCards.length);
+        console.log('🎮 Sent remaining cards update via WebSocket client:', this.remainingCards.length);
+      } else {
+        console.warn('🎮 Cannot send remaining cards update - WebSocket client not available');
+      }
+      
+    } catch (error) {
+      console.error('🎮 Failed to send remaining cards update:', error);
+    }
+  }
+
+  /**
+   * Restart the LAN game with notification to other player
+   * This method sends a restart request to the other player
+   */
+  private restartLANGameWithNotification(): void {
+    try {
+      console.log('🎮 Restarting LAN game with notification to other player...');
+      
+      // Send restart request to other player via WebSocket
+      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      
+      if (isServerClient && this.lanGame?.lanClient) {
+        // Server-Client: Send via WebSocket client
+        this.lanGame.lanClient.sendGameRestart();
+        console.log('🎮 Sent game restart request via WebSocket client');
+      } else if (!isServerClient && this.lanGame?.lanClient) {
+        // Browser-Client: Send via WebSocket client
+        this.lanGame.lanClient.sendGameRestart();
+        console.log('🎮 Sent game restart request via WebSocket client');
+      } else {
+        console.warn('🎮 Cannot send restart request - WebSocket client not available');
+      }
+      
+      // Also restart locally
+      this.restartLANGame();
+      
+    } catch (error) {
+      console.error('🎮 Failed to restart LAN game with notification:', error);
+      // Fallback: restart locally only
+      this.restartLANGame();
+    }
+  }
+
+  /**
+   * Restart the LAN game with the same deck
+   * The loser of the previous game will start the new game
+   */
+  private restartLANGame(): void {
+    try {
+      console.log('🎮 Restarting LAN game with same deck...');
+      
+      // Reset game state
+      this.playerHand = [];
+      this.opponentHand = [];
+      this.board = [];
+      this.graveyard = [];
+      this.remainingCards = [];
+      this.gameWon = false; // Reset game won state
+      
+      // Determine who should start (the loser of the previous game)
+      const currentPlayer = localStorage.getItem('currentPlayer');
+      const serverPlayerName = localStorage.getItem('serverPlayerName');
+      const clientPlayerName = localStorage.getItem('clientPlayerName');
+      
+      // The current player (who just won) should NOT start - the other player should start
+      const startingPlayer = currentPlayer === serverPlayerName ? clientPlayerName : serverPlayerName;
+      
+      console.log('🎮 Restarting game - previous winner:', currentPlayer, 'new starting player:', startingPlayer);
+      
+      // Set the loser as the starting player
+      localStorage.setItem('currentPlayer', startingPlayer || 'Server');
+      
+      // Update UI
+      this.updateCurrentPlayerDisplay();
+      
+      // Restart the entire LAN game initialization with the same deck
+      this.restartLANGameWithSameDeck();
+      
+      console.log('🎮 LAN game restart initiated successfully');
+      
+    } catch (error) {
+      console.error('🎮 Failed to restart LAN game:', error);
+    }
+  }
+
+  /**
+   * Start game with predetermined player (not random)
+   * Used for game restarts where we want the loser to start
+   */
+  private async startGameWithPredeterminedPlayer(): Promise<void> {
+    try {
+      console.log('🎮 Starting game with predetermined player...');
+
+      const currentPlayer = localStorage.getItem('currentPlayer');
+      const serverPlayerName = localStorage.getItem('serverPlayerName');
+      const clientPlayerName = localStorage.getItem('clientPlayerName');
+
+      if (!currentPlayer || !serverPlayerName || !clientPlayerName) {
+        console.warn('🎮 Cannot start game: missing player names');
+        return;
+      }
+
+      console.log('🎮 Using predetermined current player:', currentPlayer);
+
+      // Update ONLY the current player UI elements (no full LAN update)
+      this.updateCurrentPlayerUI(currentPlayer);
+
+      // Send current player to client via WebSocket
+      console.log('🎮 About to send predetermined current player to client:', currentPlayer);
+      console.log('🎮 window.AXM available:', !!window.AXM);
+      console.log('🎮 window.AXM.sendCurrentPlayerUpdate available:', !!(window.AXM && window.AXM.sendCurrentPlayerUpdate));
+
+      if (window.AXM && window.AXM.sendCurrentPlayerUpdate) {
+        try {
+          await window.AXM.sendCurrentPlayerUpdate(currentPlayer);
+          console.log('🎮 Successfully sent predetermined current player to client:', currentPlayer);
+        } catch (error) {
+          console.error('🎮 Failed to send predetermined current player to client:', error);
+        }
+      } else {
+        console.warn('🎮 Cannot send current player update - AXM not available');
+      }
+
+      console.log('🎮 Game started with predetermined player:', currentPlayer);
+
+    } catch (error) {
+      console.error('🎮 Failed to start game with predetermined player:', error);
+    }
+  }
+
+  /**
+   * Restart LAN game with the same deck (server-client only)
+   */
+  private async restartLANGameWithSameDeck(): Promise<void> {
+    try {
+      console.log('🎮 Restarting LAN game with same deck...');
+      
+      // Get the current deck ID from localStorage
+      const deckId = localStorage.getItem('selectedDeckId') || 'space-height-de';
+      console.log('🎮 Using same deck for restart:', deckId);
+      
+      // Re-initialize the LAN game with the same deck
+      if (this.lanGame) {
+        // Reset the LANGameManager state
+        this.lanGame = new LANGameManager();
+        
+        // Initialize with the same deck
+        await this.lanGame.initializeLANGame();
+        
+        // Handle server-client flow (distribute cards and send to client)
+        await this.handleServerClientFlow();
+        
+        // Start game with the predetermined starting player (loser)
+        await this.startGameWithPredeterminedPlayer();
+        
+        console.log('🎮 LAN game restarted with same deck successfully');
+      } else {
+        console.error('🎮 Cannot restart: lanGame is null');
+      }
+      
+    } catch (error) {
+      console.error('🎮 Failed to restart LAN game with same deck:', error);
     }
   }
 }

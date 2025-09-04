@@ -466,6 +466,37 @@ export class LANGameClient {
   }
 
   /**
+   * Send game restart request
+   */
+  sendGameRestart(): void {
+    console.log('🎮 LAN Client: Sending game restart request');
+    console.log('🎮 LAN Client: WebSocket state:', this.ws?.readyState);
+    console.log('🎮 LAN Client: Is connected:', this.isConnected());
+
+    this.sendMessage({
+      type: 'gameRestart',
+    });
+
+    console.log('🎮 LAN Client: Game restart message sent');
+  }
+
+  /**
+   * Send remaining cards update
+   */
+  sendRemainingCardsUpdate(remainingCardsCount: number): void {
+    console.log('🎮 LAN Client: Sending remaining cards update:', { remainingCardsCount });
+    console.log('🎮 LAN Client: WebSocket state:', this.ws?.readyState);
+    console.log('🎮 LAN Client: Is connected:', this.isConnected());
+
+    this.sendMessage({
+      type: 'remainingCardsUpdate',
+      remainingCardsCount,
+    });
+
+    console.log('🎮 LAN Client: Remaining cards update message sent');
+  }
+
+  /**
    * Send game state update
    */
   sendGameStateUpdate(gameState: any): void {

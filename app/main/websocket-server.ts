@@ -146,6 +146,12 @@ export class LANWebSocketServer {
     case 'playerSwitch':
       this.handlePlayerSwitch(playerId, message);
       break;
+    case 'gameRestart':
+      this.handleGameRestart(playerId, message);
+      break;
+    case 'remainingCardsUpdate':
+      this.handleRemainingCardsUpdate(playerId, message);
+      break;
     case 'gameStateUpdate':
       this.handleGameStateUpdate(playerId, message);
       break;
@@ -745,6 +751,110 @@ export class LANWebSocketServer {
 
       // Also log the broadcast to other WebSocket clients
       console.log('🎮 WebSocket Server: Broadcasting playerSwitch to other WebSocket clients');
+    } else {
+      console.error('🎮 WebSocket Server: Cannot send lan-status-update - mainWindow not available');
+      console.error('🎮 WebSocket Server: mainWindow:', !!global.mainWindow);
+      console.error('🎮 WebSocket Server: webContents:', !!(global.mainWindow && global.mainWindow.webContents));
+    }
+  }
+
+  /**
+   * Handle game restart from client
+   */
+  private handleGameRestart(playerId: string, _message: any): void {
+    const player = this.players.get(playerId);
+    if (!player) {
+      console.error('🎮 WebSocket Server: Player not found for gameRestart:', playerId);
+      return;
+    }
+
+    console.log('🎮 WebSocket Server: Received gameRestart from client:', {
+      playerId,
+      playerName: player.name,
+    });
+
+    logger.info({
+      scope: 'main/websocket',
+      msg: 'Received game restart from client',
+      meta: {
+        playerId,
+        playerName: player.name,
+      },
+    });
+
+    // Broadcast game restart to all other clients
+    this.broadcastToOthers(playerId, {
+      type: 'gameRestart',
+      playerName: player.name,
+    });
+
+    // Send notification to renderer process to update UI
+    if (global.mainWindow && global.mainWindow.webContents) {
+      const statusUpdate = {
+        type: 'gameRestart',
+        playerName: player.name,
+        message: `Spiel wird von ${player.name} neu gestartet`,
+      };
+
+      global.mainWindow.webContents.send('lan-status-update', statusUpdate);
+      console.log('🎮 WebSocket Server: lan-status-update sent to renderer successfully');
+
+      // Also log the broadcast to other WebSocket clients
+      console.log('🎮 WebSocket Server: Broadcasting gameRestart to other WebSocket clients');
+    } else {
+      console.error('🎮 WebSocket Server: Cannot send lan-status-update - mainWindow not available');
+      console.error('🎮 WebSocket Server: mainWindow:', !!global.mainWindow);
+      console.error('🎮 WebSocket Server: webContents:', !!(global.mainWindow && global.mainWindow.webContents));
+    }
+  }
+
+  /**
+   * Handle remaining cards update from client
+   */
+  private handleRemainingCardsUpdate(playerId: string, message: any): void {
+    const player = this.players.get(playerId);
+    if (!player) {
+      console.error('🎮 WebSocket Server: Player not found for remainingCardsUpdate:', playerId);
+      return;
+    }
+
+    console.log('🎮 WebSocket Server: Received remainingCardsUpdate from client:', {
+      playerId,
+      playerName: player.name,
+      remainingCardsCount: message.remainingCardsCount,
+    });
+
+    logger.info({
+      scope: 'main/websocket',
+      msg: 'Received remaining cards update from client',
+      meta: {
+        playerId,
+        playerName: player.name,
+        remainingCardsCount: message.remainingCardsCount,
+      },
+    });
+
+    // Broadcast remaining cards update to all other clients
+    this.broadcastToOthers(playerId, {
+      type: 'remainingCardsUpdate',
+      remainingCardsCount: message.remainingCardsCount,
+      playerName: player.name,
+    });
+
+    // Send notification to renderer process to update UI
+    if (global.mainWindow && global.mainWindow.webContents) {
+      const statusUpdate = {
+        type: 'remainingCardsUpdate',
+        remainingCardsCount: message.remainingCardsCount,
+        playerName: player.name,
+        message: `Remaining cards updated: ${message.remainingCardsCount} cards left`,
+      };
+
+      global.mainWindow.webContents.send('lan-status-update', statusUpdate);
+      console.log('🎮 WebSocket Server: lan-status-update sent to renderer successfully');
+
+      // Also log the broadcast to other WebSocket clients
+      console.log('🎮 WebSocket Server: Broadcasting remainingCardsUpdate to other WebSocket clients');
     } else {
       console.error('🎮 WebSocket Server: Cannot send lan-status-update - mainWindow not available');
       console.error('🎮 WebSocket Server: mainWindow:', !!global.mainWindow);

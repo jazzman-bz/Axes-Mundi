@@ -355,6 +355,24 @@ export class LANGameManager {
             console.warn('🎮 LANGameManager: No message callback set for playerSwitch');
           }
           break;
+        case 'gameRestart':
+        // IMPORTANT: Forward gameRestart messages to lan-game-main.ts for processing
+          console.log('🎮 LANGameManager: Forwarding gameRestart to lan-game-main.ts');
+          if (this.onMessageCallback) {
+            this.onMessageCallback(message);
+          } else {
+            console.warn('🎮 LANGameManager: No message callback set for gameRestart');
+          }
+          break;
+        case 'remainingCardsUpdate':
+        // IMPORTANT: Forward remainingCardsUpdate messages to lan-game-main.ts for processing
+          console.log('🎮 LANGameManager: Forwarding remainingCardsUpdate to lan-game-main.ts');
+          if (this.onMessageCallback) {
+            this.onMessageCallback(message);
+          } else {
+            console.warn('🎮 LANGameManager: No message callback set for remainingCardsUpdate');
+          }
+          break;
         case 'gameStateUpdate':
           this.handleRemoteGameStateUpdate(message);
           break;
@@ -914,15 +932,9 @@ export class LANGameManager {
         this.opponentHand = this.opponentHand.filter((c) => c.id !== cardId);
       }
 
-      // Give new card if available
-      if (this.remainingCards.length > 0) {
-        const newCard = this.remainingCards.shift()!;
-        if (isServerTurn) {
-          this.playerHand.push(newCard);
-        } else {
-          this.opponentHand.push(newCard);
-        }
-      }
+      // DISABLED: New card distribution is now handled by lan-game-main.ts
+      // This prevents duplicate cards when a card is placed incorrectly
+      // The lan-game-main.ts system handles graveyard and new card distribution
 
       logger.info({
         scope: 'renderer/lan',
