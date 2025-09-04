@@ -143,6 +143,9 @@ export class LANWebSocketServer {
     case 'cardPlacement':
       this.handleCardPlacement(playerId, message);
       break;
+    case 'playerSwitch':
+      this.handlePlayerSwitch(playerId, message);
+      break;
     case 'gameStateUpdate':
       this.handleGameStateUpdate(playerId, message);
       break;
@@ -688,6 +691,60 @@ export class LANWebSocketServer {
 
       // Also log the broadcast to other WebSocket clients
       console.log('🎮 WebSocket Server: Broadcasting cardPlacement to other WebSocket clients');
+    } else {
+      console.error('🎮 WebSocket Server: Cannot send lan-status-update - mainWindow not available');
+      console.error('🎮 WebSocket Server: mainWindow:', !!global.mainWindow);
+      console.error('🎮 WebSocket Server: webContents:', !!(global.mainWindow && global.mainWindow.webContents));
+    }
+  }
+
+  /**
+   * Handle player switch from client
+   */
+  private handlePlayerSwitch(playerId: string, message: any): void {
+    const player = this.players.get(playerId);
+    if (!player) {
+      console.error('🎮 WebSocket Server: Player not found for playerSwitch:', playerId);
+      return;
+    }
+
+    console.log('🎮 WebSocket Server: Received playerSwitch from client:', {
+      playerId,
+      playerName: player.name,
+      nextPlayer: message.nextPlayer,
+    });
+
+    logger.info({
+      scope: 'main/websocket',
+      msg: 'Received player switch from client',
+      meta: {
+        playerId,
+        playerName: player.name,
+        nextPlayer: message.nextPlayer,
+      },
+    });
+
+    // Broadcast player switch to all other clients
+    this.broadcastToOthers(playerId, {
+      type: 'playerSwitch',
+      nextPlayer: message.nextPlayer,
+      playerName: player.name,
+    });
+
+    // Send notification to renderer process to update UI
+    if (global.mainWindow && global.mainWindow.webContents) {
+      const statusUpdate = {
+        type: 'playerSwitch',
+        nextPlayer: message.nextPlayer,
+        playerName: player.name,
+        message: `Spieler gewechselt zu ${message.nextPlayer} von ${player.name}`,
+      };
+
+      global.mainWindow.webContents.send('lan-status-update', statusUpdate);
+      console.log('🎮 WebSocket Server: lan-status-update sent to renderer successfully');
+
+      // Also log the broadcast to other WebSocket clients
+      console.log('🎮 WebSocket Server: Broadcasting playerSwitch to other WebSocket clients');
     } else {
       console.error('🎮 WebSocket Server: Cannot send lan-status-update - mainWindow not available');
       console.error('🎮 WebSocket Server: mainWindow:', !!global.mainWindow);

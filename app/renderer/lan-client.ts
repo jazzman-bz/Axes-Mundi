@@ -450,6 +450,22 @@ export class LANGameClient {
   }
 
   /**
+   * Send player switch
+   */
+  sendPlayerSwitch(nextPlayer: string): void {
+    console.log('🎮 LAN Client: Sending player switch:', { nextPlayer });
+    console.log('🎮 LAN Client: WebSocket state:', this.ws?.readyState);
+    console.log('🎮 LAN Client: Is connected:', this.isConnected());
+
+    this.sendMessage({
+      type: 'playerSwitch',
+      nextPlayer,
+    });
+
+    console.log('🎮 LAN Client: Player switch message sent');
+  }
+
+  /**
    * Send game state update
    */
   sendGameStateUpdate(gameState: any): void {

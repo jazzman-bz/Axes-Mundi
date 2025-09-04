@@ -346,6 +346,15 @@ export class LANGameManager {
             console.warn('🎮 LANGameManager: No message callback set for cardPlacement');
           }
           break;
+        case 'playerSwitch':
+        // IMPORTANT: Forward playerSwitch messages to lan-game-main.ts for processing
+          console.log('🎮 LANGameManager: Forwarding playerSwitch to lan-game-main.ts');
+          if (this.onMessageCallback) {
+            this.onMessageCallback(message);
+          } else {
+            console.warn('🎮 LANGameManager: No message callback set for playerSwitch');
+          }
+          break;
         case 'gameStateUpdate':
           this.handleRemoteGameStateUpdate(message);
           break;

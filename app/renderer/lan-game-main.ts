@@ -1478,6 +1478,9 @@ class LANGameApp {
         case 'cardPlacement':
           this.handleRemoteCardPlacement(data);
           break;
+        case 'playerSwitch':
+          this.handleRemotePlayerSwitch(data);
+          break;
         case 'gameStateUpdate':
           this.handleGameStateUpdate(data);
           break;
@@ -1561,6 +1564,33 @@ class LANGameApp {
       this.startGameAfterCardDistribution();
     } catch (error) {
       console.error('🎮 Failed to handle client player joined event:', error);
+    }
+  }
+
+  /**
+   * Handle remote player switch from WebSocket
+   * This method is called when the other player switches turns
+   */
+  private handleRemotePlayerSwitch(data: any): void {
+    try {
+      console.log('🎮 Handling remote player switch:', data);
+      
+      const nextPlayer = data.nextPlayer;
+      if (!nextPlayer) {
+        console.error('🎮 Invalid player switch data - missing nextPlayer');
+        return;
+      }
+      
+      // Update current player in localStorage
+      localStorage.setItem('currentPlayer', nextPlayer);
+      
+      // Update UI to reflect the new current player
+      this.updateCurrentPlayerDisplay();
+      
+      console.log('🎮 Remote player switch completed. New current player:', nextPlayer);
+      
+    } catch (error) {
+      console.error('🎮 Failed to handle remote player switch:', error);
     }
   }
 
@@ -2906,6 +2936,9 @@ class LANGameApp {
             currentPlayer
           });
 
+          // Switch to the next player after giving the new card
+          this.switchToNextPlayer();
+
         }).catch((error) => {
           console.error('🎮 Failed to load deck for new card:', error);
         });
@@ -2916,6 +2949,92 @@ class LANGameApp {
 
     } catch (error) {
       console.error('🎮 Failed to give new card:', error);
+    }
+  }
+
+  /**
+   * Switch to the next player after a card placement
+   * This method handles the turn switching logic for both server and client
+   */
+  private switchToNextPlayer(): void {
+    try {
+      console.log('🎮 Switching to next player...');
+      
+      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      const currentPlayer = localStorage.getItem('currentPlayer');
+      const serverPlayerName = localStorage.getItem('serverPlayerName');
+      const clientPlayerName = localStorage.getItem('clientPlayerName');
+      
+      // Determine the next player
+      const nextPlayer = currentPlayer === serverPlayerName ? clientPlayerName : serverPlayerName;
+      
+      console.log('🎮 Player switch:', {
+        currentPlayer,
+        nextPlayer,
+        isServerClient,
+        serverPlayerName,
+        clientPlayerName
+      });
+      
+      // Update current player in localStorage
+      localStorage.setItem('currentPlayer', nextPlayer!);
+      
+      // Send player switch via WebSocket if this is the server client
+      if (isServerClient && this.lanGame?.lanClient) {
+        try {
+          this.lanGame.lanClient.sendPlayerSwitch(nextPlayer!);
+          console.log('🎮 Sent player switch via WebSocket:', nextPlayer);
+        } catch (error) {
+          console.error('🎮 Failed to send player switch via WebSocket:', error);
+        }
+      }
+      
+      // Update UI to reflect the new current player
+      this.updateCurrentPlayerDisplay();
+      
+      console.log('🎮 Player switch completed. New current player:', nextPlayer);
+      
+    } catch (error) {
+      console.error('🎮 Failed to switch to next player:', error);
+    }
+  }
+
+  /**
+   * Update the current player display in the UI
+   * This method updates the visual indication of whose turn it is
+   */
+  private updateCurrentPlayerDisplay(): void {
+    try {
+      const currentPlayer = localStorage.getItem('currentPlayer');
+      const serverPlayerName = localStorage.getItem('serverPlayerName');
+      const clientPlayerName = localStorage.getItem('clientPlayerName');
+      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      
+      // Update the current player indicator
+      const currentPlayerElement = document.getElementById('currentPlayer');
+      if (currentPlayerElement) {
+        currentPlayerElement.textContent = currentPlayer || 'Unknown';
+      }
+      
+      // Update the turn indicator
+      const turnIndicatorElement = document.getElementById('turnIndicator');
+      if (turnIndicatorElement) {
+        if (currentPlayer === serverPlayerName) {
+          turnIndicatorElement.textContent = isServerClient ? 'Your Turn' : `${serverPlayerName}'s Turn`;
+        } else {
+          turnIndicatorElement.textContent = isServerClient ? `${clientPlayerName}'s Turn` : 'Your Turn';
+        }
+      }
+      
+      console.log('🎮 Updated current player display:', {
+        currentPlayer,
+        isServerClient,
+        isMyTurn: (isServerClient && currentPlayer === serverPlayerName) || 
+                  (!isServerClient && currentPlayer === clientPlayerName)
+      });
+      
+    } catch (error) {
+      console.error('🎮 Failed to update current player display:', error);
     }
   }
 
@@ -2961,6 +3080,11 @@ class LANGameApp {
           // Correct placement - show green feedback for 2 seconds
           placedCard.setCorrect();
           console.log('🎮 Card placed correctly - showing green feedback');
+          
+          // Switch to the next player after correct placement
+          setTimeout(() => {
+            this.switchToNextPlayer();
+          }, 2000); // Wait 2 seconds for green feedback
         } else {
           // Incorrect placement - show red feedback for 2 seconds, then move to graveyard
           placedCard.setIncorrect();
