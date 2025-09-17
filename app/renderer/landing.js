@@ -68,6 +68,9 @@ class LandingPageController {
     try {
       logger.info({ scope: 'landing/init', msg: 'initializing landing page' });
       
+      // Initialize game mode if not set
+      this.initializeGameMode();
+      
       // Hide loading screen after a short delay
       setTimeout(() => {
         this.hideLoadingScreen();
@@ -279,6 +282,9 @@ class LandingPageController {
       
       this.gameConfig.mode = mode;
       
+      // Clean up LAN-specific variables when switching away from LAN mode
+      this.cleanupLANVariables();
+      
       // Navigate based on mode
       if (mode === 'singleplayer') {
         this.navigateToSection('singleplayer-options');
@@ -320,6 +326,15 @@ class LandingPageController {
       }
       
       this.gameConfig.type = option;
+      
+      // Clean up LAN-specific variables when switching away from LAN mode
+      if (option !== 'lan') {
+        this.cleanupLANVariables();
+      }
+      
+      // Save game type to localStorage immediately
+      localStorage.setItem('selectedGameType', option);
+      console.log('🎮 Game type saved to localStorage:', option);
       
       if (option === 'ai') {
         this.navigateToSection('ai-difficulty');
@@ -1454,6 +1469,88 @@ class LandingPageController {
         scope: 'landing/ui', 
         msg: 'failed to show loading message', 
         err: { message: error.message } 
+      });
+    }
+  }
+
+  /**
+   * Initialize game mode if not set
+   */
+  initializeGameMode() {
+    try {
+      const currentGameType = localStorage.getItem('selectedGameType');
+      
+      if (!currentGameType) {
+        // Set default game type if none exists
+        localStorage.setItem('selectedGameType', 'singleplayer');
+        console.log('🎮 Default game type set to singleplayer');
+        
+        logger.info({
+          scope: 'landing/init',
+          msg: 'default game type initialized',
+          meta: { gameType: 'singleplayer' }
+        });
+      } else {
+        console.log('🎮 Current game type from localStorage:', currentGameType);
+      }
+      
+    } catch (error) {
+      logger.error({
+        scope: 'landing/init',
+        msg: 'failed to initialize game mode',
+        err: { message: error.message }
+      });
+    }
+  }
+
+  /**
+   * Clean up LAN-specific variables from localStorage
+   * Preserves player name and avatar data
+   */
+  cleanupLANVariables() {
+    try {
+      console.log('🧹 Cleaning up LAN-specific variables...');
+      
+      // Remove LAN-specific variables but preserve player data
+      const variablesToRemove = [
+        'isServerClient',
+        'serverPlayerName', 
+        'clientPlayerName',
+        'currentPlayer',
+        'lanCardDistribution',
+        'lanPlayerName',
+        'lanOpponentName'
+      ];
+      
+      variablesToRemove.forEach(variable => {
+        if (localStorage.getItem(variable)) {
+          localStorage.removeItem(variable);
+          console.log('🧹 Removed from localStorage:', variable);
+        }
+      });
+      
+      // Reset instance variables
+      this.isServerClient = false;
+      this.serverPlayerName = null;
+      this.clientPlayerName = null;
+      this.currentPlayer = this.playerData.name; // Reset to current player name
+      
+      console.log('🧹 LAN variables cleaned up successfully');
+      
+      logger.info({
+        scope: 'landing/cleanup',
+        msg: 'LAN variables cleaned up',
+        meta: { 
+          preservedPlayerName: this.playerData.name,
+          preservedAvatar: this.playerData.avatar 
+        }
+      });
+      
+    } catch (error) {
+      logger.error({
+        scope: 'landing/cleanup',
+        msg: 'failed to cleanup LAN variables',
+        err: { message: error.message }
       });
     }
   }
