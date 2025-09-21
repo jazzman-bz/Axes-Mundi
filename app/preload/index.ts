@@ -32,14 +32,14 @@ contextBridge.exposeInMainWorld('AXM', {
   // Event listeners
   on: (channel: string, func: (...args: any[]) => void) => {
     // Whitelist channels
-    const validChannels = ['game-update', 'score-update', 'lan-status-update', 'client-player-joined'];
+    const validChannels = ['game-update', 'score-update', 'lan-status-update', 'client-player-joined', 'server-info-update'];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (_event, ...args) => func(...args));
     }
   },
 
   removeAllListeners: (channel: string) => {
-    const validChannels = ['game-update', 'score-update', 'lan-status-update', 'client-player-joined'];
+    const validChannels = ['game-update', 'score-update', 'lan-status-update', 'client-player-joined', 'server-info-update'];
     if (validChannels.includes(channel)) {
       ipcRenderer.removeAllListeners(channel);
     }

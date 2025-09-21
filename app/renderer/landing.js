@@ -175,6 +175,22 @@ class LandingPageController {
         button.addEventListener('click', this.goBack.bind(this));
       });
 
+      // Connect server button
+      const connectServerBtn = document.getElementById('connect-server-btn');
+      if (connectServerBtn) {
+        connectServerBtn.addEventListener('click', this.joinLANGame.bind(this));
+      }
+
+      // Server IP input - Enter key support
+      const serverIPInput = document.getElementById('server-ip');
+      if (serverIPInput) {
+        serverIPInput.addEventListener('keypress', (event) => {
+          if (event.key === 'Enter') {
+            this.joinLANGame();
+          }
+        });
+      }
+
       logger.debug({ scope: 'landing/events', msg: 'event listeners set up' });
       
     } catch (error) {
@@ -350,7 +366,17 @@ class LandingPageController {
       } else if (option === 'start-game') {
         this.startLANServer();
       } else if (option === 'join-game') {
-        this.joinLANGame();
+        // Show IP input for joining
+        const ipInput = document.getElementById('server-ip-input');
+        if (ipInput) {
+          ipInput.style.display = 'block';
+          // Focus on the input field
+          const inputField = document.getElementById('server-ip');
+          if (inputField) {
+            inputField.focus();
+          }
+        }
+        // Don't call joinLANGame() immediately - wait for user to enter IP
       }
       
       logger.info({ 
@@ -504,8 +530,10 @@ class LandingPageController {
          console.log('🎮 isServerClient saved to localStorage');
          console.log('🎮 serverPlayerName saved to localStorage:', this.playerData.name);
          
-         this.showConnectionStatus(`Server started on port ${result.port}! Waiting for players...`, false);
-         logger.info({ scope: 'landing/lan', msg: 'LAN server started', meta: { port: result.port } });
+        // Get server IP for display
+        const serverIP = this.getServerIP();
+        this.showConnectionStatus(`Server started on ${serverIP}:${result.port}! Waiting for players...`, false);
+        logger.info({ scope: 'landing/lan', msg: 'LAN server started', meta: { port: result.port, ip: serverIP } });
          
          // Store the server port for clients to connect to
          this.serverPort = result.port;
@@ -526,34 +554,64 @@ class LandingPageController {
   }
 
   /**
+   * Get current server IP from the server itself
+   */
+  getServerIP() {
+    // Try to get the real server IP from the server info
+    const serverInfo = localStorage.getItem('lanServerInfo');
+    if (serverInfo) {
+      try {
+        const info = JSON.parse(serverInfo);
+        if (info.ip && info.ip !== '127.0.0.1') {
+          console.log('🎮 Using server IP from server info:', info.ip);
+          return info.ip;
+        }
+      } catch (e) {
+        console.warn('🎮 Failed to parse server info:', e);
+      }
+    }
+    
+    // Fallback: try to detect local IP (this won't work in renderer process)
+    console.log('🎮 No server info available, using fallback');
+    return 'localhost'; // Fallback to localhost
+  }
+
+
+  /**
    * Join LAN Game
    */
   async joinLANGame() {
     try {
       logger.info({ scope: 'landing/lan', msg: 'Joining LAN game' });
       
+      // Get server IP from input
+      const serverIPInput = document.getElementById('server-ip');
+      if (!serverIPInput || !serverIPInput.value.trim()) {
+        this.showError('Bitte gib die IP-Adresse des Servers ein.');
+        return;
+      }
+      
+      const serverIP = serverIPInput.value.trim();
+      console.log(`🔍 Connecting to server: ${serverIP}:8080`);
+      
       // Show loading state
-      this.showConnectionStatus('Connecting to server...', true);
+      this.showConnectionStatus(`Connecting to ${serverIP}:8080...`, true);
       
       // Import LAN client
       const { LANClient } = await import('./lan-client.ts');
       
-      // Try to find the server on different ports
-      const ports = [8080, 8081, 8082, 8083, 8084];
-      let connectedClient = null;
-      
-             for (const port of ports) {
-         try {
-           console.log(`🔍 Trying to connect to port ${port}...`);
-           const client = new LANClient(`ws://localhost:${port}`, this.playerData.name);
+      // Try to connect to the specified server
+      try {
+        console.log(`🔍 Trying to connect to ${serverIP}:8080...`);
+        const client = new LANClient(`ws://${serverIP}:8080`, this.playerData.name);
            
            client.onMessage((message) => {
-             console.log(`📨 Received message on port ${port}:`, message);
+             console.log(`📨 Received message from ${serverIP}:8080:`, message);
              this.handleLANMessage(message);
            });
            
-                       client.onConnectionChange((connected) => {
-              console.log(`🔗 Connection change on port ${port}:`, connected);
+           client.onConnectionChange((connected) => {
+              console.log(`🔗 Connection change to ${serverIP}:8080:`, connected);
               if (connected) {
                 this.showConnectionStatus('Connected to server! Waiting for server response...', false);
               } else {
@@ -562,23 +620,17 @@ class LandingPageController {
             });
            
            await client.connect();
-           connectedClient = client;
-           console.log(`✅ Successfully connected to port ${port}`);
-           break;
+           console.log(`✅ Successfully connected to ${serverIP}:8080`);
+           
+           // Store client for later use
+           this.lanClient = client;
+           logger.info({ scope: 'landing/lan', msg: 'Joined LAN game' });
+           return;
          } catch (error) {
-           console.log(`❌ Port ${port} failed: ${error.message}`);
-           continue;
+           console.log(`❌ Connection to ${serverIP}:8080 failed: ${error.message}`);
+           this.showError(`Verbindung zu ${serverIP}:8080 fehlgeschlagen: ${error.message}`);
+           return;
          }
-       }
-      
-      if (!connectedClient) {
-        throw new Error('Could not connect to any server port');
-      }
-      
-      // Store client for later use
-      this.lanClient = connectedClient;
-      
-      logger.info({ scope: 'landing/lan', msg: 'Joined LAN game' });
       
     } catch (error) {
       this.showConnectionStatus('Failed to connect to server', false);
@@ -670,6 +722,11 @@ class LandingPageController {
         window.AXM.on('lan-status-update', (data) => {
           console.log('📡 Received LAN status update:', data);
           this.handleLANStatusUpdate(data);
+        });
+        
+        window.AXM.on('server-info-update', (serverInfo) => {
+          console.log('📡 Received server info update:', serverInfo);
+          this.handleServerInfoUpdate(serverInfo);
         });
       }
       
@@ -900,10 +957,65 @@ class LandingPageController {
      }
    }
 
-       /**
-     * Handle LAN status updates from main process
-     */
-    handleLANStatusUpdate(data) {
+  /**
+   * Handle server info updates from main process
+   */
+  handleServerInfoUpdate(serverInfo) {
+    try {
+      console.log('🎮 Handling server info update:', serverInfo);
+      
+      // Store server info in localStorage for later use
+      localStorage.setItem('lanServerInfo', JSON.stringify(serverInfo));
+      
+      // Update the displayed server IP
+      this.updateServerDisplay(serverInfo);
+      
+      logger.info({ 
+        scope: 'landing/server-info', 
+        msg: 'Server info updated', 
+        meta: serverInfo 
+      });
+    } catch (error) {
+      logger.error({ 
+        scope: 'landing/server-info', 
+        msg: 'Failed to handle server info update', 
+        err: { message: error.message } 
+      });
+    }
+  }
+
+  /**
+   * Update server display with real IP
+   */
+  updateServerDisplay(serverInfo) {
+    try {
+      const { ip, port } = serverInfo;
+      console.log(`🎮 Updating server display: ${ip}:${port}`);
+      
+      // Update connection status if we're showing server info
+      const statusElement = document.querySelector('.connection-status');
+      if (statusElement && statusElement.textContent.includes('Server started')) {
+        statusElement.textContent = `Server started on ${ip}:${port}! Waiting for players...`;
+      }
+      
+      logger.debug({ 
+        scope: 'landing/server-display', 
+        msg: 'Server display updated', 
+        meta: { ip, port } 
+      });
+    } catch (error) {
+      logger.error({ 
+        scope: 'landing/server-display', 
+        msg: 'Failed to update server display', 
+        err: { message: error.message } 
+      });
+    }
+  }
+
+  /**
+   * Handle LAN status updates from main process
+   */
+  handleLANStatusUpdate(data) {
      try {
        console.log('📡 Handling LAN status update:', data);
        
@@ -1368,7 +1480,10 @@ class LandingPageController {
         // Redirect to LAN game after 2 seconds
         setTimeout(() => {
           console.log('🎮 Redirecting to lan-game.html...');
-          window.location.href = './lan-game.html';
+          // In development mode, use the full URL with Vite dev server
+          const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+          const lanGameUrl = isDev ? 'http://localhost:5179/lan-game.html' : './lan-game.html';
+          window.location.href = lanGameUrl;
         }, 2000);
       
     } catch (error) {
@@ -1417,7 +1532,10 @@ class LandingPageController {
       // Redirect to LAN game after 2 seconds
       setTimeout(() => {
         console.log('🎮 Client: Redirecting to lan-game.html...');
-        window.location.href = './lan-game.html';
+        // In development mode, use the full URL with Vite dev server
+        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const lanGameUrl = isDev ? 'http://localhost:5179/lan-game.html' : './lan-game.html';
+        window.location.href = lanGameUrl;
       }, 2000);
       
     } catch (error) {

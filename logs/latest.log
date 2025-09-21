@@ -1,7 +1,0 @@
-{"lvl":"info","t":"2025-08-19T14:24:32.263Z","scope":"main/app","msg":"app ready"}
-{"lvl":"info","t":"2025-08-19T14:24:32.523Z","scope":"main/window","msg":"window created"}
-{"lvl":"info","t":"2025-08-19T14:24:33.229Z","scope":"main/logger","msg":"log rotated","meta":{"daily":"C:\\Users\\JaZZman\\Axes-Mundi\\logs\\app-2025-08-19.log"}}
-{"lvl":"info","t":"2025-08-19T14:24:34.991Z","scope":"main/window","msg":"window ready to show"}
-{"lvl":"info","t":"2025-08-19T14:25:30.931Z","scope":"main/window","msg":"window closed"}
-{"lvl":"info","t":"2025-08-19T14:25:30.932Z","scope":"main/app","msg":"all windows closed, quitting"}
-{"lvl":"info","t":"2025-08-19T14:25:30.932Z","scope":"main/app","msg":"app quitting"}

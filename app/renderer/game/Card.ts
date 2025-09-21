@@ -138,17 +138,18 @@ export class GameCard {
 
       if (this.deck.imageFolder && this.deck.imageFolder.trim() !== '') {
         if (hasExtension) {
-          imagePath = `./content/assets/${this.deck.imageFolder}/${encodedImageName}`;
+          imagePath = `./assets/${this.deck.imageFolder}/${encodedImageName}`;
         } else {
-          imagePath = `./content/assets/${this.deck.imageFolder}/${encodedImageName}.jpg`;
+          imagePath = `./assets/${this.deck.imageFolder}/${encodedImageName}.jpg`;
         }
       } else if (hasExtension) {
-        imagePath = `./content/assets/${encodedImageName}`;
+        imagePath = `./assets/${encodedImageName}`;
       } else {
-        imagePath = `./content/assets/${encodedImageName}.jpg`;
+        imagePath = `./assets/${encodedImageName}.jpg`;
       }
 
       // Try to load the image, if it fails, try .png extension
+      console.log('🖼️ Loading card image:', imagePath);
       this.imageElement.src = imagePath;
 
       // Add fallback for .png files

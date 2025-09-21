@@ -39,8 +39,8 @@ function createWindow(): void {
     global.mainWindow = mainWindow;
 
     // Load the app
-    // Force development mode for now
-    const isDev = true; // process.env.NODE_ENV === 'development' || process.env.AXM_ENV === 'development';
+    // Check if we're in development mode
+    const isDev = process.env.NODE_ENV === 'development' || process.env.AXM_ENV === 'development';
     if (isDev) {
       mainWindow.loadURL('http://localhost:5179');
       mainWindow.webContents.openDevTools();
@@ -294,8 +294,29 @@ function setupIPC(): void {
           lanServer = new LANWebSocketServer(port, playerName);
           await lanServer.start();
           startedPort = port;
-          logger.info({ scope: 'main/lan', msg: `Successfully started on port ${port}` });
-          break;
+      logger.info({ scope: 'main/lan', msg: `Successfully started on port ${port}` });
+      
+      // Get server info and send to renderer
+      const serverInfo = lanServer.getServerInfo();
+      logger.info({ 
+        scope: 'main/lan', 
+        msg: 'LAN server info', 
+        meta: serverInfo 
+      });
+      
+      // Send server info to renderer process
+      if (global.mainWindow && global.mainWindow.webContents) {
+        global.mainWindow.webContents.send('lan-status-update', {
+          type: 'serverStarted',
+          serverInfo,
+          message: `Server started on ${serverInfo.ip}:${serverInfo.port}`,
+        });
+        
+        // Also send the server info via IPC for immediate access
+        global.mainWindow.webContents.send('server-info-update', serverInfo);
+      }
+      
+      break;
         } catch (error: any) {
           lastError = error;
           logger.warn({

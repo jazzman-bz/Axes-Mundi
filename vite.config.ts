@@ -12,7 +12,8 @@ export default defineConfig({
           rollupOptions: {
         input: {
           main: resolve(__dirname, 'app/renderer/index.html'),
-          game: resolve(__dirname, 'app/renderer/game.html')
+          game: resolve(__dirname, 'app/renderer/game.html'),
+          'lan-game': resolve(__dirname, 'app/renderer/lan-game.html')
         },
       output: {
         assetFileNames: 'assets/[name]-[hash][extname]',

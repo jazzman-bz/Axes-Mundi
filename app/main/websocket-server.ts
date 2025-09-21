@@ -1,4 +1,5 @@
 import { WebSocketServer, WebSocket } from 'ws';
+import { networkInterfaces } from 'os';
 import { logger } from './logger';
 
 interface Player {
@@ -16,9 +17,12 @@ export class LANWebSocketServer {
 
   private serverPlayerName: string;
 
+  private serverIP: string;
+
   constructor(port: number = 8080, serverPlayerName: string = 'Server') {
     this.port = port;
     this.serverPlayerName = serverPlayerName;
+    this.serverIP = this.getLocalIPAddress();
   }
 
   start(): Promise<void> {
@@ -959,5 +963,37 @@ export class LANWebSocketServer {
 
   getPlayerCount(): number {
     return this.players.size;
+  }
+
+  /**
+   * Get the server's local IP address
+   */
+  private getLocalIPAddress(): string {
+    const interfaces = networkInterfaces();
+    
+    for (const name of Object.keys(interfaces)) {
+      const iface = interfaces[name];
+      if (!iface) continue;
+      
+      for (const alias of iface) {
+        if (alias.family === 'IPv4' && !alias.internal) {
+          return alias.address;
+        }
+      }
+    }
+    
+    // Fallback to localhost if no external IP found
+    return '127.0.0.1';
+  }
+
+  /**
+   * Get server connection info for clients
+   */
+  getServerInfo(): { ip: string; port: number; playerName: string } {
+    return {
+      ip: this.serverIP,
+      port: this.port,
+      playerName: this.serverPlayerName,
+    };
   }
 }

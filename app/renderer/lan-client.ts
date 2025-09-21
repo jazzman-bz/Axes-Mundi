@@ -43,6 +43,15 @@ export class LANGameClient {
   }
 
   /**
+   * Create client with server IP and port
+   */
+  static createWithServerInfo(serverIP: string, port: number, playerName: string): LANGameClient {
+    const serverUrl = `ws://${serverIP}:${port}`;
+    console.log('🎮 Creating LAN client with server info:', { serverIP, port, serverUrl });
+    return new LANGameClient(serverUrl, playerName);
+  }
+
+  /**
    * Connect to the WebSocket server
    */
   async connect(): Promise<void> {
