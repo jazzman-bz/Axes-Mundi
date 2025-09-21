@@ -43,7 +43,7 @@ export class LANGameManager {
 
     this.isServerClient = localStorage.getItem('isServerClient') === 'true';
     this.serverPlayerName = localStorage.getItem('serverPlayerName') || 'Server';
-    this.clientPlayerName = localStorage.getItem('clientPlayerName') || 'Client';
+    this.clientPlayerName = localStorage.getItem('clientPlayerName') || 'Waiting for client...';
     // currentPlayer wird beim Spielstart zufällig gesetzt
 
     console.log('🎮 LANGameManager constructor - isServerClient set to:', this.isServerClient);
@@ -55,45 +55,49 @@ export class LANGameManager {
    * Set current player randomly at game start
    */
   setCurrentPlayerRandomly(): void {
-    // DISABLED: currentPlayer logic before card distribution
-    console.log('🎮 DISABLED: setCurrentPlayerRandomly called - waiting for card distribution');
+    console.log('🎮 Setting current player randomly...');
+    console.log('🎮 Server player name:', this.serverPlayerName);
+    console.log('🎮 Client player name:', this.clientPlayerName);
 
-    // DISABLED: currentPlayer logic before card distribution
-    // const serverStarts = Math.random() < 0.5;
-    // this.currentPlayer = serverStarts ? this.serverPlayerName : this.clientPlayerName;
-    //
-    // // Store current player in localStorage for consistency
-    // localStorage.setItem('currentPlayer', this.currentPlayer);
-    //
-    // logger.info({
-    //   scope: 'renderer/lan',
-    //   msg: 'current player set randomly',
-    //   meta: { currentPlayer: this.currentPlayer, serverStarts }
-    // });
+    const serverStarts = Math.random() < 0.5;
+    this.currentPlayer = serverStarts ? this.serverPlayerName : this.clientPlayerName;
+
+    // Store current player in localStorage for consistency
+    localStorage.setItem('currentPlayer', this.currentPlayer);
+
+    console.log('🎮 Current player set to:', this.currentPlayer);
+    console.log('🎮 Server starts:', serverStarts);
+
+    logger.info({
+      scope: 'renderer/lan',
+      msg: 'current player set randomly',
+      meta: { currentPlayer: this.currentPlayer, serverStarts }
+    });
   }
 
   /**
    * Update current player after turn
    */
   updateCurrentPlayer(): void {
-    // DISABLED: currentPlayer logic before card distribution
-    console.log('🎮 DISABLED: updateCurrentPlayer called - waiting for card distribution');
+    console.log('🎮 Updating current player after turn...');
+    console.log('🎮 Current player before switch:', this.currentPlayer);
 
-    // DISABLED: currentPlayer logic before card distribution
-    // if (this.currentPlayer === this.serverPlayerName) {
-    //   this.currentPlayer = this.clientPlayerName;
-    // } else {
-    //   this.currentPlayer = this.serverPlayerName;
-    // }
-    //
-    // // Store updated current player
-    // localStorage.setItem('currentPlayer', this.currentPlayer);
-    //
-    // logger.info({
-    //   scope: 'renderer/lan',
-    //   msg: 'current player updated',
-    //   meta: { currentPlayer: this.currentPlayer }
-    // });
+    if (this.currentPlayer === this.serverPlayerName) {
+      this.currentPlayer = this.clientPlayerName;
+    } else {
+      this.currentPlayer = this.serverPlayerName;
+    }
+
+    // Store updated current player
+    localStorage.setItem('currentPlayer', this.currentPlayer);
+
+    console.log('🎮 Current player after switch:', this.currentPlayer);
+
+    logger.info({
+      scope: 'renderer/lan',
+      msg: 'current player updated',
+      meta: { currentPlayer: this.currentPlayer }
+    });
   }
 
   /**
@@ -255,8 +259,8 @@ export class LANGameManager {
       // Deal cards for LAN mode
       this.dealCardsForLAN();
 
-      // DISABLED: currentPlayer logic before card distribution
-      // this.setCurrentPlayerRandomly();
+      // Set current player randomly
+      this.setCurrentPlayerRandomly();
 
       // Mark game as started
       this.gameStarted = true;
@@ -507,7 +511,7 @@ export class LANGameManager {
   getClientPlayerName(): string {
     // Load names from localStorage if not already set
     if (!this.clientPlayerName) {
-      this.clientPlayerName = localStorage.getItem('clientPlayerName') || 'Client';
+      this.clientPlayerName = localStorage.getItem('clientPlayerName') || 'Waiting for client...';
       console.log('🎮 LANGameServer: Loaded client player name from localStorage:', this.clientPlayerName);
     }
 

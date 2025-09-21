@@ -183,12 +183,13 @@ export class LANWebSocketServer {
       meta: { playerId, playerName },
     });
 
-    // Send confirmation to the joining player with SERVER's name
+    // Send confirmation to the joining player with SERVER's name and CLIENT's name
     const joinedMessage = {
       type: 'joined',
       playerId,
       message: 'Connected to server successfully',
       playerName: this.serverPlayerName, // Send SERVER's name to client
+      clientPlayerName: playerName, // Send CLIENT's name back to client
     };
 
     ws.send(JSON.stringify(joinedMessage));

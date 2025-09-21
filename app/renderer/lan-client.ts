@@ -183,9 +183,15 @@ export class LANGameClient {
         console.log('🎮 LAN client: Stored server player name:', message.playerName);
       }
 
-      // Store client player name (our own name)
-      localStorage.setItem('clientPlayerName', this.playerName);
-      console.log('🎮 LAN client: Stored client player name:', this.playerName);
+      // Store client player name from the joined message (server confirms our name)
+      if (message.clientPlayerName) {
+        localStorage.setItem('clientPlayerName', message.clientPlayerName);
+        console.log('🎮 LAN client: Stored client player name from server:', message.clientPlayerName);
+      } else {
+        // Fallback to our own name if server doesn't send it
+        localStorage.setItem('clientPlayerName', this.playerName);
+        console.log('🎮 LAN client: Stored client player name (fallback):', this.playerName);
+      }
 
       // Update UI immediately with player names (no current player yet)
       console.log('🎮 LAN client: About to update player names UI...');
@@ -349,16 +355,17 @@ export class LANGameClient {
       console.log('🎮 Handling card distribution from server:', distribution);
 
       // Update local game state
-      // DISABLED: currentPlayer logic before card distribution
-      // this.currentPlayer = distribution.currentPlayer;
+      this.currentPlayer = distribution.currentPlayer;
       this.placedCards = distribution.placedCards || [];
       this.gameStarted = distribution.gameStarted || false;
 
       // Store card distribution in localStorage for UI rendering
       localStorage.setItem('lanCardDistribution', JSON.stringify(distribution));
 
-      // DISABLED: currentPlayer logic before card distribution
-      // localStorage.setItem('currentPlayer', this.currentPlayer);
+      // Store current player in localStorage
+      localStorage.setItem('currentPlayer', this.currentPlayer);
+
+      console.log('🎮 Client: Current player set to:', this.currentPlayer);
 
       logger.info({
         scope: 'lan/client',

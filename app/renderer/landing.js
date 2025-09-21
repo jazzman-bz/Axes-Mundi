@@ -592,7 +592,12 @@ class LandingPageController {
       }
       
       const serverIP = serverIPInput.value.trim();
-      console.log(`🔍 Connecting to server: ${serverIP}:8080`);
+      const serverUrl = `ws://${serverIP}:8080`;
+      console.log(`🔍 Connecting to server: ${serverUrl}`);
+      
+      // Store server URL in localStorage for later use
+      localStorage.setItem('lanServerUrl', serverUrl);
+      console.log(`🔍 Stored server URL in localStorage: ${serverUrl}`);
       
       // Show loading state
       this.showConnectionStatus(`Connecting to ${serverIP}:8080...`, true);
@@ -603,7 +608,7 @@ class LandingPageController {
       // Try to connect to the specified server
       try {
         console.log(`🔍 Trying to connect to ${serverIP}:8080...`);
-        const client = new LANClient(`ws://${serverIP}:8080`, this.playerData.name);
+        const client = new LANClient(serverUrl, this.playerData.name);
            
            client.onMessage((message) => {
              console.log(`📨 Received message from ${serverIP}:8080:`, message);
@@ -791,7 +796,7 @@ class LandingPageController {
         
         if (this.isServerClient) {
           // Server-client: we have the client's name stored
-          clientPlayerName = this.clientPlayerName || "Client";
+          clientPlayerName = this.clientPlayerName || "Waiting for client...";
         } else {
           // Client: we have the server's name from the connection
           clientPlayerName = this.serverPlayerName || "Server";
@@ -1533,8 +1538,10 @@ class LandingPageController {
       setTimeout(() => {
         console.log('🎮 Client: Redirecting to lan-game.html...');
         // In development mode, use the full URL with Vite dev server
+        // In production mode, use the relative path that works in Electron
         const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        const lanGameUrl = isDev ? 'http://localhost:5179/lan-game.html' : './lan-game.html';
+        const lanGameUrl = isDev ? 'http://localhost:5179/lan-game.html' : 'lan-game.html';
+        console.log('🎮 Client: Redirecting to:', lanGameUrl);
         window.location.href = lanGameUrl;
       }, 2000);
       

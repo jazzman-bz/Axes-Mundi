@@ -309,6 +309,9 @@ class LANGameApp {
           console.log('🎮 Sending card distribution to client...');
           this.lanGame.sendCardDistributionAfterCanvasInit();
 
+          // Update LAN info to show current player
+          this.updateLANInfo();
+
           // Start game AFTER client connects (not immediately)
           console.log('🎮 Card distribution ready - waiting for client to connect before starting game...');
 
@@ -1753,13 +1756,8 @@ class LANGameApp {
         this.lanGame.updateClientPlayerName(clientPlayerName);
 
         // Update overlay to show the real client name
-        // BUT: Don't overwrite currentPlayer if game has already started
-        const currentPlayer = localStorage.getItem('currentPlayer');
-        if (currentPlayer && currentPlayer !== 'WAITING_FOR_CARD_DISTRIBUTION') {
-          console.log('🎮 Game already started, not updating LAN info to preserve currentPlayer:', currentPlayer);
-        } else {
-          this.updateLANInfo();
-        }
+        // Always update LAN info to show the correct client name
+        this.updateLANInfo();
 
         console.log('🎮 Client player name updated successfully');
       } else {
@@ -1979,13 +1977,13 @@ class LANGameApp {
         if (this.lanGame) {
           // Try to get names from LANGameServer instance
           serverPlayerName = this.lanGame.getServerPlayerName() || 'Server';
-          clientPlayerName = this.lanGame.getClientPlayerName() || 'Client';
+          clientPlayerName = this.lanGame.getClientPlayerName() || 'Waiting for client...';
 
           // Store them in localStorage for future use
           if (serverPlayerName && serverPlayerName !== 'Server') {
             localStorage.setItem('serverPlayerName', serverPlayerName);
           }
-          if (clientPlayerName && clientPlayerName !== 'Client') {
+          if (clientPlayerName && clientPlayerName !== 'Waiting for client...') {
             localStorage.setItem('clientPlayerName', clientPlayerName);
           }
 
@@ -1993,7 +1991,7 @@ class LANGameApp {
         } else {
           // Fallback to localStorage defaults
           serverPlayerName = serverPlayerName || 'Server';
-          clientPlayerName = clientPlayerName || 'Client';
+          clientPlayerName = clientPlayerName || 'Waiting for client...';
         }
       }
 
@@ -3214,11 +3212,11 @@ class LANGameApp {
         if (isServerClient) {
           // Server-Client: check opponentHand (client's hand)
           currentPlayerHandLength = this.opponentHand.length;
-          winnerName = clientPlayerName || 'Client';
+          winnerName = clientPlayerName || 'Waiting for client...';
         } else {
           // Browser-Client: check playerHand
           currentPlayerHandLength = this.playerHand.length;
-          winnerName = clientPlayerName || 'Client';
+          winnerName = clientPlayerName || 'Waiting for client...';
         }
       }
       
