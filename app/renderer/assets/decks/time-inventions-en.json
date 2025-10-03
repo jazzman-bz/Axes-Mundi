@@ -5,6 +5,7 @@
   "theme": "history",
   "locale": "en",
   "version": "1.0.0",
+  "imageFolder": "Time JPG",
   "description": "A chronological journey through human inventions and discoveries from prehistoric times to modern era",
   "cards": [
     {

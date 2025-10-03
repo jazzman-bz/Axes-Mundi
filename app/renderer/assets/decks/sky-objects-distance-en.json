@@ -1,0 +1,844 @@
+{
+  "id": "sky-objects-distance-en",
+  "name": "Sky Objects – Distance",
+  "axis": "distance",
+  "theme": "astronomy",
+  "locale": "en",
+  "version": "1.0.0",
+  "imageFolder": "SkyObjects JPG",
+  "cards": [
+    {
+      "id": "redstart-travel",
+      "title": "Redstart Travel",
+      "axis": "distance",
+      "value": 1,
+      "unit": "km",
+      "displayValue": "1 km",
+      "image": "Redstart travel typical - 1",
+      "facts": [
+        "Redstarts are small migratory birds that travel up to 1 km in altitude during their seasonal migrations.",
+        "These birds are known for their distinctive red tail feathers and are found across Europe and Asia."
+      ],
+      "sources": [
+        { "label": "RSPB", "url": "https://www.rspb.org.uk/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "crane-travel",
+      "title": "Crane Travel",
+      "axis": "distance",
+      "value": 2,
+      "unit": "km",
+      "displayValue": "2 km",
+      "image": "Crane travel typical - 2",
+      "facts": [
+        "Cranes are large birds that can fly at altitudes of up to 2 km during migration.",
+        "They are known for their elaborate courtship dances and can live for over 20 years in the wild."
+      ],
+      "sources": [
+        { "label": "International Crane Foundation", "url": "https://www.savingcranes.org/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "hot-air-balloon-typical",
+      "title": "Hot Air Balloon (Typical)",
+      "axis": "distance",
+      "value": 3,
+      "unit": "km",
+      "displayValue": "3 km",
+      "image": "Hot Air Balloon typical - 3",
+      "facts": [
+        "Hot air balloons typically operate at altitudes of 3 km, providing spectacular views of the landscape below.",
+        "The first manned hot air balloon flight was conducted by the Montgolfier brothers in 1783 in France."
+      ],
+      "sources": [
+        { "label": "Fédération Aéronautique Internationale", "url": "https://www.fai.org/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "altocumulus-clouds",
+      "title": "Altocumulus Clouds",
+      "axis": "distance",
+      "value": 4.5,
+      "unit": "km",
+      "displayValue": "4,5 km",
+      "image": "Altocumulus avg - 4,5",
+      "facts": [
+        "Altocumulus clouds form at mid-level altitudes around 4.5 km and are composed of water droplets.",
+        "These clouds often indicate atmospheric instability and can precede thunderstorms."
+      ],
+      "sources": [
+        { "label": "National Weather Service", "url": "https://www.weather.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "biplane-typical",
+      "title": "Biplane (Typical)",
+      "axis": "distance",
+      "value": 5.5,
+      "unit": "km",
+      "displayValue": "5,5 km",
+      "image": "Biplane typical - 5,5",
+      "facts": [
+        "Early biplanes typically operated at altitudes of 5.5 km, with the world altitude record for biplanes reaching over 8 km.",
+        "Biplanes were the dominant aircraft design during World War I due to their superior maneuverability."
+      ],
+      "sources": [
+        { "label": "Smithsonian National Air and Space Museum", "url": "https://airandspace.si.edu/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "nimbostratus-clouds",
+      "title": "Nimbostratus Clouds",
+      "axis": "distance",
+      "value": 5,
+      "unit": "km",
+      "displayValue": "5 km",
+      "image": "Nimbostratus avg - 5",
+      "facts": [
+        "Nimbostratus clouds form at low to mid-levels around 5 km and produce steady precipitation.",
+        "These clouds are typically dark gray and cover large areas of the sky."
+      ],
+      "sources": [
+        { "label": "National Weather Service", "url": "https://www.weather.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "vulture-max",
+      "title": "Vulture (Maximum)",
+      "axis": "distance",
+      "value": 11.9,
+      "unit": "km",
+      "displayValue": "11,9 km",
+      "image": "Vulture max - 11,9",
+      "facts": [
+        "Rüppell's vulture holds the record for the highest flying bird, reaching altitudes of 11.9 km.",
+        "These vultures have specialized hemoglobin that allows them to function at extreme altitudes with low oxygen levels."
+      ],
+      "sources": [
+        { "label": "National Geographic", "url": "https://www.nationalgeographic.com/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "747-travel-height",
+      "title": "Boeing 747 Travel Height",
+      "axis": "distance",
+      "value": 12,
+      "unit": "km",
+      "displayValue": "12 km",
+      "image": "747 Travelhight - 12",
+      "facts": [
+        "The Boeing 747 typically cruises at altitudes of 12 km, where the air is thin and fuel efficiency is optimized.",
+        "At this altitude, passengers experience reduced atmospheric pressure, equivalent to being at 2,400 meters above sea level."
+      ],
+      "sources": [
+        { "label": "Boeing", "url": "https://www.boeing.com/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "cumulonimbus-max",
+      "title": "Cumulonimbus Clouds (Maximum)",
+      "axis": "distance",
+      "value": 13,
+      "unit": "km",
+      "displayValue": "13 km",
+      "image": "Cumolonimbus max - 13",
+      "facts": [
+        "Cumulonimbus clouds can reach heights of 13 km, forming the tallest cloud structures on Earth.",
+        "These clouds are associated with severe weather including thunderstorms, hail, and tornadoes."
+      ],
+      "sources": [
+        { "label": "National Weather Service", "url": "https://www.weather.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "troposphere-max",
+      "title": "Troposphere (Maximum)",
+      "axis": "distance",
+      "value": 15,
+      "unit": "km",
+      "displayValue": "15 km",
+      "image": "Troposphere max - 15",
+      "facts": [
+        "The troposphere extends up to 15 km and contains 75% of the atmosphere's mass and 99% of its water vapor.",
+        "This is where most weather phenomena occur, including clouds, precipitation, and storms."
+      ],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "biplane-max",
+      "title": "Biplane (Maximum)",
+      "axis": "distance",
+      "value": 17,
+      "unit": "km",
+      "displayValue": "17 km",
+      "image": "Biplane max - 17",
+      "facts": [
+        "The highest altitude achieved by a biplane was 17 km, demonstrating the remarkable capabilities of early aviation.",
+        "This record was set in the 1930s when aviation technology was rapidly advancing."
+      ],
+      "sources": [
+        { "label": "Fédération Aéronautique Internationale", "url": "https://www.fai.org/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "glider-typical",
+      "title": "Glider (Typical)",
+      "axis": "distance",
+      "value": 2.5,
+      "unit": "km",
+      "displayValue": "2,5 km",
+      "image": "Glider typical - 2,5",
+      "facts": [
+        "Gliders typically operate at altitudes of 2.5 km, using thermal updrafts to maintain flight.",
+        "Modern gliders can stay airborne for hours by exploiting rising air currents and weather patterns."
+      ],
+      "sources": [
+        { "label": "Soaring Society of America", "url": "https://www.ssa.org/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "glider-max",
+      "title": "Glider (Maximum)",
+      "axis": "distance",
+      "value": 23,
+      "unit": "km",
+      "displayValue": "23 km",
+      "image": "Glider max - 23",
+      "facts": [
+        "The highest altitude achieved by a glider is 23 km, set by Perlan Project's pressurized glider.",
+        "This altitude is in the stratosphere, where gliders can ride mountain wave systems for extended flights."
+      ],
+      "sources": [
+        { "label": "Perlan Project", "url": "https://www.perlanproject.com/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "lockheed-u2",
+      "title": "Lockheed U-2",
+      "axis": "distance",
+      "value": 21,
+      "unit": "km",
+      "displayValue": "21 km",
+      "image": "Lockheed U2 - 21",
+      "facts": [
+        "The Lockheed U-2 spy plane operates at altitudes of 21 km, above most commercial air traffic.",
+        "This high-altitude reconnaissance aircraft has been in service since 1956 and can stay airborne for over 12 hours."
+      ],
+      "sources": [
+        { "label": "Lockheed Martin", "url": "https://www.lockheedmartin.com/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "hot-air-balloon-max",
+      "title": "Hot Air Balloon (Maximum)",
+      "axis": "distance",
+      "value": 21,
+      "unit": "km",
+      "displayValue": "21 km",
+      "image": "Hot Air Balloon max - 21",
+      "facts": [
+        "The highest altitude achieved by a hot air balloon is 21 km, set by Vijaypat Singhania in 2005.",
+        "At this altitude, the balloon operates in the stratosphere where atmospheric pressure is extremely low."
+      ],
+      "sources": [
+        { "label": "Fédération Aéronautique Internationale", "url": "https://www.fai.org/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "lockheed-sr71",
+      "title": "Lockheed SR-71",
+      "axis": "distance",
+      "value": 26,
+      "unit": "km",
+      "displayValue": "26 km",
+      "image": "Lockheed SR71 - 26",
+      "facts": [
+        "The SR-71 Blackbird could reach altitudes of 26 km, making it one of the highest-flying aircraft ever built.",
+        "This reconnaissance aircraft could fly at speeds exceeding Mach 3 and was virtually untouchable by enemy defenses."
+      ],
+      "sources": [
+        { "label": "National Museum of the US Air Force", "url": "https://www.nationalmuseum.af.mil/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "red-bull-stratos",
+      "title": "Red Bull Stratos Balloon",
+      "axis": "distance",
+      "value": 39,
+      "unit": "km",
+      "displayValue": "39 km",
+      "image": "Red Bull Stratos Ballon -  39",
+      "facts": [
+        "The Red Bull Stratos mission reached 39 km altitude, where Felix Baumgartner performed a record-breaking freefall.",
+        "At this altitude, the atmospheric pressure is less than 1% of sea level, requiring specialized life support systems."
+      ],
+      "sources": [
+        { "label": "Red Bull Stratos", "url": "https://www.redbullstratos.com/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "ozone-layer",
+      "title": "Ozone Layer",
+      "axis": "distance",
+      "value": 22,
+      "unit": "km",
+      "displayValue": "22 km",
+      "image": "Ozon Layer avg -  22",
+      "facts": [
+        "The ozone layer is concentrated at 22 km altitude and protects Earth from harmful ultraviolet radiation.",
+        "This protective layer absorbs 97-99% of the Sun's high-frequency ultraviolet light, making life on Earth possible."
+      ],
+      "sources": [
+        { "label": "NASA Ozone Watch", "url": "https://ozonewatch.gsfc.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "stratosphere-max",
+      "title": "Stratosphere (Maximum)",
+      "axis": "distance",
+      "value": 50,
+      "unit": "km",
+      "displayValue": "50 km",
+      "image": "Stratosphere max - 50",
+      "facts": [
+        "The stratosphere extends up to 50 km and contains the ozone layer that protects Earth from UV radiation.",
+        "This atmospheric layer is characterized by increasing temperature with altitude, unlike the troposphere below."
+      ],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "mesosphere-max",
+      "title": "Mesosphere (Maximum)",
+      "axis": "distance",
+      "value": 85,
+      "unit": "km",
+      "displayValue": "85 km",
+      "image": "Mesosphere max - 85",
+      "facts": [
+        "The mesosphere extends up to 85 km and is where most meteors burn up upon entering Earth's atmosphere.",
+        "This layer has the coldest temperatures in the atmosphere, dropping to as low as -90°C."
+      ],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "shooting-star",
+      "title": "Shooting Star",
+      "axis": "distance",
+      "value": 95,
+      "unit": "km",
+      "displayValue": "95 km",
+      "image": "Shooting Star avg - 95",
+      "facts": [
+        "Shooting stars (meteors) typically burn up at 95 km altitude, creating the spectacular light shows we see.",
+        "These meteors are usually no larger than a grain of sand but can create brilliant streaks of light as they vaporize."
+      ],
+      "sources": [
+        { "label": "American Meteor Society", "url": "https://www.amsmeteors.org/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "thermosphere-max",
+      "title": "Thermosphere (Maximum)",
+      "axis": "distance",
+      "value": 600,
+      "unit": "km",
+      "displayValue": "600 km",
+      "image": "Termosphere max - 600",
+      "facts": [
+        "The thermosphere extends up to 600 km and is where the International Space Station orbits.",
+        "This layer experiences extreme temperature variations, from -90°C to over 2000°C depending on solar activity."
+      ],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "sputnik",
+      "title": "Sputnik",
+      "axis": "distance",
+      "value": 939,
+      "unit": "km",
+      "displayValue": "939 km",
+      "image": "Sputnik - 939",
+      "facts": [
+        "Sputnik 1, the first artificial satellite, orbited Earth at 939 km altitude in 1957.",
+        "This historic satellite marked the beginning of the Space Age and the start of the space race between the US and USSR."
+      ],
+      "sources": [
+        { "label": "NASA History", "url": "https://history.nasa.gov/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "iss",
+      "title": "International Space Station",
+      "axis": "distance",
+      "value": 420,
+      "unit": "km",
+      "displayValue": "420 km",
+      "image": "ISS - 420",
+      "facts": [
+        "The ISS orbits Earth at 420 km altitude, completing one orbit every 90 minutes.",
+        "This multinational space station has been continuously occupied since 2000 and serves as a microgravity laboratory."
+      ],
+      "sources": [
+        { "label": "NASA ISS", "url": "https://www.nasa.gov/mission_pages/station/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "hubble",
+      "title": "Hubble Space Telescope",
+      "axis": "distance",
+      "value": 540,
+      "unit": "km",
+      "displayValue": "540 km",
+      "image": "Hubble - 540",
+      "facts": [
+        "The Hubble Space Telescope orbits at 540 km altitude, above Earth's atmosphere for clear astronomical observations.",
+        "Since its launch in 1990, Hubble has revolutionized our understanding of the universe with over 1.5 million observations."
+      ],
+      "sources": [
+        { "label": "NASA Hubble", "url": "https://hubble.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "mir",
+      "title": "Mir Space Station",
+      "axis": "distance",
+      "value": 400,
+      "unit": "km",
+      "displayValue": "400 km",
+      "image": "Mir - 400",
+      "facts": [
+        "The Mir space station operated at 400 km altitude from 1986 to 2001, setting records for continuous human presence in space.",
+        "This Soviet space station was the first modular space station and served as a precursor to the International Space Station."
+      ],
+      "sources": [
+        { "label": "NASA History", "url": "https://history.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "starlink",
+      "title": "Starlink Satellite",
+      "axis": "distance",
+      "value": 550,
+      "unit": "km",
+      "displayValue": "550 km",
+      "image": "Starlink Satellite -  550",
+      "facts": [
+        "Starlink satellites operate at 550 km altitude, providing global internet coverage from low Earth orbit.",
+        "This constellation of thousands of satellites aims to bring high-speed internet to remote areas worldwide."
+      ],
+      "sources": [
+        { "label": "SpaceX", "url": "https://www.spacex.com/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "enmap",
+      "title": "EnMAP Satellite",
+      "axis": "distance",
+      "value": 650,
+      "unit": "km",
+      "displayValue": "650 km",
+      "image": "EnMAP -  650",
+      "facts": [
+        "The EnMAP (Environmental Mapping and Analysis Program) satellite operates at 650 km altitude for Earth observation.",
+        "This German satellite provides hyperspectral imaging data for environmental monitoring and scientific research."
+      ],
+      "sources": [
+        { "label": "DLR", "url": "https://www.dlr.de/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "gps-satellites",
+      "title": "GPS Satellites",
+      "axis": "distance",
+      "value": 20200,
+      "unit": "km",
+      "displayValue": "20.200 km",
+      "image": "GPS-Satellites - 20200",
+      "facts": [
+        "GPS satellites orbit at 20,200 km altitude, providing global positioning and navigation services.",
+        "The GPS constellation consists of 24 active satellites that enable precise location tracking worldwide."
+      ],
+      "sources": [
+        { "label": "GPS.gov", "url": "https://www.gps.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "meteosat",
+      "title": "Meteosat",
+      "axis": "distance",
+      "value": 36000,
+      "unit": "km",
+      "displayValue": "36.000 km",
+      "image": "Meteosat - 36000",
+      "facts": [
+        "Meteosat weather satellites operate at 36,000 km altitude in geostationary orbit.",
+        "These satellites provide continuous weather monitoring and forecasting for Europe and Africa."
+      ],
+      "sources": [
+        { "label": "EUMETSAT", "url": "https://www.eumetsat.int/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "astra",
+      "title": "Astra Satellite",
+      "axis": "distance",
+      "value": 35786,
+      "unit": "km",
+      "displayValue": "35.786 km",
+      "image": "Astra - 35786",
+      "facts": [
+        "Astra satellites operate at 35,786 km altitude in geostationary orbit for telecommunications.",
+        "This altitude allows satellites to maintain a fixed position relative to Earth's surface."
+      ],
+      "sources": [
+        { "label": "SES", "url": "https://www.ses.com/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "moon",
+      "title": "Moon",
+      "axis": "distance",
+      "value": 384000,
+      "unit": "km",
+      "displayValue": "384.000 km",
+      "image": "Mond - 384000",
+      "facts": [
+        "The Moon orbits Earth at an average distance of 384,000 km, making it our closest celestial neighbor.",
+        "This distance is equivalent to about 30 Earth diameters, and light takes 1.3 seconds to travel from Moon to Earth."
+      ],
+      "sources": [
+        { "label": "NASA Moon", "url": "https://moon.nasa.gov/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "mercury",
+      "title": "Mercury",
+      "axis": "distance",
+      "value": 222000000,
+      "unit": "km",
+      "displayValue": "222 Mio km",
+      "image": "Merkur - 222000000",
+      "facts": [
+        "Mercury is the closest planet to the Sun, with an average distance of 222 million km from Earth.",
+        "Despite being the smallest planet, Mercury has extreme temperature variations from 427°C to -173°C."
+      ],
+      "sources": [
+        { "label": "NASA Solar System", "url": "https://solarsystem.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "venus",
+      "title": "Venus",
+      "axis": "distance",
+      "value": 261000000,
+      "unit": "km",
+      "displayValue": "261 Mio km",
+      "image": "Venus - 261000000",
+      "facts": [
+        "Venus is the second planet from the Sun, with an average distance of 261 million km from Earth.",
+        "Known as Earth's twin, Venus has a thick atmosphere of carbon dioxide and surface temperatures hot enough to melt lead."
+      ],
+      "sources": [
+        { "label": "NASA Solar System", "url": "https://solarsystem.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "mars",
+      "title": "Mars",
+      "axis": "distance",
+      "value": 401000000,
+      "unit": "km",
+      "displayValue": "401 Mio km",
+      "image": "Mars - 401000000",
+      "facts": [
+        "Mars, the Red Planet, has an average distance of 401 million km from Earth.",
+        "Mars has the largest volcano in the solar system (Olympus Mons) and evidence suggests it once had liquid water on its surface."
+      ],
+      "sources": [
+        { "label": "NASA Mars", "url": "https://mars.nasa.gov/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "jupiter",
+      "title": "Jupiter",
+      "axis": "distance",
+      "value": 968000000,
+      "unit": "km",
+      "displayValue": "968 Mio km",
+      "image": "Jupiter - 968000000",
+      "facts": [
+        "Jupiter, the largest planet in our solar system, has an average distance of 968 million km from Earth.",
+        "This gas giant has over 80 moons and a Great Red Spot storm that has been raging for centuries."
+      ],
+      "sources": [
+        { "label": "NASA Solar System", "url": "https://solarsystem.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "saturn",
+      "title": "Saturn",
+      "axis": "distance",
+      "value": 1658000000,
+      "unit": "km",
+      "displayValue": "1,66 Mrd km",
+      "image": "Saturn - 1658000000",
+      "facts": [
+        "Saturn, famous for its rings, has an average distance of 1.66 billion km from Earth.",
+        "This gas giant is less dense than water and has over 80 moons, including the massive Titan."
+      ],
+      "sources": [
+        { "label": "NASA Solar System", "url": "https://solarsystem.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "uranus",
+      "title": "Uranus",
+      "axis": "distance",
+      "value": 3100000000,
+      "unit": "km",
+      "displayValue": "3,1 Mrd km",
+      "image": "Uranus - 3100000000",
+      "facts": [
+        "Uranus, the ice giant, has an average distance of 3.1 billion km from Earth.",
+        "This planet rotates on its side and has faint rings and 27 known moons."
+      ],
+      "sources": [
+        { "label": "NASA Solar System", "url": "https://solarsystem.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "neptune",
+      "title": "Neptune",
+      "axis": "distance",
+      "value": 4600000000,
+      "unit": "km",
+      "displayValue": "4,6 Mrd km",
+      "image": "Neptun - 4600000000",
+      "facts": [
+        "Neptune, the farthest planet from the Sun, has an average distance of 4.6 billion km from Earth.",
+        "This ice giant has the strongest winds in the solar system, reaching speeds of 2,100 km/h."
+      ],
+      "sources": [
+        { "label": "NASA Solar System", "url": "https://solarsystem.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "pluto",
+      "title": "Pluto",
+      "axis": "distance",
+      "value": 7500000000,
+      "unit": "km",
+      "displayValue": "7,5 Mrd km",
+      "image": "Pluto - 7500000000",
+      "facts": [
+        "Pluto, now classified as a dwarf planet, has an average distance of 7.5 billion km from Earth.",
+        "This distant world has a heart-shaped glacier and five moons, including the largest, Charon."
+      ],
+      "sources": [
+        { "label": "NASA Solar System", "url": "https://solarsystem.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "ceres",
+      "title": "Ceres",
+      "axis": "distance",
+      "value": 450000000,
+      "unit": "km",
+      "displayValue": "450 Mio km",
+      "image": "Ceres - 450000000 .png",
+      "facts": [
+        "Ceres, the largest object in the asteroid belt, has an average distance of 450 million km from Earth.",
+        "This dwarf planet contains more fresh water than Earth and may have a subsurface ocean."
+      ],
+      "sources": [
+        { "label": "NASA Solar System", "url": "https://solarsystem.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "comet-halley",
+      "title": "Comet Halley",
+      "axis": "distance",
+      "value": 5300000000,
+      "unit": "km",
+      "displayValue": "5,3 Mrd km",
+      "image": "Comet Halley - 5300000000 .png",
+      "facts": [
+        "Halley's Comet has an average distance of 5.3 billion km from Earth and returns every 76 years.",
+        "This famous comet was last seen in 1986 and will next appear in 2061, leaving a trail of debris that creates meteor showers."
+      ],
+      "sources": [
+        { "label": "NASA Solar System", "url": "https://solarsystem.nasa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "voyager1",
+      "title": "Voyager 1",
+      "axis": "distance",
+      "value": 24000000000,
+      "unit": "km",
+      "displayValue": "24 Mrd km",
+      "image": "Voyager1 - 24000000000",
+      "facts": [
+        "Voyager 1 is currently 24 billion km from Earth, making it the farthest human-made object in space.",
+        "Launched in 1977, this spacecraft has entered interstellar space and continues to send data back to Earth."
+      ],
+      "sources": [
+        { "label": "NASA Voyager", "url": "https://voyager.jpl.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "james-webb-telescope",
+      "title": "James Webb Space Telescope",
+      "axis": "distance",
+      "value": 1500000,
+      "unit": "km",
+      "displayValue": "1,5 Mio km",
+      "image": "James Webb Telescope - 1500000",
+      "facts": [
+        "The James Webb Space Telescope operates at 1.5 million km from Earth at the L2 Lagrange point.",
+        "This revolutionary telescope can see the first galaxies that formed after the Big Bang and study exoplanet atmospheres."
+      ],
+      "sources": [
+        { "label": "NASA JWST", "url": "https://www.jwst.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "exosphere-geocorona",
+      "title": "Exosphere Geocorona",
+      "axis": "distance",
+      "value": 10000,
+      "unit": "km",
+      "displayValue": "10.000 km",
+      "image": "Exosphere Geocorona max - 10000",
+      "facts": [
+        "The exosphere extends up to 10,000 km and is the outermost layer of Earth's atmosphere.",
+        "This region contains the geocorona, a cloud of hydrogen atoms that extends far into space."
+      ],
+      "sources": [
+        { "label": "NASA", "url": "https://www.nasa.gov/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "polar-lights",
+      "title": "Polar Lights (Aurora)",
+      "axis": "distance",
+      "value": 150,
+      "unit": "km",
+      "displayValue": "150 km",
+      "image": "Polarlights avg - 150",
+      "facts": [
+        "Polar lights (aurora) occur at altitudes of 150 km when charged particles from the Sun interact with Earth's magnetic field.",
+        "These spectacular light displays are most commonly seen near the polar regions and are caused by solar wind particles."
+      ],
+      "sources": [
+        { "label": "NOAA Space Weather", "url": "https://www.swpc.noaa.gov/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "vulcano-ash-cloud",
+      "title": "Volcano Ash Cloud",
+      "axis": "distance",
+      "value": 57,
+      "unit": "km",
+      "displayValue": "57 km",
+      "image": "Vulcano Ashcloud max - 57",
+      "facts": [
+        "Volcanic ash clouds can reach altitudes of 57 km, affecting global climate and aviation.",
+        "The 1991 Mount Pinatubo eruption injected ash and sulfur dioxide into the stratosphere, causing global temperature drops."
+      ],
+      "sources": [
+        { "label": "USGS Volcano Hazards", "url": "https://www.usgs.gov/natural-hazards/volcano-hazards" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "cirrus-clouds",
+      "title": "Cirrus Clouds",
+      "axis": "distance",
+      "value": 9,
+      "unit": "km",
+      "displayValue": "9 km",
+      "image": "Cirrus avg- 9",
+      "facts": [
+        "Cirrus clouds form at altitudes of 9 km and are composed of ice crystals.",
+        "These wispy, high-altitude clouds are often indicators of approaching weather changes."
+      ],
+      "sources": [
+        { "label": "National Weather Service", "url": "https://www.weather.gov/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "stratocumulus-clouds",
+      "title": "Stratocumulus Clouds",
+      "axis": "distance",
+      "value": 1.5,
+      "unit": "km",
+      "displayValue": "1,5 km",
+      "image": "Stratocumulus avg - 1,5.png",
+      "facts": [
+        "Stratocumulus clouds form at low altitudes of 1.5 km and often cover large areas of the sky.",
+        "These clouds are associated with stable weather conditions and can persist for long periods."
+      ],
+      "sources": [
+        { "label": "National Weather Service", "url": "https://www.weather.gov/" }
+      ],
+      "difficulty": "easy"
+    }
+  ]
+}

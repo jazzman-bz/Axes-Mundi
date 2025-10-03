@@ -127,25 +127,24 @@ export class GameCard {
       let imagePath: string;
       const imageName = this.card.image;
 
-      // URL encode the image name to handle special characters like apostrophes
-      const encodedImageName = encodeURIComponent(imageName);
-
       // Check if image name already has an extension
       // Look for actual file extensions, not just dots in the name
       const hasExtension = imageName.toLowerCase().endsWith('.jpg')
                           || imageName.toLowerCase().endsWith('.png')
                           || imageName.toLowerCase().endsWith('.jpeg');
 
+      // Build image path with RELATIVE path (./) - works in both Electron and browser
+      // When the page is loaded from http://localhost:5179/game.html, ./assets/ resolves correctly
       if (this.deck.imageFolder && this.deck.imageFolder.trim() !== '') {
         if (hasExtension) {
-          imagePath = `./assets/${this.deck.imageFolder}/${encodedImageName}`;
+          imagePath = `./assets/${this.deck.imageFolder}/${imageName}`;
         } else {
-          imagePath = `./assets/${this.deck.imageFolder}/${encodedImageName}.jpg`;
+          imagePath = `./assets/${this.deck.imageFolder}/${imageName}.jpg`;
         }
       } else if (hasExtension) {
-        imagePath = `./assets/${encodedImageName}`;
+        imagePath = `./assets/${imageName}`;
       } else {
-        imagePath = `./assets/${encodedImageName}.jpg`;
+        imagePath = `./assets/${imageName}.jpg`;
       }
 
       // Try to load the image, if it fails, try .png extension
