@@ -5,7 +5,6 @@
   "theme": "architecture",
   "locale": "de",
   "version": "1.0.0",
-  "imageFolder": "Buildings JPG",
   "cards": [
     {
       "id": "great-wall-watchtower",

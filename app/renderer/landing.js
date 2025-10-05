@@ -913,13 +913,14 @@ class LandingPageController {
        console.log('🎴 Client: Checking if deck is available:', deckId);
        console.log('🎴 Client: this.lanClient exists:', !!this.lanClient);
        
-       // Check if deck is available (this would normally check the actual deck files)
-       const availableDecks = [
-         'buildings-height-de',
-         'space-height-de', 
-         'temperatures-temperature-de',
-         'time-inventions-en'
-       ];
+      // Check if deck is available (this would normally check the actual deck files)
+      const availableDecks = [
+        'buildings-height-de',
+        'temperatures-temperature-de',
+        'time-inventions-en',
+        'sky-objects-distance-en',
+        'political-events-time-en'
+      ];
        
        const isAvailable = availableDecks.includes(deckId);
        

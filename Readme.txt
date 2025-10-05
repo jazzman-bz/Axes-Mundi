@@ -67,24 +67,25 @@ Entwickelt mit Electron + Vite + PixiJS + GSAP.
 
 ```json
 {
-  "id": "space-height-de",
-  "name": "Raumfahrt – Höhe",
+  "id": "buildings-height-de",
+  "name": "Gebäude – Höhe",
   "axis": "height",
-  "theme": "tech",
+  "theme": "architecture",
   "locale": "de",
   "version": "1.0.0",
+  "imageFolder": "Buildings JPG",
   "cards": [
     {
-      "id": "saturn-v",
-      "title": "Saturn V",
+      "id": "great-wall-watchtower",
+      "title": "Chinesische Mauer (Wachturm)",
       "axis": "height",
-      "value": 110.6,
+      "value": 10,
       "unit": "m",
-      "displayValue": "110,6 m",
-      "image": "saturn_v",
-      "facts": ["Trug Apollo 11 zum Mond."],
+      "displayValue": "10 m",
+      "image": "Great Wall of China (Watchtower) – China – 10",
+      "facts": ["Wachtürme der Chinesischen Mauer erreichten Höhen von 8-12 Metern."],
       "sources": [
-        { "label": "NASA", "url": "https://www.nasa.gov/" }
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/438/" }
       ],
       "difficulty": "easy"
     }

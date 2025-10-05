@@ -1,0 +1,879 @@
+{
+  "id": "political-events-time-en",
+  "name": "Political Events – Timeline",
+  "axis": "time",
+  "theme": "history",
+  "locale": "en",
+  "version": "1.0.0",
+  "imageFolder": "PoliticalEvents JPG",
+  "cards": [
+    {
+      "id": "building-pyramids",
+      "title": "Building of the Large Pyramids",
+      "axis": "time",
+      "value": -2686,
+      "unit": "year",
+      "displayValue": "2686 BC",
+      "image": "Building of the large Pyramids - 2686BC",
+      "facts": [
+        "The Great Pyramid of Giza was built during the Fourth Dynasty of the Old Kingdom.",
+        "It is one of the Seven Wonders of the Ancient World and the only one still standing."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/topic/Pyramids-of-Giza" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "foundation-rome",
+      "title": "Foundation of Rome (Legend)",
+      "axis": "time",
+      "value": -753,
+      "unit": "year",
+      "displayValue": "753 BC",
+      "image": "Foundation of Rome (Legend) - 753BC",
+      "facts": [
+        "According to legend, Rome was founded by Romulus on April 21, 753 BC.",
+        "Romulus became the first king of Rome after killing his twin brother Remus."
+      ],
+      "sources": [
+        { "label": "Ancient History Encyclopedia", "url": "https://www.worldhistory.org/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "athenian-democracy",
+      "title": "The Foundation of Athenian Democracy",
+      "axis": "time",
+      "value": -508,
+      "unit": "year",
+      "displayValue": "508 BC",
+      "image": "The Foundation of Athenian Democracy - 508BC",
+      "facts": [
+        "Cleisthenes introduced democratic reforms in Athens.",
+        "This is considered the birth of democracy in Western civilization."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/topic/democracy" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "battle-marathon",
+      "title": "Battle of Marathon",
+      "axis": "time",
+      "value": -490,
+      "unit": "year",
+      "displayValue": "490 BC",
+      "image": "Battle of Marathon - 490BC",
+      "facts": [
+        "The Greeks defeated the Persians in this famous battle.",
+        "A messenger ran from Marathon to Athens to announce the victory, inspiring the modern marathon race."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Battle-of-Marathon" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "hannibal-alps",
+      "title": "Hannibal Crosses the Alps",
+      "axis": "time",
+      "value": -218,
+      "unit": "year",
+      "displayValue": "218 BC",
+      "image": "Hannibal crosses the Alps -  218BC",
+      "facts": [
+        "Hannibal led his army, including war elephants, across the Alps to invade Italy.",
+        "This was one of the most daring military maneuvers in ancient history."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/biography/Hannibal-Carthaginian-general-247-183-BC" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "cleopatra-pharao",
+      "title": "Cleopatra Coronation to Pharaoh",
+      "axis": "time",
+      "value": -51,
+      "unit": "year",
+      "displayValue": "51 BC",
+      "image": "Cleopatra coronation to Pharao - 51BC",
+      "facts": [
+        "Cleopatra VII became the last active ruler of the Ptolemaic Kingdom of Egypt.",
+        "She ruled jointly with her father and later with her brothers and son."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/biography/Cleopatra-queen-of-Egypt" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "augustus-emperor",
+      "title": "Appointment of First Roman Emperor Augustus",
+      "axis": "time",
+      "value": -27,
+      "unit": "year",
+      "displayValue": "27 BC",
+      "image": "Appointment of first Roman Emporer Augustus - 27BC",
+      "facts": [
+        "Augustus Caesar became the first Roman Emperor, ending the Roman Republic.",
+        "His reign marked the beginning of the Pax Romana, a period of relative peace."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/biography/Augustus-Roman-emperor" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "edict-milan",
+      "title": "Edict of Milan",
+      "axis": "time",
+      "value": 313,
+      "unit": "year",
+      "displayValue": "313",
+      "image": "Edict of Milan - 313",
+      "facts": [
+        "Constantine I granted religious tolerance to Christianity in the Roman Empire.",
+        "This marked a turning point in the history of Christianity."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Edict-of-Milan" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "hijra",
+      "title": "Hijra (Mohammed Exiles to Medina)",
+      "axis": "time",
+      "value": 622,
+      "unit": "year",
+      "displayValue": "622",
+      "image": "Hijra (Mohammed exiles to Medina) - 622",
+      "facts": [
+        "The Prophet Muhammad migrated from Mecca to Medina.",
+        "This event marks the beginning of the Islamic calendar."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Hijrah" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "coronation-charlemagne",
+      "title": "Coronation of Charlemagne",
+      "axis": "time",
+      "value": 800,
+      "unit": "year",
+      "displayValue": "800",
+      "image": "Coronation Karl the Great - 800",
+      "facts": [
+        "Charlemagne was crowned Holy Roman Emperor by Pope Leo III.",
+        "This marked the revival of the Western Roman Empire."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/biography/Charlemagne" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "coronation-otto",
+      "title": "Coronation of Otto I in Rome (HRE)",
+      "axis": "time",
+      "value": 962,
+      "unit": "year",
+      "displayValue": "962",
+      "image": "Coronation Otto I in Rome (HRE) - 962",
+      "facts": [
+        "Otto I was crowned Holy Roman Emperor, establishing the Holy Roman Empire.",
+        "His reign strengthened the connection between Germany and Italy."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/biography/Otto-I-Holy-Roman-emperor" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "walk-canossa",
+      "title": "Walk to Canossa",
+      "axis": "time",
+      "value": 1077,
+      "unit": "year",
+      "displayValue": "1077",
+      "image": "Walk to Canossa - 1077",
+      "facts": [
+        "Emperor Henry IV sought forgiveness from Pope Gregory VII.",
+        "This event symbolized the conflict between secular and religious authority."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Road-to-Canossa" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "first-crusade",
+      "title": "The Fall of Jerusalem (First Crusade)",
+      "axis": "time",
+      "value": 1099,
+      "unit": "year",
+      "displayValue": "1099",
+      "image": "The Fall of Jerusalem (First Crusade) - 1099",
+      "facts": [
+        "Crusaders captured Jerusalem from Muslim control.",
+        "This led to the establishment of Crusader states in the Holy Land."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/First-Crusade" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "magna-carta",
+      "title": "Magna Carta Libertatum",
+      "axis": "time",
+      "value": 1215,
+      "unit": "year",
+      "displayValue": "1215",
+      "image": "Magna Charta Libertatum - 1215",
+      "facts": [
+        "King John of England signed the Magna Carta, limiting royal power.",
+        "It is considered one of the most important legal documents in history."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/topic/Magna-Carta" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "the-plague",
+      "title": "The Plague",
+      "axis": "time",
+      "value": 1350,
+      "unit": "year",
+      "displayValue": "1350",
+      "image": "The Plague - 1350",
+      "facts": [
+        "The Black Death killed an estimated 25-30 million people in Europe.",
+        "It was one of the deadliest pandemics in human history."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Black-Death" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "gutenberg-printing",
+      "title": "Invention of the Printing Press by Gutenberg",
+      "axis": "time",
+      "value": 1440,
+      "unit": "year",
+      "displayValue": "1440",
+      "image": "Invention of the Printing Press by Gutenberg - 1440",
+      "facts": [
+        "Johannes Gutenberg invented the movable-type printing press.",
+        "This revolutionized the spread of knowledge and information."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/biography/Johannes-Gutenberg" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "end-war-roses",
+      "title": "End of War of the Roses",
+      "axis": "time",
+      "value": 1487,
+      "unit": "year",
+      "displayValue": "1487",
+      "image": "End of War of the Roses - 1487",
+      "facts": [
+        "The civil war between the Houses of Lancaster and York ended.",
+        "Henry VII established the Tudor dynasty."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Wars-of-the-Roses" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "discovery-america",
+      "title": "Discovery of America",
+      "axis": "time",
+      "value": 1492,
+      "unit": "year",
+      "displayValue": "1492",
+      "image": "Discovery of America - 1492",
+      "facts": [
+        "Christopher Columbus reached the Americas, opening the age of exploration.",
+        "This marked the beginning of widespread European colonization."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/biography/Christopher-Columbus" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "reconquista",
+      "title": "Reconquista",
+      "axis": "time",
+      "value": 1492,
+      "unit": "year",
+      "displayValue": "1492",
+      "image": "Reconquista - 1492",
+      "facts": [
+        "The Christian kingdoms completed the reconquest of the Iberian Peninsula from Muslims.",
+        "Granada, the last Muslim stronghold, fell to Ferdinand and Isabella."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Reconquista" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "start-reformation",
+      "title": "Start of Reformation",
+      "axis": "time",
+      "value": 1517,
+      "unit": "year",
+      "displayValue": "1517",
+      "image": "Start of Reformation - 1517",
+      "facts": [
+        "Martin Luther posted his 95 Theses, challenging the Catholic Church.",
+        "This sparked the Protestant Reformation."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Reformation" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "conquest-aztec",
+      "title": "The Conquest of the Aztec Empire by Hernán Cortés",
+      "axis": "time",
+      "value": 1521,
+      "unit": "year",
+      "displayValue": "1521",
+      "image": "The Conquest of the Aztek Empire by Hernan Cortes - 1521",
+      "facts": [
+        "Spanish conquistador Hernán Cortés defeated the Aztec Empire.",
+        "This led to Spanish colonization of Mexico."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/biography/Hernan-Cortes" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "conquest-inca",
+      "title": "The Conquest of the Inca Empire by Francisco Pizarro",
+      "axis": "time",
+      "value": 1532,
+      "unit": "year",
+      "displayValue": "1532",
+      "image": "The Conquest of the Inka Empire by Francisco Pizarro - 1532",
+      "facts": [
+        "Francisco Pizarro captured the Inca emperor Atahualpa.",
+        "This led to the fall of the Inca Empire."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/biography/Francisco-Pizarro" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "augsburg-peace",
+      "title": "Augsburg Peace of Religion",
+      "axis": "time",
+      "value": 1555,
+      "unit": "year",
+      "displayValue": "1555",
+      "image": "Augsburger Peace of Religion - 1555",
+      "facts": [
+        "The Peace of Augsburg allowed German princes to choose between Lutheranism and Catholicism.",
+        "This temporarily ended religious conflicts in the Holy Roman Empire."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Peace-of-Augsburg" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "spanish-armada",
+      "title": "Defeat of Spanish Armada",
+      "axis": "time",
+      "value": 1588,
+      "unit": "year",
+      "displayValue": "1588",
+      "image": "Defeat of Spanish Armada - 1588",
+      "facts": [
+        "The English navy defeated the Spanish Armada.",
+        "This marked the decline of Spanish naval dominance."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/topic/Armada-Spanish-naval-fleet" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "defenestration-prague",
+      "title": "Third Defenestration of Prague",
+      "axis": "time",
+      "value": 1618,
+      "unit": "year",
+      "displayValue": "1618",
+      "image": "Third Defenestration of Prague - 1618",
+      "facts": [
+        "Protestant rebels threw Catholic officials out of a window in Prague.",
+        "This event sparked the Thirty Years' War."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Defenestration-of-Prague" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "peace-westphalia",
+      "title": "Peace of Westphalia",
+      "axis": "time",
+      "value": 1648,
+      "unit": "year",
+      "displayValue": "1648",
+      "image": "Peace of Westfalia - 1648",
+      "facts": [
+        "A series of peace treaties ended the Thirty Years' War.",
+        "It established the principle of state sovereignty in international relations."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Peace-of-Westphalia" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "glorious-revolution",
+      "title": "Glorious Revolution and Bill of Rights",
+      "axis": "time",
+      "value": 1689,
+      "unit": "year",
+      "displayValue": "1689",
+      "image": "Glorious Revolution and Bill of Rights - 1689",
+      "facts": [
+        "William III and Mary II became joint monarchs of England.",
+        "The English Bill of Rights limited royal power and established parliamentary supremacy."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Glorious-Revolution" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "declaration-independence",
+      "title": "Declaration of Independence USA",
+      "axis": "time",
+      "value": 1776,
+      "unit": "year",
+      "displayValue": "1776",
+      "image": "Declaration of Independence USA - 1776",
+      "facts": [
+        "The Thirteen Colonies declared independence from Great Britain.",
+        "This document proclaimed natural rights and government by consent."
+      ],
+      "sources": [
+        { "label": "National Archives", "url": "https://www.archives.gov/founding-docs/declaration-transcript" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "french-revolution",
+      "title": "French Revolution",
+      "axis": "time",
+      "value": 1789,
+      "unit": "year",
+      "displayValue": "1789",
+      "image": "French Revolution - 1789",
+      "facts": [
+        "The French Revolution began with the storming of the Bastille.",
+        "It led to the end of absolute monarchy in France."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/French-Revolution" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "battle-austerlitz",
+      "title": "Battle of Austerlitz",
+      "axis": "time",
+      "value": 1805,
+      "unit": "year",
+      "displayValue": "1805",
+      "image": "Battle of AUsterlitz - 1805",
+      "facts": [
+        "Napoleon defeated the combined armies of Austria and Russia.",
+        "It is considered one of Napoleon's greatest tactical victories."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Battle-of-Austerlitz" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "congress-vienna",
+      "title": "Congress of Vienna",
+      "axis": "time",
+      "value": 1814,
+      "unit": "year",
+      "displayValue": "1814",
+      "image": "Congress of Vienna - 1814",
+      "facts": [
+        "European powers redrew the map of Europe after Napoleon's defeat.",
+        "It aimed to restore balance of power and prevent future wars."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Congress-of-Vienna" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "battle-waterloo",
+      "title": "Battle of Waterloo",
+      "axis": "time",
+      "value": 1815,
+      "unit": "year",
+      "displayValue": "1815",
+      "image": "Battle of Waterloo - 1815",
+      "facts": [
+        "Napoleon was defeated by Allied forces led by the Duke of Wellington.",
+        "This ended the Napoleonic Wars and Napoleon's rule."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Battle-of-Waterloo" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "civil-war-us",
+      "title": "Civil War US",
+      "axis": "time",
+      "value": 1861,
+      "unit": "year",
+      "displayValue": "1861",
+      "image": "Civil War US - 1861",
+      "facts": [
+        "The American Civil War began between the Union and Confederate states.",
+        "It was fought primarily over slavery and states' rights."
+      ],
+      "sources": [
+        { "label": "National Park Service", "url": "https://www.nps.gov/subjects/civilwar/index.htm" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "world-war-1",
+      "title": "Begin of World War 1",
+      "axis": "time",
+      "value": 1914,
+      "unit": "year",
+      "displayValue": "1914",
+      "image": "Begin of World War 1 - 1914",
+      "facts": [
+        "World War I began after the assassination of Archduke Franz Ferdinand.",
+        "It involved most of the world's great powers and lasted until 1918."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/World-War-I" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "october-revolution",
+      "title": "October Revolution",
+      "axis": "time",
+      "value": 1917,
+      "unit": "year",
+      "displayValue": "1917",
+      "image": "October Revolution - 1917",
+      "facts": [
+        "The Bolsheviks, led by Vladimir Lenin, seized power in Russia.",
+        "This led to the creation of the Soviet Union."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Russian-Revolution" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "treaty-versailles",
+      "title": "Contract of Versailles",
+      "axis": "time",
+      "value": 1918,
+      "unit": "year",
+      "displayValue": "1918",
+      "image": "Contract of Versailles - 1918",
+      "facts": [
+        "The Treaty of Versailles officially ended World War I.",
+        "It imposed harsh penalties on Germany and redrew European borders."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Treaty-of-Versailles-1919" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "spanish-flu",
+      "title": "Spanish Flu",
+      "axis": "time",
+      "value": 1919,
+      "unit": "year",
+      "displayValue": "1919",
+      "image": "Spanish Flu - 1919",
+      "facts": [
+        "The 1918-1919 influenza pandemic infected one-third of the world's population.",
+        "It killed an estimated 50 million people worldwide."
+      ],
+      "sources": [
+        { "label": "CDC", "url": "https://www.cdc.gov/flu/pandemic-resources/1918-pandemic-h1n1.html" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "black-thursday",
+      "title": "Black Thursday",
+      "axis": "time",
+      "value": 1929,
+      "unit": "year",
+      "displayValue": "1929",
+      "image": "Black Thursday - 1929",
+      "facts": [
+        "The Wall Street stock market crash marked the beginning of the Great Depression.",
+        "It caused widespread economic hardship across the world."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Great-Depression" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "world-war-2",
+      "title": "Start World War 2",
+      "axis": "time",
+      "value": 1939,
+      "unit": "year",
+      "displayValue": "1939",
+      "image": "Start World War 2 - 1939",
+      "facts": [
+        "World War II began when Germany invaded Poland.",
+        "It was the deadliest conflict in human history, lasting until 1945."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/World-War-II" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "un-assembly",
+      "title": "First UN Assembly",
+      "axis": "time",
+      "value": 1946,
+      "unit": "year",
+      "displayValue": "1946",
+      "image": "First UN Assembly - 1946",
+      "facts": [
+        "The first General Assembly of the United Nations convened in London.",
+        "It marked the beginning of international cooperation after World War II."
+      ],
+      "sources": [
+        { "label": "United Nations", "url": "https://www.un.org/en/about-us/history-of-the-un" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "israel-foundation",
+      "title": "Foundation of the State of Israel",
+      "axis": "time",
+      "value": 1948,
+      "unit": "year",
+      "displayValue": "1948",
+      "image": "Foundation of the State of Israel - 1948",
+      "facts": [
+        "The State of Israel was proclaimed by David Ben-Gurion.",
+        "This followed the end of the British Mandate for Palestine."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/place/Israel" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "nato-establishment",
+      "title": "Establishment of NATO",
+      "axis": "time",
+      "value": 1949,
+      "unit": "year",
+      "displayValue": "1949",
+      "image": "Establishment of NATO - 1949",
+      "facts": [
+        "The North Atlantic Treaty Organization was formed as a military alliance.",
+        "It was created to counter the Soviet Union during the Cold War."
+      ],
+      "sources": [
+        { "label": "NATO", "url": "https://www.nato.int/cps/en/natohq/declassified_139339.htm" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "china-revolution",
+      "title": "Communist Revolution and Foundation of China",
+      "axis": "time",
+      "value": 1949,
+      "unit": "year",
+      "displayValue": "1949",
+      "image": "Kommunist Revolution and Foundation of China - 1949",
+      "facts": [
+        "Mao Zedong proclaimed the People's Republic of China.",
+        "This established communist rule in mainland China."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Chinese-Civil-War" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "berlin-wall",
+      "title": "Building of the Berlin Wall",
+      "axis": "time",
+      "value": 1961,
+      "unit": "year",
+      "displayValue": "1961",
+      "image": "Building of the Berlin Wall - 1961",
+      "facts": [
+        "East Germany built the Berlin Wall to prevent citizens from fleeing to the West.",
+        "It became a symbol of the Cold War division."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/topic/Berlin-Wall" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "prague-spring",
+      "title": "Prague Spring",
+      "axis": "time",
+      "value": 1968,
+      "unit": "year",
+      "displayValue": "1968",
+      "image": "Prague Spring -1968",
+      "facts": [
+        "Alexander Dubček attempted to liberalize Czechoslovakia.",
+        "The reform movement was crushed by Warsaw Pact invasion."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/Prague-Spring" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "german-reunion",
+      "title": "German Reunion",
+      "axis": "time",
+      "value": 1990,
+      "unit": "year",
+      "displayValue": "1990",
+      "image": "German Reunion - 1990",
+      "facts": [
+        "East and West Germany reunified after the fall of the Berlin Wall.",
+        "This marked the end of Cold War division in Europe."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/reunification-of-Germany" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "perestroika-end",
+      "title": "End of Perestroika",
+      "axis": "time",
+      "value": 1991,
+      "unit": "year",
+      "displayValue": "1991",
+      "image": "End of Perestroika - 1991 ",
+      "facts": [
+        "The Soviet Union officially dissolved, ending the Cold War.",
+        "This marked the collapse of communist rule in Eastern Europe."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/the-collapse-of-the-Soviet-Union" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "maastricht-treaty",
+      "title": "Foundation of the European Union (Maastricht)",
+      "axis": "time",
+      "value": 1992,
+      "unit": "year",
+      "displayValue": "1992",
+      "image": "Foundation of the European Union (Maastricht) - 1992",
+      "facts": [
+        "The Maastricht Treaty established the European Union.",
+        "It created the framework for economic and political integration in Europe."
+      ],
+      "sources": [
+        { "label": "European Union", "url": "https://european-union.europa.eu/principles-countries-history/history-eu_en" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "end-apartheid",
+      "title": "End of Apartheid in South Africa",
+      "axis": "time",
+      "value": 1994,
+      "unit": "year",
+      "displayValue": "1994",
+      "image": "End of Apartheit in SA - 1994",
+      "facts": [
+        "Nelson Mandela became the first Black president of South Africa.",
+        "This marked the end of institutionalized racial segregation."
+      ],
+      "sources": [
+        { "label": "Britannica", "url": "https://www.britannica.com/event/apartheid" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "brexit",
+      "title": "UK Leaves the EU (Brexit)",
+      "axis": "time",
+      "value": 2020,
+      "unit": "year",
+      "displayValue": "2020",
+      "image": "UK leaves the EU (Brexit) - 2020",
+      "facts": [
+        "The United Kingdom officially left the European Union.",
+        "This followed a 2016 referendum in which 52% voted to leave."
+      ],
+      "sources": [
+        { "label": "BBC", "url": "https://www.bbc.com/news/uk-politics-32810887" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "covid-pandemic",
+      "title": "COVID Pandemic",
+      "axis": "time",
+      "value": 2020,
+      "unit": "year",
+      "displayValue": "2020",
+      "image": "COVID Pandemie - 2020",
+      "facts": [
+        "The COVID-19 pandemic spread globally, causing widespread illness and death.",
+        "It led to lockdowns, economic disruption, and social changes worldwide."
+      ],
+      "sources": [
+        { "label": "WHO", "url": "https://www.who.int/emergencies/diseases/novel-coronavirus-2019" }
+      ],
+      "difficulty": "easy"
+    }
+  ]
+}
+

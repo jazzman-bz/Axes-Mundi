@@ -219,13 +219,13 @@ export class LANGameManager {
       console.log('🎮 Server client detected, proceeding with initialization');
 
       // Load deck from localStorage with validation
-      let selectedDeck = localStorage.getItem('selectedDeck') || 'space-height-de';
+      let selectedDeck = localStorage.getItem('selectedDeck') || 'buildings-height-de';
 
-      // Validate that the selected deck exists, fallback to space-height-de if not
-      const validDecks = ['space-height-de', 'buildings-height-de', 'time-inventions-en', 'temperatures-temperature-de'];
+      // Validate that the selected deck exists, fallback to buildings-height-de if not
+      const validDecks = ['buildings-height-de', 'time-inventions-en', 'temperatures-temperature-de', 'sky-objects-distance-en', 'political-events-time-en'];
       if (!validDecks.includes(selectedDeck)) {
-        console.warn('🎮 Invalid deck ID in localStorage:', selectedDeck, 'falling back to space-height-de');
-        selectedDeck = 'space-height-de';
+        console.warn('🎮 Invalid deck ID in localStorage:', selectedDeck, 'falling back to buildings-height-de');
+        selectedDeck = 'buildings-height-de';
         localStorage.setItem('selectedDeck', selectedDeck);
       }
 

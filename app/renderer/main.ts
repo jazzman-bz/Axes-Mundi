@@ -481,7 +481,7 @@ class AxesMundiApp {
   private async loadGame(): Promise<void> {
     try {
       // Load deck from localStorage
-      const selectedDeck = localStorage.getItem('selectedDeck') || 'space-height-de';
+      const selectedDeck = localStorage.getItem('selectedDeck') || 'buildings-height-de';
 
       logger.info({
         scope: 'renderer/game',

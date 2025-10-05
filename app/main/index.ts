@@ -41,10 +41,15 @@ function createWindow(): void {
     // Load the app
     // Check if we're in development mode
     const isDev = process.env.NODE_ENV === 'development' || process.env.AXM_ENV === 'development';
+    console.log('🔧 NODE_ENV:', process.env.NODE_ENV);
+    console.log('🔧 AXM_ENV:', process.env.AXM_ENV);
+    console.log('🔧 isDev:', isDev);
     if (isDev) {
+      console.log('🚀 Loading dev server: http://localhost:5179');
       mainWindow.loadURL('http://localhost:5179');
       mainWindow.webContents.openDevTools();
     } else {
+      console.log('📦 Loading production build');
       mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
     }
 

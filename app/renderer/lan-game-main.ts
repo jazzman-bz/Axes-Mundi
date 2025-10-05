@@ -2864,7 +2864,7 @@ class LANGameApp {
         // This ensures the correct imageFolder is used
         const originalDeckId = localStorage.getItem('lanCardDistribution') 
           ? JSON.parse(localStorage.getItem('lanCardDistribution')!).deckId 
-          : 'space-height-de';
+          : 'buildings-height-de';
         
         import('@/data/deckLoader').then(({ loadDeck }) => {
           return loadDeck(originalDeckId);
@@ -3603,7 +3603,7 @@ class LANGameApp {
       console.log('🎮 Restarting LAN game with same deck...');
       
       // Get the current deck ID from localStorage
-      const deckId = localStorage.getItem('selectedDeckId') || 'space-height-de';
+      const deckId = localStorage.getItem('selectedDeckId') || 'buildings-height-de';
       console.log('🎮 Using same deck for restart:', deckId);
       
       // Re-initialize the LAN game with the same deck
