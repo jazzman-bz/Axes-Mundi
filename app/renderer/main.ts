@@ -3,6 +3,7 @@ import { loadDeck, dealCards, getRandomBoardCard } from '@/data/deckLoader';
 import { isAxisCorrectlySorted, getScore } from '@/data/scoring';
 import { GameCard } from '@/game/Card';
 import { Card as CardData } from '@/data/types';
+import { soundManager, SoundType } from '@/utils/soundManager';
 
 /**
  * Main application class
@@ -676,10 +677,11 @@ class AxesMundiApp {
     // In LAN mode, client waits for card distribution from server
     // LAN mode is now handled by LANGameManager - skip here
 
-    // Normal AI mode logic (with animations)
+    // Normal AI mode logic (with animations and synchronized sounds)
     // Deal 5 cards to player with small delay
     for (let i = 0; i < 5; i++) {
       setTimeout(() => {
+        soundManager.play(SoundType.CARD_SHUFFLE); // Play sound exactly when card appears
         this.dealCardToPlayer();
       }, i * 200); // 200ms delay between each card (slower)
     }
@@ -687,6 +689,7 @@ class AxesMundiApp {
     // Deal cards to opponent based on difficulty
     for (let i = 0; i < opponentCardCount; i++) {
       setTimeout(() => {
+        soundManager.play(SoundType.CARD_SHUFFLE); // Play sound exactly when card appears
         this.dealCardToOpponent();
       }, 1200 + i * 200); // Start after player cards, 200ms delay between each (slower)
     }
@@ -882,7 +885,13 @@ class AxesMundiApp {
     try {
       // Deal 5 cards to player (more cards for learning)
       const playerCards = this.remainingCards.splice(0, 5);
-      this.playerHand = playerCards.map((card, index) => new GameCard(card, this.deck, 50 + index * 120, 500, this.scale));
+      this.playerHand = playerCards.map((card, index) => {
+        // Play sound for each card as it's created
+        setTimeout(() => {
+          soundManager.play(SoundType.CARD_SHUFFLE);
+        }, index * 50); // Small delay between sounds for better feel
+        return new GameCard(card, this.deck, 50 + index * 120, 500, this.scale);
+      });
 
       // No opponent cards in learning mode
       this.opponentHand = [];
@@ -929,6 +938,7 @@ class AxesMundiApp {
       // Deal 5 cards to player 1 with delay (like AI mode)
       for (let i = 0; i < 5; i++) {
         setTimeout(() => {
+          soundManager.play(SoundType.CARD_SHUFFLE); // Play sound exactly when card appears
           this.dealCardToPlayer1();
         }, i * 200); // 200ms delay between each card
       }
@@ -936,6 +946,7 @@ class AxesMundiApp {
       // Deal 5 cards to player 2 with delay, starting after player 1
       for (let i = 0; i < 5; i++) {
         setTimeout(() => {
+          soundManager.play(SoundType.CARD_SHUFFLE); // Play sound exactly when card appears
           this.dealCardToPlayer2();
         }, 1200 + i * 200); // Start after player 1 cards
       }
@@ -1350,6 +1361,9 @@ class AxesMundiApp {
       const boardCenterX = this.boardCard ? (this.boardCard.x + this.boardCard.width / 2) : this.gameCanvas.width / 2;
       const isLeft = x < boardCenterX;
 
+      // Play card placement sound for AI
+      soundManager.play(SoundType.CARD_PLACE);
+
       if (isLeft) {
         this.placedLeft.push(aiCard);
         aiCard.isInHand = false;
@@ -1361,8 +1375,11 @@ class AxesMundiApp {
       // Center all cards
       this.layoutAxisCards();
 
-      // Mark card as correct
+      // Mark card as correct and play success sound
       aiCard.setCorrect();
+      setTimeout(() => {
+        soundManager.play(SoundType.SUCCESS);
+      }, 300); // Small delay after placement sound
 
       // Switch back to player turn
       this.isPlayerTurn = true;
@@ -1438,6 +1455,9 @@ class AxesMundiApp {
       const boardCenterX = this.boardCard ? (this.boardCard.x + this.boardCard.width / 2) : this.gameCanvas.width / 2;
       const isLeft = targetX < boardCenterX;
 
+      // Play card placement sound for AI animation
+      soundManager.play(SoundType.CARD_PLACE);
+
       if (isLeft) {
         this.placedLeft.push(card);
         card.isInHand = false;
@@ -1449,8 +1469,11 @@ class AxesMundiApp {
       // Center all cards
       this.layoutAxisCards();
 
-      // Mark card as correct
+      // Mark card as correct and play success sound
       card.setCorrect();
+      setTimeout(() => {
+        soundManager.play(SoundType.SUCCESS);
+      }, 300); // Small delay after placement sound
 
       // Switch back to player turn
       this.isPlayerTurn = true;
@@ -2197,6 +2220,9 @@ class AxesMundiApp {
         const snapX = releasedCard.x + releasedCard.width / 2; // Use the exact X position where card was dropped
         const snapY = axisY - releasedCard.height / 2;
 
+        // Play card placement sound
+        soundManager.play(SoundType.CARD_PLACE);
+
         // SPECIAL CASE: If this is the first card after clearing the board, make it the boardCard
         if (!this.boardCard) {
           this.boardCard = releasedCard;
@@ -2289,6 +2315,10 @@ class AxesMundiApp {
             this.score += getScore(releasedCard.card);
           }
           releasedCard.setCorrect();
+          // Play success sound for correct placement
+          setTimeout(() => {
+            soundManager.play(SoundType.SUCCESS);
+          }, 300); // Small delay after placement sound
 
           // Clear global weiter button bounds for correct cards
           this.weiterButtonBounds = null;
@@ -2379,6 +2409,10 @@ class AxesMundiApp {
         } else {
           // 4. STAY: Incorrect placement - card turns red and stays on board
           releasedCard.setIncorrect();
+          // Play error sound for incorrect placement
+          setTimeout(() => {
+            soundManager.play(SoundType.ERROR);
+          }, 300); // Small delay after placement sound
 
           // Center the axis immediately after incorrect placement
           this.layoutAxisCards();
@@ -2834,10 +2868,13 @@ class AxesMundiApp {
   }
 
   /**
-    * Give player a new card from the deck (turn-based)
-    */
+   * Give player a new card from the deck (turn-based)
+   */
   private giveNewCard(): void {
     if (this.remainingCards.length > 0) {
+      // Play card shuffle sound for drawing a single card
+      soundManager.play(SoundType.CARD_SHUFFLE);
+      
       const newCardData = this.remainingCards.shift()!;
       const newCard = new GameCard(
         newCardData,
@@ -3914,9 +3951,28 @@ class AxesMundiApp {
   }
 }
 
-// Initialize the app when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
+/**
+ * Initialize sound manager
+ */
+async function initSoundManagerAsync(): Promise<void> {
   try {
+    await soundManager.init();
+    logger.info({ scope: 'renderer/app', msg: 'sound manager initialized' });
+  } catch (error) {
+    logger.error({
+      scope: 'renderer/app',
+      msg: 'failed to initialize sound manager',
+      err: { message: (error as Error).message },
+    });
+  }
+}
+
+// Initialize the app when DOM is ready
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    // Initialize sound manager first
+    await initSoundManagerAsync();
+    
     new AxesMundiApp();
     logger.info({ scope: 'renderer/app', msg: 'app initialized successfully' });
   } catch (error) {

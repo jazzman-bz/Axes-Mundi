@@ -2,6 +2,7 @@ import {
   Application, Container, Graphics, Text,
 } from 'pixi.js';
 import { logger } from '@/utils/logger';
+import { soundManager, SoundType } from '@/utils/soundManager';
 import { GameCard } from './Card';
 import { Card as CardData } from '@/data/types';
 
@@ -142,6 +143,9 @@ export class GameScene {
       console.log('🎮 GameScene: Distribution serverHand:', distribution.serverHand?.length);
       console.log('🎮 GameScene: Distribution clientHand:', distribution.clientHand?.length);
 
+      // Create board card with sound
+      soundManager.play(SoundType.CARD_SHUFFLE);
+
       // Create board card
       if (distribution.boardCard) {
         console.log('🎮 GameScene: Creating board card:', distribution.boardCard.title);
@@ -166,49 +170,57 @@ export class GameScene {
         this.animateCardAppearance(this.lanBoardCard, 0);
       }
 
-      // Create player hand cards
+      // Create player hand cards with synchronized sounds
       if (distribution.serverHand && distribution.serverHand.length > 0) {
         console.log('🎮 GameScene: Creating', distribution.serverHand.length, 'player hand cards');
         distribution.serverHand.forEach((cardData: any, index: number) => {
-          const card = new GameCard(
-            cardData,
-            deck,
-            50, // Start at deck position
-            this.app.screen.height - 320, // Deck Y position
-            1,
-          );
+          setTimeout(() => {
+            soundManager.play(SoundType.CARD_SHUFFLE); // Play sound exactly when card animates
+            
+            const card = new GameCard(
+              cardData,
+              deck,
+              50, // Start at deck position
+              this.app.screen.height - 320, // Deck Y position
+              1,
+            );
 
-          this.lanPlayerHand.push(card);
-          const pixiCard = this.createPixiCardRepresentation(card);
-          this.container.addChild(pixiCard);
+            this.lanPlayerHand.push(card);
+            const pixiCard = this.createPixiCardRepresentation(card);
+            this.container.addChild(pixiCard);
 
-          // Animate card appearance with delay
-          this.animateCardAppearance(card, index * 200);
+            // Animate card appearance
+            this.animateCardAppearance(card, 0);
+          }, index * 200);
         });
         console.log('🎮 GameScene: Player hand cards created');
       }
 
-      // Create opponent hand cards (show card backs)
+      // Create opponent hand cards (show card backs) with synchronized sounds
       if (distribution.clientHand && distribution.clientHand.length > 0) {
         console.log('🎮 GameScene: Creating', distribution.clientHand.length, 'opponent hand cards');
         distribution.clientHand.forEach((cardData: any, index: number) => {
-          const card = new GameCard(
-            cardData,
-            deck,
-            this.app.screen.width - 250, // Start at right side
-            50, // Top position
-            1,
-          );
+          setTimeout(() => {
+            soundManager.play(SoundType.CARD_SHUFFLE); // Play sound exactly when card animates
+            
+            const card = new GameCard(
+              cardData,
+              deck,
+              this.app.screen.width - 250, // Start at right side
+              50, // Top position
+              1,
+            );
 
-          // Show card back for opponent
-          card.showCardBack = true;
+            // Show card back for opponent
+            card.showCardBack = true;
 
-          this.lanOpponentHand.push(card);
-          const pixiCard = this.createPixiCardRepresentation(card);
-          this.container.addChild(pixiCard);
+            this.lanOpponentHand.push(card);
+            const pixiCard = this.createPixiCardRepresentation(card);
+            this.container.addChild(pixiCard);
 
-          // Animate card appearance with delay
-          this.animateCardAppearance(card, 1200 + index * 200);
+            // Animate card appearance
+            this.animateCardAppearance(card, 0);
+          }, 1200 + index * 200);
         });
         console.log('🎮 GameScene: Opponent hand cards created');
       }

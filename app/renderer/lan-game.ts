@@ -1,6 +1,7 @@
 import { logger } from '@/utils/logger';
 import { loadDeck } from '@/data/deckLoader';
 import { Card as CardData } from '@/data/types';
+import { soundManager, SoundType } from '@/utils/soundManager';
 import { evaluatePlacement, isAxisCorrectlySorted } from '@/data/scoring';
 
 /**
@@ -864,9 +865,15 @@ export class LANGameManager {
       // Validate placement using the same logic as KI game
       const isCorrect = this.validateCardPlacement(card, position);
 
+      // Play card placement sound
+      soundManager.play(SoundType.CARD_PLACE);
+
       if (isCorrect) {
-        // Place card correctly - stays on axis and turns green
+        // Place card correctly - stays on axis and turns green, play success sound
         this.placedCards.push(card);
+        setTimeout(() => {
+          soundManager.play(SoundType.SUCCESS);
+        }, 300); // Small delay after placement sound
 
         // Remove from player's hand
         if (isServerTurn) {
@@ -939,6 +946,11 @@ export class LANGameManager {
       // DISABLED: New card distribution is now handled by lan-game-main.ts
       // This prevents duplicate cards when a card is placed incorrectly
       // The lan-game-main.ts system handles graveyard and new card distribution
+
+      // Play error sound for incorrect placement
+      setTimeout(() => {
+        soundManager.play(SoundType.ERROR);
+      }, 300); // Small delay after placement sound
 
       logger.info({
         scope: 'renderer/lan',

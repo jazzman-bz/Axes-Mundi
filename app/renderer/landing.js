@@ -3,6 +3,9 @@
  * Handles section transitions, form validation, and localStorage integration
  */
 
+// Import sound manager
+import { soundManager, SoundType } from './utils/soundManager.ts';
+
 // Silent logger for production
 const logger = {
   info: () => {},
@@ -64,9 +67,12 @@ class LandingPageController {
   /**
    * Initialize the landing page
    */
-  init() {
+  async init() {
     try {
       logger.info({ scope: 'landing/init', msg: 'initializing landing page' });
+      
+      // Initialize sound manager
+      await this.initializeSoundManager();
       
       // Initialize game mode if not set
       this.initializeGameMode();
@@ -95,6 +101,38 @@ class LandingPageController {
         scope: 'landing/init', 
         msg: 'failed to initialize landing page', 
         err: { message: error.message, stack: error.stack } 
+      });
+    }
+  }
+
+  /**
+   * Initialize sound manager
+   */
+  async initializeSoundManager() {
+    try {
+      logger.info({ scope: 'landing/sound', msg: 'Initializing sound manager' });
+      await soundManager.init();
+      logger.info({ scope: 'landing/sound', msg: 'Sound manager initialized successfully' });
+    } catch (error) {
+      logger.error({ 
+        scope: 'landing/sound', 
+        msg: 'Failed to initialize sound manager', 
+        err: { message: error.message } 
+      });
+    }
+  }
+
+  /**
+   * Play button click sound
+   */
+  playButtonSound() {
+    try {
+      soundManager.play(SoundType.BUTTON_CLICK);
+    } catch (error) {
+      logger.error({ 
+        scope: 'landing/sound', 
+        msg: 'Failed to play button sound', 
+        err: { message: error.message } 
       });
     }
   }
@@ -209,6 +247,9 @@ class LandingPageController {
     event.preventDefault();
     
     try {
+      // Play button sound
+      this.playButtonSound();
+      
       const nameInput = document.getElementById('player-name');
       const playerName = nameInput.value.trim();
       
@@ -250,6 +291,9 @@ class LandingPageController {
    */
   handleAvatarSelection(event) {
     try {
+      // Play button sound
+      this.playButtonSound();
+      
       const avatarOption = event.currentTarget;
       const avatarId = avatarOption.dataset.avatar;
       const avatarSection = avatarOption.closest('section');
@@ -293,6 +337,9 @@ class LandingPageController {
    */
   handleGameModeSelection(event) {
     try {
+      // Play button sound
+      this.playButtonSound();
+      
       const gameModeCard = event.currentTarget;
       const mode = gameModeCard.dataset.mode;
       
@@ -328,6 +375,9 @@ class LandingPageController {
    */
   handleOptionSelection(event) {
     try {
+      // Play button sound
+      this.playButtonSound();
+      
       console.log('🔍 handleOptionSelection called!', event);
       
       const optionCard = event.currentTarget;
@@ -399,6 +449,9 @@ class LandingPageController {
    */
   handleDifficultySelection(event) {
     try {
+      // Play button sound
+      this.playButtonSound();
+      
       const difficultyCard = event.currentTarget;
       const difficulty = difficultyCard.dataset.difficulty;
       
@@ -433,6 +486,9 @@ class LandingPageController {
     event.preventDefault();
     
     try {
+      // Play button sound
+      this.playButtonSound();
+      
       const nameInput = document.getElementById('second-player-name');
       const playerName = nameInput.value.trim();
       
@@ -1101,6 +1157,9 @@ class LandingPageController {
     */
    handleDeckSelection(event) {
      try {
+       // Play button sound
+       this.playButtonSound();
+       
        const deckCard = event.currentTarget;
        const deckId = deckCard.dataset.deck;
        
@@ -1172,6 +1231,9 @@ class LandingPageController {
    */
   goBack() {
     try {
+      // Play button sound
+      this.playButtonSound();
+      
       const currentIndex = this.sections.indexOf(this.currentSection);
       if (currentIndex > 0) {
         const previousSection = this.sections[currentIndex - 1];

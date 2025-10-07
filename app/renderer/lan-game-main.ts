@@ -1,6 +1,7 @@
 import { LANGameManager } from './lan-game';
 import { logger } from '@/utils/logger';
 import { GameCard } from './game/Card';
+import { soundManager, SoundType } from '@/utils/soundManager';
 
 /**
  * LAN Game Main Application
@@ -389,12 +390,18 @@ class LANGameApp {
         console.log('🎮 No board card in distribution');
       }
 
-      // Create player hand cards with animation delays (like Single-Player)
+      // Create board card first with sound
+      if (distribution.boardCard) {
+        soundManager.play(SoundType.CARD_SHUFFLE);
+      }
+
+      // Create player hand cards with animation delays and synchronized sounds
       if (distribution.serverHand && distribution.serverHand.length > 0) {
         console.log('🎮 Creating', distribution.serverHand.length, 'player hand cards');
         console.log('🎮 Server hand data:', distribution.serverHand);
         for (let i = 0; i < distribution.serverHand.length; i++) {
           setTimeout(() => {
+            soundManager.play(SoundType.CARD_SHUFFLE); // Play sound exactly when card appears
             this.dealCardToPlayer(distribution.serverHand[i], deck);
           }, i * 200); // 200ms delay between each card
         }
@@ -402,12 +409,13 @@ class LANGameApp {
         console.log('🎮 No server hand cards in distribution');
       }
 
-      // Create opponent hand cards with animation delays (like Single-Player)
+      // Create opponent hand cards with animation delays and synchronized sounds
       if (distribution.clientHand && distribution.clientHand.length > 0) {
         console.log('🎮 Creating', distribution.clientHand.length, 'opponent hand cards');
         console.log('🎮 Client hand data:', distribution.clientHand);
         for (let i = 0; i < distribution.clientHand.length; i++) {
           setTimeout(() => {
+            soundManager.play(SoundType.CARD_SHUFFLE); // Play sound exactly when card appears
             this.dealCardToOpponent(distribution.clientHand[i], deck);
           }, 1200 + i * 200); // Start after player cards
         }
@@ -1051,11 +1059,17 @@ class LANGameApp {
           }
         }
 
+        // Create board card first with sound
+        if (distribution.boardCard) {
+          soundManager.play(SoundType.CARD_SHUFFLE);
+        }
+
         // Create CLIENT hand cards (bottom) - these are the client's own cards
         if (distribution.clientHand && distribution.clientHand.length > 0) {
           console.log('🎮 Client: Creating', distribution.clientHand.length, 'client hand cards (bottom)');
           for (let i = 0; i < distribution.clientHand.length; i++) {
             setTimeout(() => {
+              soundManager.play(SoundType.CARD_SHUFFLE); // Play sound exactly when card appears
               this.dealCardToClient(distribution.clientHand[i], deck);
             }, i * 200);
           }
@@ -1066,6 +1080,7 @@ class LANGameApp {
           console.log('🎮 Client: Creating', distribution.serverHand.length, 'server hand cards (top, card backs)');
           for (let i = 0; i < distribution.serverHand.length; i++) {
             setTimeout(() => {
+              soundManager.play(SoundType.CARD_SHUFFLE); // Play sound exactly when card appears
               this.dealCardToServer(distribution.serverHand[i], deck);
             }, 1200 + i * 200);
           }
@@ -2272,6 +2287,9 @@ class LANGameApp {
 
             console.log('🎮 First card set as central card:', releasedCard.card.title);
           } else {
+            // Play card placement sound
+            soundManager.play(SoundType.CARD_PLACE);
+
             // Normal case: Calculate the correct array position based on visual drop position
             // Set the exact position where the card was dropped
             releasedCard.setTargetPosition(snapX - releasedCard.width / 2, snapY);
@@ -2857,6 +2875,9 @@ class LANGameApp {
    */
   private giveNewCard(): void {
     try {
+      // Play card shuffle sound for drawing a single card
+      soundManager.play(SoundType.CARD_SHUFFLE);
+      
       if (this.remainingCards.length > 0) {
         const newCardData = this.remainingCards.shift()!;
         
@@ -3134,8 +3155,11 @@ class LANGameApp {
         });
 
         if (isCorrect) {
-          // Correct placement - show green feedback for 2 seconds
+          // Correct placement - show green feedback for 2 seconds and play success sound
           placedCard.setCorrect();
+          setTimeout(() => {
+            soundManager.play(SoundType.SUCCESS);
+          }, 300); // Small delay after placement sound
           console.log('🎮 Card placed correctly - showing green feedback');
           
           // Check for win condition after correct placement
@@ -3146,8 +3170,11 @@ class LANGameApp {
             this.switchToNextPlayer();
           }, 2000); // Wait 2 seconds for green feedback
         } else {
-          // Incorrect placement - show red feedback for 2 seconds, then move to graveyard
+          // Incorrect placement - show red feedback for 2 seconds, then move to graveyard and play error sound
           placedCard.setIncorrect();
+          setTimeout(() => {
+            soundManager.play(SoundType.ERROR);
+          }, 300); // Small delay after placement sound
           console.log('🎮 Card placed incorrectly - showing red feedback');
           
           // After 2 seconds, move the incorrect card to graveyard
@@ -3661,11 +3688,28 @@ document.addEventListener('DOMContentLoaded', () => {
           console.log('✅ AXM.placeLANCard is available, initializing LANGameApp...');
           console.log('✅ Available AXM methods:', Object.keys(window.AXM));
 
-          const lanGameApp = new LANGameApp();
+          // Initialize sound manager first, then create LANGameApp
+          soundManager.init().then(() => {
+            logger.info({ scope: 'renderer/lan-game', msg: 'sound manager initialized' });
+            const lanGameApp = new LANGameApp();
 
-          // Add resize event listener
-          window.addEventListener('resize', () => {
-            lanGameApp.handleResize(window.innerWidth, window.innerHeight);
+            // Add resize event listener
+            window.addEventListener('resize', () => {
+              lanGameApp.handleResize(window.innerWidth, window.innerHeight);
+            });
+          }).catch((error) => {
+            logger.error({ 
+              scope: 'renderer/lan-game', 
+              msg: 'failed to initialize sound manager', 
+              err: { message: error.message } 
+            });
+            // Continue anyway
+            const lanGameApp = new LANGameApp();
+
+            // Add resize event listener
+            window.addEventListener('resize', () => {
+              lanGameApp.handleResize(window.innerWidth, window.innerHeight);
+            });
           });
         } else {
           console.log('⏳ Waiting for AXM.placeLANCard to be available...');
@@ -3680,15 +3724,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
       waitForAXM();
     } else {
-      // Browser-Client: Start immediately with WebSocket
-      console.log('🎮 Browser detected, starting with WebSocket connection...');
-      console.log('🎮 No AXM available, using direct WebSocket communication');
+    // Browser-Client: Start immediately with WebSocket
+    console.log('🎮 Browser detected, starting with WebSocket connection...');
+    console.log('🎮 No AXM available, using direct WebSocket communication');
 
-      const lanGameApp = new LANGameApp();
+      // Initialize sound manager first
+      soundManager.init().then(() => {
+        logger.info({ scope: 'renderer/lan-game', msg: 'sound manager initialized' });
+        const lanGameApp = new LANGameApp();
 
-      // Add resize event listener
-      window.addEventListener('resize', () => {
-        lanGameApp.handleResize(window.innerWidth, window.innerHeight);
+        // Add resize event listener
+        window.addEventListener('resize', () => {
+          lanGameApp.handleResize(window.innerWidth, window.innerHeight);
+        });
+      }).catch((error) => {
+        logger.error({ 
+          scope: 'renderer/lan-game', 
+          msg: 'failed to initialize sound manager', 
+          err: { message: error.message } 
+        });
+        // Continue anyway
+        const lanGameApp = new LANGameApp();
+
+        // Add resize event listener
+        window.addEventListener('resize', () => {
+          lanGameApp.handleResize(window.innerWidth, window.innerHeight);
+        });
       });
     }
   } catch (error) {
