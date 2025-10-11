@@ -694,13 +694,13 @@
       "difficulty": "medium"
     },
     {
-      "id": "halz-brennt",
-      "title": "Halz brennt",
+      "id": "holz-brennt",
+      "title": "Holz brennt",
       "axis": "temperature",
       "value": 300,
       "unit": "°C",
       "displayValue": "300 °C",
-      "image": "Halz brennt - 300",
+      "image": "Holz brennt - 300",
       "facts": ["Temperatur, bei der Holz zu brennen beginnt."],
       "sources": [
         { "label": "NFPA", "url": "https://www.nfpa.org/" }

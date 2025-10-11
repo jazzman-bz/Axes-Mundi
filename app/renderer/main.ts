@@ -3644,49 +3644,228 @@ class AxesMundiApp {
    * Show hotseat win dialog
    */
   private showHotseatWinDialog(winnerName: string): void {
-    const playAgain = confirm(`🎉 Glückwunsch! 🎉\n\n${winnerName} hat das Spiel gewonnen!\n\nAlle Karten wurden erfolgreich sortiert!\n\nNochmal spielen?`);
-
-    if (playAgain) {
-      this.restartGame();
-    } else {
-      // Could close the app or show main menu
-      logger.info({
-        scope: 'renderer/game',
-        msg: 'player chose not to play again after hotseat win',
-      });
-    }
+    const title = '🎉 Glückwunsch! 🎉';
+    const message = `${winnerName} hat das Spiel gewonnen!\n\nAlle Karten wurden erfolgreich sortiert!`;
+    
+    this.showCustomWinDialog(title, message);
   }
 
   /**
    * Show win dialog
    */
   private showWinDialog(): void {
-    const playAgain = confirm(`🎉 Congratulations! 🎉\n\nYou have successfully sorted all cards!\n\nFinal Score: ${this.score}\nTurns taken: ${this.currentTurn}\n\nWant to play again?`);
-
-    if (playAgain) {
-      this.restartGame();
-    } else {
-      // Could close the app or show main menu
-      logger.info({
-        scope: 'renderer/game',
-        msg: 'player chose not to play again',
-      });
-    }
+    const title = '🎉 Glückwunsch! 🎉';
+    const message = `Du hast erfolgreich alle Karten sortiert!\n\nFinale Punktzahl: ${this.score}\nAnzahl Züge: ${this.currentTurn}`;
+    
+    this.showCustomWinDialog(title, message);
   }
 
   /**
    * Show lose dialog
    */
   private showLoseDialog(): void {
-    const playAgain = confirm(`😔 You Lost! 😔\n\nYour opponent sorted all their cards first!\n\nFinal Score: ${this.score}\nTurns taken: ${this.currentTurn}\n\nWant to play again?`);
+    const title = '😔 Verloren! 😔';
+    const message = `Dein Gegner hat alle Karten zuerst sortiert!\n\nFinale Punktzahl: ${this.score}\nAnzahl Züge: ${this.currentTurn}`;
+    
+    this.showCustomWinDialog(title, message);
+  }
 
-    if (playAgain) {
-      this.restartGame();
-    } else {
-      // Could close the app or show main menu
+  /**
+   * Show custom win dialog with two buttons
+   */
+  private showCustomWinDialog(title: string, message: string): void {
+    try {
+      // Create dialog overlay
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        font-family: Arial, sans-serif;
+      `;
+
+      // Create dialog box
+      const dialog = document.createElement('div');
+      dialog.style.cssText = `
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        padding: 40px;
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+      `;
+
+      // Create title
+      const titleElement = document.createElement('h2');
+      titleElement.textContent = title;
+      titleElement.style.cssText = `
+        margin: 0 0 20px 0;
+        font-size: 28px;
+        font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      `;
+
+      // Create message
+      const messageElement = document.createElement('p');
+      messageElement.textContent = message;
+      messageElement.style.cssText = `
+        margin: 0 0 30px 0;
+        font-size: 16px;
+        line-height: 1.5;
+        white-space: pre-line;
+      `;
+
+      // Create button container
+      const buttonContainer = document.createElement('div');
+      buttonContainer.style.cssText = `
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+      `;
+
+      // Create "Nochmal spielen" button
+      const playAgainButton = document.createElement('button');
+      playAgainButton.textContent = 'Nochmal spielen';
+      playAgainButton.style.cssText = `
+        background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 25px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        min-width: 150px;
+      `;
+
+      // Create "Hauptmenü" button
+      const mainMenuButton = document.createElement('button');
+      mainMenuButton.textContent = 'Hauptmenü';
+      mainMenuButton.style.cssText = `
+        background: linear-gradient(135deg, #FF6B6B 0%, #ee5a52 100%);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 25px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        min-width: 150px;
+      `;
+
+      // Add hover effects
+      playAgainButton.addEventListener('mouseenter', () => {
+        playAgainButton.style.transform = 'translateY(-2px)';
+        playAgainButton.style.boxShadow = '0 6px 20px rgba(76, 175, 80, 0.4)';
+      });
+      playAgainButton.addEventListener('mouseleave', () => {
+        playAgainButton.style.transform = 'translateY(0)';
+        playAgainButton.style.boxShadow = '0 4px 15px rgba(76, 175, 80, 0.3)';
+      });
+
+      mainMenuButton.addEventListener('mouseenter', () => {
+        mainMenuButton.style.transform = 'translateY(-2px)';
+        mainMenuButton.style.boxShadow = '0 6px 20px rgba(255, 107, 107, 0.4)';
+      });
+      mainMenuButton.addEventListener('mouseleave', () => {
+        mainMenuButton.style.transform = 'translateY(0)';
+        mainMenuButton.style.boxShadow = '0 4px 15px rgba(255, 107, 107, 0.3)';
+      });
+
+      // Add click handlers with debouncing
+      let isButtonClicked = false;
+      
+      playAgainButton.addEventListener('click', () => {
+        if (isButtonClicked) return;
+        isButtonClicked = true;
+        
+        soundManager.play(SoundType.BUTTON_CLICK);
+        playAgainButton.style.opacity = '0.6';
+        
+        // Small delay to allow sound to play before removing overlay
+        setTimeout(() => {
+          document.body.removeChild(overlay);
+          this.restartGame();
+        }, 100);
+      });
+
+      mainMenuButton.addEventListener('click', () => {
+        if (isButtonClicked) return;
+        isButtonClicked = true;
+        
+        soundManager.play(SoundType.BUTTON_CLICK);
+        mainMenuButton.style.opacity = '0.6';
+        
+        // Small delay to allow sound to play before navigation
+        setTimeout(() => {
+          document.body.removeChild(overlay);
+          this.goToMainMenu();
+        }, 100);
+      });
+
+      // Assemble dialog
+      buttonContainer.appendChild(playAgainButton);
+      buttonContainer.appendChild(mainMenuButton);
+      dialog.appendChild(titleElement);
+      dialog.appendChild(messageElement);
+      dialog.appendChild(buttonContainer);
+      overlay.appendChild(dialog);
+
+      // Add to page
+      document.body.appendChild(overlay);
+
       logger.info({
         scope: 'renderer/game',
-        msg: 'player chose not to play again after losing',
+        msg: 'custom win dialog displayed',
+      });
+
+    } catch (error) {
+      logger.error({
+        scope: 'renderer/game',
+        msg: 'failed to show custom win dialog',
+        err: { message: (error as Error).message },
+      });
+      
+      // Fallback to simple confirm
+      const playAgain = confirm(`${title}\n\n${message}\n\nNochmal spielen?`);
+      if (playAgain) {
+        this.restartGame();
+      } else {
+        this.goToMainMenu();
+      }
+    }
+  }
+
+  /**
+   * Navigate to main menu
+   */
+  private goToMainMenu(): void {
+    try {
+      logger.info({
+        scope: 'renderer/game',
+        msg: 'navigating to main menu',
+      });
+      window.location.href = './index.html';
+    } catch (error) {
+      logger.error({
+        scope: 'renderer/game',
+        msg: 'failed to navigate to main menu',
+        err: { message: (error as Error).message },
       });
     }
   }

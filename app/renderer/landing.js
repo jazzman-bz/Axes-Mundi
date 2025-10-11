@@ -423,6 +423,12 @@ class LandingPageController {
           // Focus on the input field
           const inputField = document.getElementById('server-ip');
           if (inputField) {
+            // Load previously saved IP address from localStorage
+            const savedIP = localStorage.getItem('lastServerIP');
+            if (savedIP) {
+              inputField.value = savedIP;
+              logger.info({ scope: 'landing/lan', msg: 'Loaded saved server IP', meta: { ip: savedIP } });
+            }
             inputField.focus();
           }
         }
@@ -651,9 +657,11 @@ class LandingPageController {
       const serverUrl = `ws://${serverIP}:8080`;
       console.log(`🔍 Connecting to server: ${serverUrl}`);
       
-      // Store server URL in localStorage for later use
+      // Store server IP and URL in localStorage for later use
+      localStorage.setItem('lastServerIP', serverIP);
       localStorage.setItem('lanServerUrl', serverUrl);
-      console.log(`🔍 Stored server URL in localStorage: ${serverUrl}`);
+      console.log(`🔍 Stored server IP and URL in localStorage: ${serverIP}`);
+      logger.info({ scope: 'landing/lan', msg: 'Saved server IP to localStorage', meta: { ip: serverIP } });
       
       // Show loading state
       this.showConnectionStatus(`Connecting to ${serverIP}:8080...`, true);

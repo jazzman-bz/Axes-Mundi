@@ -3428,15 +3428,35 @@ class LANGameApp {
         mainMenuButton.style.boxShadow = '0 4px 15px rgba(255, 107, 107, 0.3)';
       });
 
-      // Add click handlers
+      // Add click handlers with debouncing
+      let isButtonClicked = false;
+      
       playAgainButton.addEventListener('click', () => {
-        document.body.removeChild(overlay);
-        this.restartLANGameWithNotification();
+        if (isButtonClicked) return;
+        isButtonClicked = true;
+        
+        soundManager.play(SoundType.BUTTON_CLICK);
+        playAgainButton.style.opacity = '0.6';
+        
+        // Small delay to allow sound to play before removing overlay
+        setTimeout(() => {
+          document.body.removeChild(overlay);
+          this.restartLANGameWithNotification();
+        }, 100);
       });
 
       mainMenuButton.addEventListener('click', () => {
-        document.body.removeChild(overlay);
-        this.goToMainMenu();
+        if (isButtonClicked) return;
+        isButtonClicked = true;
+        
+        soundManager.play(SoundType.BUTTON_CLICK);
+        mainMenuButton.style.opacity = '0.6';
+        
+        // Small delay to allow sound to play before navigation
+        setTimeout(() => {
+          document.body.removeChild(overlay);
+          this.goToMainMenu();
+        }, 100);
       });
 
       // Assemble dialog
