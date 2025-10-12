@@ -27,6 +27,8 @@ class AxesMundiApp {
 
   private arrowRightImage: HTMLImageElement | null = null;
 
+  private backgroundImage: HTMLImageElement | null = null;
+
   // Game state
   private playerHand: GameCard[] = [];
 
@@ -230,6 +232,7 @@ class AxesMundiApp {
     this.calculateScale(); // Calculate initial scale
     this.loadLogo(); // Load the Axes Mundi logo
     this.loadArrowImages(); // Load arrow images
+    this.loadBackgroundImage(); // Load background image
 
     // Check if this is LAN mode - if so, don't start normal game
     const isLANMode = localStorage.getItem('selectedGameType') === 'lan';
@@ -345,6 +348,30 @@ class AxesMundiApp {
       });
       this.arrowLeftImage = null;
       this.arrowRightImage = null;
+    }
+  }
+
+  /**
+   * Load background image
+   */
+  private loadBackgroundImage(): void {
+    try {
+      this.backgroundImage = new Image();
+      this.backgroundImage.onload = () => {
+        logger.info({ scope: 'renderer/app', msg: 'background image loaded successfully' });
+      };
+      this.backgroundImage.onerror = () => {
+        logger.warn({ scope: 'renderer/app', msg: 'failed to load background image, using fallback color' });
+        this.backgroundImage = null;
+      };
+      this.backgroundImage.src = './assets/background.jpg';
+    } catch (error) {
+      logger.error({
+        scope: 'renderer/app',
+        msg: 'failed to load background image',
+        err: { message: error.message, stack: error.stack },
+      });
+      this.backgroundImage = null;
     }
   }
 
@@ -2606,34 +2633,17 @@ class AxesMundiApp {
       return;
     }
 
-    // Clear canvas
-    ctx.fillStyle = '#2a2a2a';
-    ctx.fillRect(0, 0, width, height);
+    // Draw background
+    if (this.backgroundImage && this.backgroundImage.complete) {
+      // Draw background image scaled to fill canvas
+      ctx.drawImage(this.backgroundImage, 0, 0, width, height);
+    } else {
+      // Fallback to solid color if image not loaded
+      ctx.fillStyle = '#2a2a2a';
+      ctx.fillRect(0, 0, width, height);
+    }
 
-    // Draw axis line
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 4;
-    ctx.globalAlpha = 0.8;
-    ctx.beginPath();
-    ctx.moveTo(100, height / 2);
-    ctx.lineTo(width - 100, height / 2);
-    ctx.stroke();
-
-    // Draw axis collision area (debug visualization)
-    const axisY = height / 2;
-    const axisHeight = 100;
-    const axisTop = axisY - axisHeight / 2;
-    ctx.fillStyle = 'rgba(255, 255, 0, 0.2)'; // Semi-transparent yellow
-    ctx.fillRect(100, axisTop, width - 200, axisHeight);
-    ctx.strokeStyle = 'rgba(255, 255, 0, 0.5)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(100, axisTop, width - 200, axisHeight);
-
-    // Draw axis label
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `${24 * this.scale}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.fillText('Höhe (m)', width / 2, height / 2 - 50 * this.scale);
+    // Axis line and label removed per user request
 
     // Draw board card (if exists)
     if (this.boardCard) {

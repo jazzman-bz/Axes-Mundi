@@ -19,6 +19,8 @@ class LANGameApp {
 
   private logoImage: HTMLImageElement | null = null;
 
+  private backgroundImage: HTMLImageElement | null = null;
+
   // Game state (like Single-Player)
   private playerHand: any[] = [];
 
@@ -80,6 +82,9 @@ class LANGameApp {
 
       // Load logo image
       this.loadLogoImage();
+
+      // Load background image
+      this.loadBackgroundImage();
 
       // Initialize LAN game server
       await this.initLANGame();
@@ -198,6 +203,33 @@ class LANGameApp {
     } catch (error) {
       console.error('🎮 Error loading logo image:', error);
       this.logoImage = null;
+    }
+  }
+
+  /**
+   * Load background image
+   */
+  private loadBackgroundImage(): void {
+    try {
+      this.backgroundImage = new Image();
+      this.backgroundImage.onload = () => {
+        console.log('🎮 Background image loaded successfully');
+        logger.info({ scope: 'renderer/lan-game', msg: 'background image loaded successfully' });
+      };
+      this.backgroundImage.onerror = () => {
+        console.warn('🎮 Failed to load background image, using fallback color');
+        logger.warn({ scope: 'renderer/lan-game', msg: 'failed to load background image, using fallback color' });
+        this.backgroundImage = null;
+      };
+      this.backgroundImage.src = './assets/background.jpg';
+    } catch (error) {
+      console.error('🎮 Error loading background image:', error);
+      logger.error({
+        scope: 'renderer/lan-game',
+        msg: 'failed to load background image',
+        err: { message: error.message, stack: error.stack },
+      });
+      this.backgroundImage = null;
     }
   }
 
@@ -589,11 +621,16 @@ class LANGameApp {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         // Draw background
-        this.ctx.fillStyle = '#2a2a2a';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        if (this.backgroundImage && this.backgroundImage.complete) {
+          // Draw background image scaled to fill canvas
+          this.ctx.drawImage(this.backgroundImage, 0, 0, this.canvas.width, this.canvas.height);
+        } else {
+          // Fallback to solid color if image not loaded
+          this.ctx.fillStyle = '#2a2a2a';
+          this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        }
 
-        // Draw axis line
-        this.drawAxis();
+        // Axis line and label removed per user request
 
         // Draw all cards
         this.drawCards();
@@ -609,26 +646,6 @@ class LANGameApp {
     // Start the game loop
     gameLoop();
     console.log('🎮 Game loop started');
-  }
-
-  /**
-   * Draw axis line (like Single-Player)
-   */
-  private drawAxis(): void {
-    if (!this.ctx || !this.canvas) return;
-
-    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-    this.ctx.lineWidth = 4 * this.scale;
-    this.ctx.beginPath();
-    this.ctx.moveTo(100 * this.scale, this.canvas.height / 2);
-    this.ctx.lineTo(this.canvas.width - 100 * this.scale, this.canvas.height / 2);
-    this.ctx.stroke();
-
-    // Draw axis label
-    this.ctx.fillStyle = '#ffffff';
-    this.ctx.font = `${24 * this.scale}px Arial`;
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText('Höhe (m)', this.canvas.width / 2, this.canvas.height / 2 - 50 * this.scale);
   }
 
   /**
@@ -3375,23 +3392,6 @@ class LANGameApp {
         flex-wrap: wrap;
       `;
 
-      // Create "Nochmal spielen" button
-      const playAgainButton = document.createElement('button');
-      playAgainButton.textContent = 'Nochmal spielen';
-      playAgainButton.style.cssText = `
-        background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-        color: white;
-        border: none;
-        padding: 15px 30px;
-        border-radius: 25px;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
-        min-width: 150px;
-      `;
-
       // Create "Hauptmenü" button
       const mainMenuButton = document.createElement('button');
       mainMenuButton.textContent = 'Hauptmenü';
@@ -3410,15 +3410,6 @@ class LANGameApp {
       `;
 
       // Add hover effects
-      playAgainButton.addEventListener('mouseenter', () => {
-        playAgainButton.style.transform = 'translateY(-2px)';
-        playAgainButton.style.boxShadow = '0 6px 20px rgba(76, 175, 80, 0.4)';
-      });
-      playAgainButton.addEventListener('mouseleave', () => {
-        playAgainButton.style.transform = 'translateY(0)';
-        playAgainButton.style.boxShadow = '0 4px 15px rgba(76, 175, 80, 0.3)';
-      });
-
       mainMenuButton.addEventListener('mouseenter', () => {
         mainMenuButton.style.transform = 'translateY(-2px)';
         mainMenuButton.style.boxShadow = '0 6px 20px rgba(255, 107, 107, 0.4)';
@@ -3430,20 +3421,6 @@ class LANGameApp {
 
       // Add click handlers with debouncing
       let isButtonClicked = false;
-      
-      playAgainButton.addEventListener('click', () => {
-        if (isButtonClicked) return;
-        isButtonClicked = true;
-        
-        soundManager.play(SoundType.BUTTON_CLICK);
-        playAgainButton.style.opacity = '0.6';
-        
-        // Small delay to allow sound to play before removing overlay
-        setTimeout(() => {
-          document.body.removeChild(overlay);
-          this.restartLANGameWithNotification();
-        }, 100);
-      });
 
       mainMenuButton.addEventListener('click', () => {
         if (isButtonClicked) return;
@@ -3460,7 +3437,6 @@ class LANGameApp {
       });
 
       // Assemble dialog
-      buttonContainer.appendChild(playAgainButton);
       buttonContainer.appendChild(mainMenuButton);
       dialog.appendChild(titleElement);
       dialog.appendChild(messageElement);
@@ -3474,13 +3450,9 @@ class LANGameApp {
 
     } catch (error) {
       console.error('🎮 Failed to show custom win dialog:', error);
-      // Fallback to simple confirm
-      const playAgain = confirm(`${title}\n\n${message}\n\nNochmal spielen?`);
-      if (playAgain) {
-        this.restartLANGame();
-      } else {
-        this.goToMainMenu();
-      }
+      // Fallback to simple alert and navigate to main menu
+      alert(`${title}\n\n${message}`);
+      this.goToMainMenu();
     }
   }
 
@@ -3519,39 +3491,6 @@ class LANGameApp {
       
     } catch (error) {
       console.error('🎮 Failed to send remaining cards update:', error);
-    }
-  }
-
-  /**
-   * Restart the LAN game with notification to other player
-   * This method sends a restart request to the other player
-   */
-  private restartLANGameWithNotification(): void {
-    try {
-      console.log('🎮 Restarting LAN game with notification to other player...');
-      
-      // Send restart request to other player via WebSocket
-      const isServerClient = localStorage.getItem('isServerClient') === 'true';
-      
-      if (isServerClient && this.lanGame?.lanClient) {
-        // Server-Client: Send via WebSocket client
-        this.lanGame.lanClient.sendGameRestart();
-        console.log('🎮 Sent game restart request via WebSocket client');
-      } else if (!isServerClient && this.lanGame?.lanClient) {
-        // Browser-Client: Send via WebSocket client
-        this.lanGame.lanClient.sendGameRestart();
-        console.log('🎮 Sent game restart request via WebSocket client');
-      } else {
-        console.warn('🎮 Cannot send restart request - WebSocket client not available');
-      }
-      
-      // Also restart locally
-      this.restartLANGame();
-      
-    } catch (error) {
-      console.error('🎮 Failed to restart LAN game with notification:', error);
-      // Fallback: restart locally only
-      this.restartLANGame();
     }
   }
 
