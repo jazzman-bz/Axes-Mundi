@@ -15,8 +15,6 @@ class LANGameApp {
 
   private ctx: CanvasRenderingContext2D | null = null;
 
-  private lastLoggedPlayer: string | null = null;
-
   private logoImage: HTMLImageElement | null = null;
 
   private backgroundImage: HTMLImageElement | null = null;
@@ -227,7 +225,7 @@ class LANGameApp {
       logger.error({
         scope: 'renderer/lan-game',
         msg: 'failed to load background image',
-        err: { message: error.message, stack: error.stack },
+        err: { message: (error as Error).message, stack: (error as Error).stack },
       });
       this.backgroundImage = null;
     }
@@ -469,7 +467,7 @@ class LANGameApp {
     console.log('🎮 Dealing card to player:', cardData);
 
     // Find the actual card data by ID
-    const actualCardData = deck.cards.find((card) => card.id === cardData.id);
+    const actualCardData = deck.cards.find((card: any) => card.id === cardData.id);
     if (!actualCardData) {
       console.error('🎮 Card not found in deck:', cardData.id);
       return;
@@ -504,7 +502,7 @@ class LANGameApp {
     console.log('🎮 Dealing card to opponent:', cardData);
 
     // Find the actual card data by ID
-    const actualCardData = deck.cards.find((card) => card.id === cardData.id);
+    const actualCardData = deck.cards.find((card: any) => card.id === cardData.id);
     if (!actualCardData) {
       console.error('🎮 Card not found in deck:', cardData.id);
       return;
@@ -542,7 +540,7 @@ class LANGameApp {
     console.log('🎮 Client: Dealing card to client hand:', cardData);
 
     // Find the actual card data by ID
-    const actualCardData = deck.cards.find((card) => card.id === cardData.id);
+    const actualCardData = deck.cards.find((card: any) => card.id === cardData.id);
     if (!actualCardData) {
       console.error('🎮 Client: Card not found in deck:', cardData.id);
       return;
@@ -577,7 +575,7 @@ class LANGameApp {
     console.log('🎮 Client: Dealing card to server hand (card back):', cardData);
 
     // Find the actual card data by ID
-    const actualCardData = deck.cards.find((card) => card.id === cardData.id);
+    const actualCardData = deck.cards.find((card: any) => card.id === cardData.id);
     if (!actualCardData) {
       console.error('🎮 Client: Card not found in deck:', cardData.id);
       return;
@@ -1149,7 +1147,7 @@ class LANGameApp {
       logger.error({
         scope: 'renderer/lan-game',
         msg: 'resize failed',
-        err: { message: error.message, stack: error.stack },
+        err: { message: (error as Error).message, stack: (error as Error).stack },
       });
     }
   }
@@ -1197,51 +1195,6 @@ class LANGameApp {
 
     console.log('🎮 Opponent hand laid out:', this.opponentHand.length, 'cards');
   }
-
-  /**
-   * Re-center the entire board after layout changes
-   * This ensures all cards are properly positioned relative to the center
-   */
-  private recenterBoard(): void {
-    try {
-      if (this.board.length === 0) return;
-
-      console.log('🎮 Recentering board with', this.board.length, 'cards');
-
-      // Get the current board state
-      const allPlacedCards = this.getAllPlacedCardsInOrder();
-
-      // Calculate the total width needed for all cards
-      const cardWidth = 200 * this.scale;
-      const cardSpacing = 20 * this.scale;
-      const totalWidth = allPlacedCards.length * cardWidth + (allPlacedCards.length - 1) * cardSpacing;
-
-      // Calculate the starting X position to center the entire board
-      const startX = (this.canvas!.width - totalWidth) / 2;
-      const centerY = this.canvas!.height / 2 - cardWidth / 2;
-
-      // Position each card with proper spacing
-      allPlacedCards.forEach((card, index) => {
-        const targetX = startX + index * (cardWidth + cardSpacing);
-        card.setTargetPosition(targetX, centerY);
-
-        console.log('🎮 Recentered card:', {
-          index,
-          title: card.card.title,
-          targetX,
-          centerY,
-        });
-      });
-
-      // Update the board array to match the new order
-      this.board = [...allPlacedCards];
-
-      console.log('🎮 Board recentering completed');
-    } catch (error) {
-      console.error('🎮 Failed to recenter board:', error);
-    }
-  }
-
 
   /**
    * Layout all cards on the axis - center them with proper spacing (like Single-Player)
@@ -1418,7 +1371,7 @@ class LANGameApp {
       logger.error({
         scope: 'renderer/lan-game',
         msg: 'failed to handle LAN status update',
-        err: { message: error.message, stack: error.stack },
+        err: { message: (error as Error).message, stack: (error as Error).stack },
       });
     }
   }
@@ -2444,20 +2397,6 @@ class LANGameApp {
   }
 
   /**
-   * Get all placed cards in their current array order
-   */
-  private getAllPlacedCardsInOrder(): any[] {
-    try {
-      // Board array is already sorted by insertion order
-      // Return a copy to avoid mutations
-      return [...this.board];
-    } catch (error) {
-      console.error('🎮 Failed to get placed cards in order:', error);
-      return [];
-    }
-  }
-
-  /**
    * Calculate target coordinates for a card based on board position
    */
   private calculateTargetCoordinates(boardPosition: number): { x: number, y: number } {
@@ -2503,49 +2442,6 @@ class LANGameApp {
         x: this.canvas!.width / 2 - 100 * this.scale,
         y: this.canvas!.height / 2 - 150 * this.scale,
       };
-    }
-  }
-
-  /**
-   * Calculate board position for a card based on current board state
-   */
-  private calculateBoardPositionForCard(cardId: string, allPlacedCards: any[]): number {
-    try {
-      // If no cards are placed yet, position 0
-      if (allPlacedCards.length === 0) {
-        return 0;
-      }
-
-      // Find the card that was just placed in the board array (not in hand anymore)
-      const placedCard = this.board.find((c) => c.card.id === cardId);
-      if (!placedCard) {
-        console.warn('🎮 Card not found in board for board position calculation:', cardId);
-        return allPlacedCards.length; // Place at the end
-      }
-
-      // Calculate the actual position based on where the card was dropped
-      // Find the index of this card in the sorted array
-      const cardIndex = allPlacedCards.findIndex((c) => c.card.id === cardId);
-      if (cardIndex === -1) {
-        console.warn('🎮 Card not found in sorted placed cards:', cardId);
-        return allPlacedCards.length; // Place at the end
-      }
-
-      const boardPosition = cardIndex;
-
-      console.log('🎮 Calculated board position for card:', {
-        cardId,
-        cardTitle: placedCard.card.title,
-        boardPosition,
-        totalPlacedCards: allPlacedCards.length,
-        actualX: placedCard.x,
-        sortedIndex: cardIndex,
-      });
-
-      return boardPosition;
-    } catch (error) {
-      console.error('🎮 Failed to calculate board position for card:', error);
-      return 0;
     }
   }
 
@@ -2698,7 +2594,7 @@ class LANGameApp {
       logger.error({
         scope: 'renderer/lan-game',
         msg: 'failed to handle game state update',
-        err: { message: error.message, stack: error.stack },
+        err: { message: (error as Error).message, stack: (error as Error).stack },
       });
     }
   }
@@ -2757,7 +2653,7 @@ class LANGameApp {
       logger.error({
         scope: 'renderer/lan-game',
         msg: 'failed to update placed cards visualization',
-        err: { message: error.message, stack: error.stack },
+        err: { message: (error as Error).message, stack: (error as Error).stack },
       });
     }
   }
@@ -2916,7 +2812,6 @@ class LANGameApp {
           const isServerClient = localStorage.getItem('isServerClient') === 'true';
           const currentPlayer = localStorage.getItem('currentPlayer');
           const serverPlayerName = localStorage.getItem('serverPlayerName');
-          const clientPlayerName = localStorage.getItem('clientPlayerName');
 
           // Determine who placed the incorrect card (and should get a new card)
           let shouldGiveToServer = false;
@@ -3469,32 +3364,6 @@ class LANGameApp {
   }
 
   /**
-   * Send remaining cards update to other player
-   */
-  private sendRemainingCardsUpdate(): void {
-    try {
-      console.log('🎮 Sending remaining cards update to other player...');
-      
-      const isServerClient = localStorage.getItem('isServerClient') === 'true';
-      
-      if (isServerClient && this.lanGame?.lanClient) {
-        // Server-Client: Send via WebSocket client
-        this.lanGame.lanClient.sendRemainingCardsUpdate(this.remainingCards.length);
-        console.log('🎮 Sent remaining cards update via WebSocket client:', this.remainingCards.length);
-      } else if (!isServerClient && this.lanGame?.lanClient) {
-        // Browser-Client: Send via WebSocket client
-        this.lanGame.lanClient.sendRemainingCardsUpdate(this.remainingCards.length);
-        console.log('🎮 Sent remaining cards update via WebSocket client:', this.remainingCards.length);
-      } else {
-        console.warn('🎮 Cannot send remaining cards update - WebSocket client not available');
-      }
-      
-    } catch (error) {
-      console.error('🎮 Failed to send remaining cards update:', error);
-    }
-  }
-
-  /**
    * Restart the LAN game with the same deck
    * The loser of the previous game will start the new game
    */
@@ -3643,7 +3512,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('🎮 Electron detected, waiting for AXM.placeLANCard...');
 
       const waitForAXM = () => {
-        if (window.AXM && window.AXM.placeLANCard) {
+        if (window.AXM && typeof window.AXM.placeLANCard === 'function') {
           console.log('✅ AXM.placeLANCard is available, initializing LANGameApp...');
           console.log('✅ Available AXM methods:', Object.keys(window.AXM));
 
