@@ -795,6 +795,12 @@ export class GameCard {
     ctx.fillStyle = '#2c3e50';
     this.drawRoundedRect(ctx, cardX, cardY, this.width, this.height, 6 * this.scale);
 
+    // Draw black border (1px) around card back
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    this.drawRoundedRect(ctx, cardX, cardY, this.width, this.height, 6 * this.scale);
+    ctx.stroke();
+
     // Draw decorative pattern
     ctx.fillStyle = '#34495e';
     const patternSize = 20 * this.scale;

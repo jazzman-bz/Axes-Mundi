@@ -2645,6 +2645,9 @@ class AxesMundiApp {
 
     // Axis line and label removed per user request
 
+    // Draw hand position indicators (gray boxes) - BEFORE cards so cards are on top
+    this.drawHandPositionIndicators(ctx);
+
     // Draw board card (if exists)
     if (this.boardCard) {
       this.boardCard.render(ctx);
@@ -2771,9 +2774,6 @@ class AxesMundiApp {
 
     // Draw deck stack
     this.drawDeckStack(ctx);
-
-    // Draw hand position indicators (gray boxes)
-    this.drawHandPositionIndicators(ctx);
 
     // Draw learning mode buttons (if needed)
     if (this.isLearningMode) {
@@ -2988,7 +2988,7 @@ class AxesMundiApp {
     const playerStartX = (this.gameCanvas.width - playerTotalWidth) / 2;
     const playerY = this.gameCanvas.height - 320 * this.scale;
 
-    ctx.fillStyle = 'rgba(128, 128, 128, 0.2)'; // Semi-transparent gray
+    ctx.fillStyle = 'rgba(128, 128, 128, 0.5)'; // Semi-transparent gray
     ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
     ctx.lineWidth = 2;
 
@@ -3306,6 +3306,12 @@ class AxesMundiApp {
     ctx.fillStyle = '#ffffff';
     this.drawRoundedRect(ctx, x, y, width, height, 6);
 
+    // Draw black border (1px) around card back
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    this.drawRoundedRect(ctx, x, y, width, height, 6);
+    ctx.stroke();
+
     // Calculate logo dimensions to fit nicely on the card
     const logoSize = Math.min(width, height) * 0.8;
     const logoX = x + (width - logoSize) / 2;
@@ -3353,6 +3359,12 @@ class AxesMundiApp {
     // Fill white background with rounded corners
     ctx.fillStyle = '#ffffff';
     this.drawRoundedRect(ctx, x, y, width, height, 6);
+
+    // Draw black border (1px) around card back
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    this.drawRoundedRect(ctx, x, y, width, height, 6);
+    ctx.stroke();
 
     // Calculate logo dimensions to fill most of the card
     const logoSize = Math.min(width, height) * 0.9;

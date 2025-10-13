@@ -630,6 +630,9 @@ class LANGameApp {
 
         // Axis line and label removed per user request
 
+        // Draw hand position indicators (gray boxes) - BEFORE cards so cards are on top
+        this.drawHandPositionIndicators(this.ctx);
+
         // Draw all cards
         this.drawCards();
 
@@ -870,6 +873,71 @@ class LANGameApp {
   }
 
   /**
+   * Draw hand position indicators (gray boxes for player and opponent hands)
+   */
+  private drawHandPositionIndicators(ctx: CanvasRenderingContext2D): void {
+    if (!this.canvas) return;
+
+    const cardHeight = 300 * this.scale;
+    const cardSpacing = 220 * this.scale;
+
+    // Draw player hand area (bottom) - single large box
+    const playerTotalWidth = 5 * cardSpacing - 20 * this.scale;
+    const playerStartX = (this.canvas.width - playerTotalWidth) / 2;
+    const playerY = this.canvas.height - 320 * this.scale;
+
+    ctx.fillStyle = 'rgba(128, 128, 128, 0.5)'; // Semi-transparent gray
+    ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
+    ctx.lineWidth = 2;
+
+    // Single box covering entire player hand area
+    this.roundRect(
+      ctx,
+      playerStartX - 10 * this.scale,
+      playerY - 10 * this.scale,
+      playerTotalWidth + 20 * this.scale,
+      cardHeight + 20 * this.scale,
+      12,
+    );
+    ctx.fill();
+    ctx.stroke();
+
+    // Draw opponent hand area (top) - single large box
+    const opponentTotalWidth = 5 * cardSpacing - 20 * this.scale;
+    const opponentStartX = (this.canvas.width - opponentTotalWidth) / 2;
+    const opponentY = 20 * this.scale;
+
+    // Single box covering entire opponent hand area
+    this.roundRect(
+      ctx,
+      opponentStartX - 10 * this.scale,
+      opponentY - 10 * this.scale,
+      opponentTotalWidth + 20 * this.scale,
+      cardHeight + 20 * this.scale,
+      12,
+    );
+    ctx.fill();
+    ctx.stroke();
+
+    // Draw labels
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `${14 * this.scale}px Arial`;
+    ctx.textAlign = 'center';
+
+    const serverPlayerName = localStorage.getItem('serverPlayerName') || 'Server';
+    const clientPlayerName = localStorage.getItem('clientPlayerName') || 'Client';
+    const isServerClient = localStorage.getItem('isServerClient') === 'true';
+
+    // Label for player hand (bottom)
+    const playerLabel = isServerClient ? `${serverPlayerName} Hand` : `${clientPlayerName} Hand`;
+    ctx.fillText(playerLabel, this.canvas.width / 2, playerY - 20 * this.scale);
+
+    // Label for opponent hand (top)
+    const opponentLabel = isServerClient ? `${clientPlayerName} Hand` : `${serverPlayerName} Hand`;
+    ctx.fillText(opponentLabel, this.canvas.width / 2, opponentY + cardHeight + 40 * this.scale);
+  }
+
+  /**
    * Draw Axes Mundi Logo using the actual image
    */
   private drawAxesMundiLogoImage(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number): void {
@@ -887,6 +955,12 @@ class LANGameApp {
     ctx.fillStyle = '#ffffff';
     this.roundRect(ctx, x, y, width, height, 6);
     ctx.fill();
+
+    // Draw black border (1px) around card back
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    this.roundRect(ctx, x, y, width, height, 6);
+    ctx.stroke();
 
     // Calculate logo dimensions to fit nicely on the card
     const logoSize = Math.min(width, height) * 0.8;
@@ -916,6 +990,12 @@ class LANGameApp {
     ctx.fillStyle = '#ffffff';
     this.roundRect(ctx, x, y, width, height, 6);
     ctx.fill();
+
+    // Draw black border (1px) around card back
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    this.roundRect(ctx, x, y, width, height, 6);
+    ctx.stroke();
 
     // Calculate logo dimensions to fill most of the card
     const logoSize = Math.min(width, height) * 0.9;
