@@ -935,6 +935,33 @@ class LANGameApp {
     // Label for opponent hand (top)
     const opponentLabel = isServerClient ? `${clientPlayerName} Hand` : `${serverPlayerName} Hand`;
     ctx.fillText(opponentLabel, this.canvas.width / 2, opponentY + cardHeight + 40 * this.scale);
+
+    // Draw graveyard area indicator (top right)
+    const graveyardX = this.canvas.width - 230 * this.scale; // Adjusted for wider box
+    const graveyardY = 50 * this.scale;
+    const graveyardBoxWidth = 200 * this.scale; // Same as card width
+    const graveyardBoxHeight = cardHeight;
+
+    ctx.fillStyle = 'rgba(128, 128, 128, 0.5)'; // Semi-transparent gray
+    ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
+    ctx.lineWidth = 2;
+
+    this.roundRect(
+      ctx,
+      graveyardX - 10 * this.scale,
+      graveyardY - 10 * this.scale,
+      graveyardBoxWidth + 20 * this.scale,
+      graveyardBoxHeight + 20 * this.scale,
+      12,
+    );
+    ctx.fill();
+    ctx.stroke();
+
+    // Draw graveyard label
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `${14 * this.scale}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText('Graveyard', graveyardX + graveyardBoxWidth / 2, graveyardY - 20 * this.scale);
   }
 
   /**
@@ -2844,7 +2871,7 @@ class LANGameApp {
   private animateCardToGraveyard(card: GameCard): void {
     try {
       // Calculate graveyard position (top right corner)
-      const graveyardX = this.canvas!.width - 150 * this.scale; // 150px from right edge
+      const graveyardX = this.canvas!.width - 230 * this.scale; // Aligned with graveyard box
       const graveyardY = 50 * this.scale; // 50px from top
 
       // Set target position for smooth animation

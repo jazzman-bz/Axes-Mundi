@@ -483,7 +483,7 @@ class AxesMundiApp {
 
       // Update graveyard positions if any cards exist there
       if (this.graveyard.length > 0) {
-        const graveyardX = this.gameCanvas.width - 150 * this.scale;
+        const graveyardX = this.gameCanvas.width - 230 * this.scale; // Aligned with graveyard box
         const graveyardY = 50 * this.scale;
         this.graveyard.forEach((card) => {
           card.setTargetPosition(graveyardX, graveyardY);
@@ -2734,8 +2734,8 @@ class AxesMundiApp {
 
     // Draw turn text (only in normal mode, not hotseat)
     if (this.turnText && !this.isLearningMode && !this.isHotseatMode) {
-      ctx.fillStyle = this.isPlayerTurn ? '#4caf50' : '#ff9800';
-      ctx.font = `bold ${20 * this.scale}px Arial`;
+      ctx.fillStyle = this.isPlayerTurn ? '#7bed9f' : '#ff9800'; // Light green for player turn
+      ctx.font = `bold ${15 * this.scale}px Arial`;
       ctx.textAlign = 'left';
       ctx.fillText(this.turnText, 20 * this.scale, 90 * this.scale);
     }
@@ -2756,7 +2756,7 @@ class AxesMundiApp {
       const progressWidth = timerBarWidth * progress;
 
       // Color based on time remaining
-      let timerColor = '#4caf50'; // Green
+      let timerColor = '#7bed9f'; // Light green
       if (this.turnTimer <= 3) {
         timerColor = '#ff4444'; // Red
       } else if (this.turnTimer <= 5) {
@@ -2784,14 +2784,6 @@ class AxesMundiApp {
     // Draw graveyard cards
     for (const card of this.graveyard) {
       card.render(ctx);
-    }
-
-    // Draw graveyard label
-    if (this.graveyard.length > 0) {
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `${16 * this.scale}px Arial`;
-      ctx.textAlign = 'center';
-      ctx.fillText('Graveyard', this.gameCanvas.width - 150 * this.scale + 60 * this.scale, 30 * this.scale);
     }
 
     // Draw win overlay if game is won (not in learning mode)
@@ -3054,6 +3046,62 @@ class AxesMundiApp {
       ctx.font = `${14 * this.scale}px Arial`;
       ctx.textAlign = 'center';
       ctx.fillText('Player Hand', this.gameCanvas.width / 2, playerY - 20 * this.scale);
+    }
+
+    // Draw graveyard area indicator (top right)
+    const graveyardX = this.gameCanvas.width - 230 * this.scale; // Adjusted for wider box
+    const graveyardY = 50 * this.scale;
+    const graveyardBoxWidth = 200 * this.scale; // Same as card width
+    const graveyardBoxHeight = cardHeight;
+
+    ctx.fillStyle = 'rgba(128, 128, 128, 0.5)'; // Semi-transparent gray
+    ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
+    ctx.lineWidth = 2;
+
+    this.roundRect(
+      ctx,
+      graveyardX - 10 * this.scale,
+      graveyardY - 10 * this.scale,
+      graveyardBoxWidth + 20 * this.scale,
+      graveyardBoxHeight + 20 * this.scale,
+      12,
+    );
+    ctx.fill();
+    ctx.stroke();
+
+    // Draw graveyard label
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `${14 * this.scale}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText('Graveyard', graveyardX + graveyardBoxWidth / 2, graveyardY - 20 * this.scale);
+
+    // Draw score/timer area indicator (top left) - only in normal mode, not learning mode
+    if (!this.isLearningMode && !this.isHotseatMode) {
+      const scoreBoxX = 10 * this.scale;
+      const scoreBoxY = 20 * this.scale;
+      const scoreBoxWidth = 260 * this.scale; // Extended by 40px
+      const scoreBoxHeight = 95 * this.scale;
+
+      ctx.fillStyle = 'rgba(128, 128, 128, 0.7)'; // Semi-transparent gray with higher alpha
+      ctx.strokeStyle = 'rgba(128, 128, 128, 0.7)';
+      ctx.lineWidth = 2;
+
+      this.roundRect(
+        ctx,
+        scoreBoxX,
+        scoreBoxY,
+        scoreBoxWidth,
+        scoreBoxHeight,
+        12,
+      );
+      ctx.fill();
+      ctx.stroke();
+
+      // Draw label
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `${12 * this.scale}px Arial`;
+      ctx.textAlign = 'left';
+      ctx.fillText('Game Info', scoreBoxX + 10 * this.scale, scoreBoxY - 5 * this.scale);
     }
   }
 
@@ -3937,7 +3985,7 @@ class AxesMundiApp {
    */
   private animateCardToGraveyard(card: GameCard): void {
     // Calculate graveyard position (top right corner)
-    const graveyardX = this.gameCanvas.width - 150 * this.scale; // 150px from right edge
+    const graveyardX = this.gameCanvas.width - 230 * this.scale; // Aligned with graveyard box
     const graveyardY = 50 * this.scale; // 50px from top
 
     // Set target position for smooth animation
