@@ -4,6 +4,27 @@ import { GameCard } from './game/Card';
 import { soundManager, SoundType } from '@/utils/soundManager';
 
 /**
+ * Avatar emoji mapping
+ * Maps avatar ID (1-6) to emoji
+ */
+const AVATAR_EMOJIS: Record<string, string> = {
+  '1': '👨‍🚀', // Astronaut
+  '2': '🧙‍♂️', // Magier
+  '3': '🏴‍☠️', // Pirat
+  '4': '🦄', // Einhorn
+  '5': '🤖', // Roboter
+  '6': '🐉', // Drache
+};
+
+/**
+ * Get avatar emoji from avatar ID
+ */
+function getAvatarEmoji(avatarId: string | number | null | undefined): string {
+  if (!avatarId) return '👤';
+  return AVATAR_EMOJIS[String(avatarId)] || '👤';
+}
+
+/**
  * LAN Game Main Application
  * Handles the canvas initialization and card distribution for LAN mode
  * Based on Single-Player AI mechanics
@@ -873,6 +894,41 @@ class LANGameApp {
   }
 
   /**
+   * Draw avatar box (styled like landing page avatar selection)
+   * Shows avatar emoji centered with player name below
+   * Square box (200x200)
+   */
+  private drawAvatarBox(ctx: CanvasRenderingContext2D, x: number, y: number, avatar: string, name: string): void {
+    const boxWidth = 200 * this.scale;
+    const boxHeight = 200 * this.scale;
+    const borderRadius = 15 * this.scale;
+
+    // Draw background box (10% transparency / 90% opaque gray)
+    ctx.fillStyle = 'rgba(128, 128, 128, 0.9)';
+    ctx.strokeStyle = 'rgba(128, 128, 128, 0.9)';
+    ctx.lineWidth = 2;
+
+    this.roundRect(ctx, x, y, boxWidth, boxHeight, borderRadius);
+    ctx.fill();
+    ctx.stroke();
+
+    // Draw avatar emoji (large, centered in upper portion)
+    ctx.fillStyle = '#000000';
+    ctx.font = `${96 * this.scale}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(avatar, x + boxWidth / 2, y + boxHeight / 2 - 25 * this.scale);
+
+    // Draw player name (below avatar, larger, black)
+    ctx.font = `bold ${26 * this.scale}px Arial`;
+    ctx.textBaseline = 'top';
+    ctx.fillText(name, x + boxWidth / 2, y + boxHeight / 2 + 35 * this.scale);
+
+    // Reset text baseline
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  /**
    * Draw hand position indicators (gray boxes for player and opponent hands)
    */
   private drawHandPositionIndicators(ctx: CanvasRenderingContext2D): void {
@@ -919,22 +975,33 @@ class LANGameApp {
     ctx.fill();
     ctx.stroke();
 
-    // Draw labels
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `${14 * this.scale}px Arial`;
-    ctx.textAlign = 'center';
-
+    // Get player data
     const serverPlayerName = localStorage.getItem('serverPlayerName') || 'Server';
     const clientPlayerName = localStorage.getItem('clientPlayerName') || 'Client';
     const isServerClient = localStorage.getItem('isServerClient') === 'true';
 
-    // Label for player hand (bottom)
-    const playerLabel = isServerClient ? `${serverPlayerName} Hand` : `${clientPlayerName} Hand`;
-    ctx.fillText(playerLabel, this.canvas.width / 2, playerY - 20 * this.scale);
+    // Get player avatar from localStorage
+    let playerAvatar = '👤';
+    try {
+      const playerDataStr = localStorage.getItem('axesMundiPlayer');
+      if (playerDataStr) {
+        const playerData = JSON.parse(playerDataStr);
+        playerAvatar = getAvatarEmoji(playerData.avatar);
+      }
+    } catch (e) {
+      // Fallback to default avatar
+    }
 
-    // Label for opponent hand (top)
-    const opponentLabel = isServerClient ? `${clientPlayerName} Hand` : `${serverPlayerName} Hand`;
-    ctx.fillText(opponentLabel, this.canvas.width / 2, opponentY + cardHeight + 40 * this.scale);
+    // Draw avatar boxes centered above/below hand areas (square: 200x200)
+    const avatarBoxWidth = 200 * this.scale;
+    const avatarBoxHeight = 200 * this.scale;
+    const playerName = isServerClient ? serverPlayerName : clientPlayerName;
+    const opponentName = isServerClient ? clientPlayerName : serverPlayerName;
+
+    // Draw player avatar box (centered above player hand, 20px gap)
+    this.drawAvatarBox(ctx, this.canvas.width / 2 - avatarBoxWidth / 2, playerY - avatarBoxHeight - 20 * this.scale, playerAvatar, playerName);
+    // Draw opponent avatar box (centered below opponent hand, 20px gap)
+    this.drawAvatarBox(ctx, this.canvas.width / 2 - avatarBoxWidth / 2, opponentY + cardHeight + 20 * this.scale, '👤', opponentName);
 
     // Draw graveyard area indicator (top right)
     const graveyardX = this.canvas.width - 230 * this.scale; // Adjusted for wider box

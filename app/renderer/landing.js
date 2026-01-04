@@ -15,6 +15,27 @@ const logger = {
 };
 
 /**
+ * Avatar emoji mapping
+ * Maps avatar ID (1-6) to emoji
+ */
+const AVATAR_EMOJIS = {
+  '1': '👨‍🚀', // Astronaut
+  '2': '🧙‍♂️', // Magier
+  '3': '🏴‍☠️', // Pirat
+  '4': '🦄', // Einhorn
+  '5': '🤖', // Roboter
+  '6': '🐉', // Drache
+};
+
+/**
+ * Get avatar emoji from avatar ID
+ */
+function getAvatarEmoji(avatarId) {
+  if (!avatarId) return '👤';
+  return AVATAR_EMOJIS[String(avatarId)] || '👤';
+}
+
+/**
  * Landing Page Controller
  */
 class LandingPageController {
@@ -171,6 +192,15 @@ class LandingPageController {
         playerForm.addEventListener('submit', this.handlePlayerFormSubmit.bind(this));
       }
 
+      // Player name input - update header display on input change
+      const playerNameInput = document.getElementById('player-name');
+      if (playerNameInput) {
+        playerNameInput.addEventListener('input', (event) => {
+          this.playerData.name = event.target.value.trim();
+          this.updatePlayerInfoDisplay();
+        });
+      }
+
       // Avatar selection (for both player forms)
       const avatarOptions = document.querySelectorAll('.avatar-option');
       avatarOptions.forEach(option => {
@@ -267,6 +297,9 @@ class LandingPageController {
       this.playerData.name = playerName;
       this.savePlayerData();
       
+      // Show player info in header
+      this.updatePlayerInfoDisplay();
+      
       // Navigate to next section
       this.navigateToSection('game-mode-selection');
       
@@ -316,6 +349,8 @@ class LandingPageController {
         });
       } else {
         this.playerData.avatar = avatarId;
+        // Update header display immediately when avatar changes
+        this.updatePlayerInfoDisplay();
         logger.debug({ 
           scope: 'landing/avatar', 
           msg: 'first player avatar selected', 
@@ -1321,6 +1356,11 @@ class LandingPageController {
         if (nameInput && this.playerData.name) {
           nameInput.value = this.playerData.name;
         }
+        
+        // Show player info in header if player data exists
+        if (this.playerData.name && this.playerData.avatar) {
+          this.updatePlayerInfoDisplay();
+        }
       }
       
       if (savedGameConfig) {
@@ -1458,6 +1498,41 @@ class LandingPageController {
       logger.error({ 
         scope: 'landing/game', 
         msg: 'failed to start game', 
+        err: { message: error.message } 
+      });
+    }
+  }
+
+  /**
+   * Update player info display in header
+   */
+  updatePlayerInfoDisplay() {
+    try {
+      const playerInfoDisplay = document.getElementById('player-info-display');
+      const avatarDisplay = document.getElementById('player-avatar-display');
+      const nameDisplay = document.getElementById('player-name-display');
+      
+      if (playerInfoDisplay && avatarDisplay && nameDisplay) {
+        // Show the player info
+        playerInfoDisplay.style.display = 'flex';
+        
+        // Set avatar emoji
+        const avatarEmoji = getAvatarEmoji(this.playerData.avatar);
+        avatarDisplay.textContent = avatarEmoji;
+        
+        // Set player name
+        nameDisplay.textContent = this.playerData.name;
+        
+        logger.debug({ 
+          scope: 'landing/ui', 
+          msg: 'player info display updated', 
+          meta: { name: this.playerData.name, avatar: this.playerData.avatar } 
+        });
+      }
+    } catch (error) {
+      logger.error({ 
+        scope: 'landing/ui', 
+        msg: 'failed to update player info display', 
         err: { message: error.message } 
       });
     }

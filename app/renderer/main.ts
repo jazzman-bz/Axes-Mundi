@@ -6,6 +6,27 @@ import { Card as CardData } from '@/data/types';
 import { soundManager, SoundType } from '@/utils/soundManager';
 
 /**
+ * Avatar emoji mapping
+ * Maps avatar ID (1-6) to emoji
+ */
+const AVATAR_EMOJIS: Record<string, string> = {
+  '1': '👨‍🚀', // Astronaut
+  '2': '🧙‍♂️', // Magier
+  '3': '🏴‍☠️', // Pirat
+  '4': '🦄', // Einhorn
+  '5': '🤖', // Roboter
+  '6': '🐉', // Drache
+};
+
+/**
+ * Get avatar emoji from avatar ID
+ */
+function getAvatarEmoji(avatarId: string | number | null | undefined): string {
+  if (!avatarId) return '👤';
+  return AVATAR_EMOJIS[String(avatarId)] || '👤';
+}
+
+/**
  * Main application class
  */
 class AxesMundiApp {
@@ -3015,37 +3036,48 @@ class AxesMundiApp {
       ctx.fill();
       ctx.stroke();
 
-      // Draw labels
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `${14 * this.scale}px Arial`;
-      ctx.textAlign = 'center';
+      // Draw avatar boxes centered above/below hand areas (square: 200x200)
+      const avatarBoxWidth = 200 * this.scale;
+      const avatarBoxHeight = 200 * this.scale;
 
       // Use player names in hotseat mode, player name in singleplayer modes
       if (this.isHotseatMode) {
         const player1Name = this.player1Data?.name || 'Spieler 1';
         const player2Name = this.player2Data?.name || 'Spieler 2';
+        const player1Avatar = getAvatarEmoji(this.player1Data?.avatar);
+        const player2Avatar = getAvatarEmoji(this.player2Data?.avatar);
 
         // In hotseat mode: current player is at bottom, next player is at top
         const currentPlayerName = this.currentPlayerIndex === 0 ? player1Name : player2Name;
+        const currentPlayerAvatar = this.currentPlayerIndex === 0 ? player1Avatar : player2Avatar;
         const nextPlayerName = this.currentPlayerIndex === 0 ? player2Name : player1Name;
+        const nextPlayerAvatar = this.currentPlayerIndex === 0 ? player2Avatar : player1Avatar;
 
-        ctx.fillText(`${currentPlayerName} Hand`, this.gameCanvas.width / 2, playerY - 20 * this.scale);
-        ctx.fillText(`${nextPlayerName} Hand`, this.gameCanvas.width / 2, opponentY + cardHeight + 40 * this.scale);
+        // Draw player avatar box (centered above player hand, 20px gap)
+        this.drawAvatarBox(ctx, this.gameCanvas.width / 2 - avatarBoxWidth / 2, playerY - avatarBoxHeight - 20 * this.scale, currentPlayerAvatar, currentPlayerName);
+        // Draw opponent avatar box (centered below opponent hand, 20px gap)
+        this.drawAvatarBox(ctx, this.gameCanvas.width / 2 - avatarBoxWidth / 2, opponentY + cardHeight + 20 * this.scale, nextPlayerAvatar, nextPlayerName);
       } else if (this.player1Data?.name) {
-        // All singleplayer modes: player name at bottom, "Opponent" at top
+        // All singleplayer modes: player avatar at bottom, opponent at top
         const playerName = this.player1Data.name;
-        ctx.fillText(`${playerName} Hand`, this.gameCanvas.width / 2, playerY - 20 * this.scale);
-        ctx.fillText('Opponent Hand', this.gameCanvas.width / 2, opponentY + cardHeight + 40 * this.scale);
+        const playerAvatar = getAvatarEmoji(this.player1Data?.avatar);
+        // Draw player avatar box (centered above player hand, 20px gap)
+        this.drawAvatarBox(ctx, this.gameCanvas.width / 2 - avatarBoxWidth / 2, playerY - avatarBoxHeight - 20 * this.scale, playerAvatar, playerName);
+        // Draw opponent avatar box (centered below opponent hand, 20px gap)
+        this.drawAvatarBox(ctx, this.gameCanvas.width / 2 - avatarBoxWidth / 2, opponentY + cardHeight + 20 * this.scale, '🤖', 'Opponent');
       } else {
-        ctx.fillText('Player Hand', this.gameCanvas.width / 2, playerY - 20 * this.scale);
-        ctx.fillText('Opponent Hand', this.gameCanvas.width / 2, opponentY + cardHeight + 40 * this.scale);
+        // Draw player avatar box (centered above player hand, 20px gap)
+        this.drawAvatarBox(ctx, this.gameCanvas.width / 2 - avatarBoxWidth / 2, playerY - avatarBoxHeight - 20 * this.scale, '👤', 'Player');
+        // Draw opponent avatar box (centered below opponent hand, 20px gap)
+        this.drawAvatarBox(ctx, this.gameCanvas.width / 2 - avatarBoxWidth / 2, opponentY + cardHeight + 20 * this.scale, '🤖', 'Opponent');
       }
     } else {
-      // Learning mode: only draw player hand label
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `${14 * this.scale}px Arial`;
-      ctx.textAlign = 'center';
-      ctx.fillText('Player Hand', this.gameCanvas.width / 2, playerY - 20 * this.scale);
+      // Learning mode: only draw player avatar box (centered above player hand, 20px gap)
+      const avatarBoxWidth = 200 * this.scale;
+      const avatarBoxHeight = 200 * this.scale;
+      const playerName = this.player1Data?.name || 'Player';
+      const playerAvatar = getAvatarEmoji(this.player1Data?.avatar);
+      this.drawAvatarBox(ctx, this.gameCanvas.width / 2 - avatarBoxWidth / 2, playerY - avatarBoxHeight - 20 * this.scale, playerAvatar, playerName);
     }
 
     // Draw graveyard area indicator (top right)
@@ -3082,8 +3114,8 @@ class AxesMundiApp {
       const scoreBoxWidth = 260 * this.scale; // Extended by 40px
       const scoreBoxHeight = 95 * this.scale;
 
-      ctx.fillStyle = 'rgba(128, 128, 128, 0.7)'; // Semi-transparent gray with higher alpha
-      ctx.strokeStyle = 'rgba(128, 128, 128, 0.7)';
+      ctx.fillStyle = 'rgba(128, 128, 128, 0.9)'; // 10% transparency (90% opaque)
+      ctx.strokeStyle = 'rgba(128, 128, 128, 0.9)';
       ctx.lineWidth = 2;
 
       this.roundRect(
@@ -3107,44 +3139,89 @@ class AxesMundiApp {
 
   /**
     * Draw learning mode buttons (Clear Board and Reset Game)
+    * Styled with gradients, shadows, and emojis
+    * Positioned evenly distributed above the playing field
     */
   private drawLearningModeButtons(ctx: CanvasRenderingContext2D): void {
-    const buttonWidth = 150 * this.scale;
-    const buttonHeight = 50 * this.scale;
-    const buttonSpacing = 20 * this.scale;
+    const buttonWidth = 360 * this.scale;
+    const buttonHeight = 120 * this.scale;
+    const buttonSpacing = 80 * this.scale;
+    const borderRadius = 24 * this.scale;
 
-    // Position buttons above the board, centered horizontally
+    // Position buttons evenly distributed above the playing field
     const totalWidth = buttonWidth * 2 + buttonSpacing;
     const startX = (this.gameCanvas.width - totalWidth) / 2;
-    const buttonY = 150 * this.scale; // Above the board area
+    const buttonY = 20 * this.scale;
 
-    // Clear Board Button (left)
+    // === Clear Board Button (left) ===
     const clearButtonX = startX;
 
-    // Button background
-    ctx.fillStyle = '#f44336'; // Red color
-    this.drawRoundedRect(ctx, clearButtonX, buttonY, buttonWidth, buttonHeight, 8 * this.scale);
+    // Shadow
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    ctx.shadowBlur = 20 * this.scale;
+    ctx.shadowOffsetX = 6 * this.scale;
+    ctx.shadowOffsetY = 6 * this.scale;
 
-    // Button text
+    // Gradient background (vibrant red)
+    const clearGradient = ctx.createLinearGradient(clearButtonX, buttonY, clearButtonX, buttonY + buttonHeight);
+    clearGradient.addColorStop(0, '#e53935');
+    clearGradient.addColorStop(1, '#b71c1c');
+    ctx.fillStyle = clearGradient;
+    this.drawRoundedRect(ctx, clearButtonX, buttonY, buttonWidth, buttonHeight, borderRadius);
+
+    // Reset shadow for text
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    // Border highlight
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 4 * this.scale;
+    this.roundRect(ctx, clearButtonX, buttonY, buttonWidth, buttonHeight, borderRadius);
+    ctx.stroke();
+
+    // Button text with emoji (twice as large)
     ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${16 * this.scale}px Arial`;
+    ctx.font = `bold ${36 * this.scale}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Clear Board', clearButtonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+    ctx.fillText('🗑️ Clear Board', clearButtonX + buttonWidth / 2, buttonY + buttonHeight / 2);
 
-    // Reset Game Button (right)
+    // === Reset Game Button (right) ===
     const resetButtonX = startX + buttonWidth + buttonSpacing;
 
-    // Button background
-    ctx.fillStyle = '#2196f3'; // Blue color
-    this.drawRoundedRect(ctx, resetButtonX, buttonY, buttonWidth, buttonHeight, 8 * this.scale);
+    // Shadow
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    ctx.shadowBlur = 20 * this.scale;
+    ctx.shadowOffsetX = 6 * this.scale;
+    ctx.shadowOffsetY = 6 * this.scale;
 
-    // Button text
+    // Gradient background (fresh green)
+    const resetGradient = ctx.createLinearGradient(resetButtonX, buttonY, resetButtonX, buttonY + buttonHeight);
+    resetGradient.addColorStop(0, '#43a047');
+    resetGradient.addColorStop(1, '#1b5e20');
+    ctx.fillStyle = resetGradient;
+    this.drawRoundedRect(ctx, resetButtonX, buttonY, buttonWidth, buttonHeight, borderRadius);
+
+    // Reset shadow for text
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    // Border highlight
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 4 * this.scale;
+    this.roundRect(ctx, resetButtonX, buttonY, buttonWidth, buttonHeight, borderRadius);
+    ctx.stroke();
+
+    // Button text with emoji (twice as large)
     ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${16 * this.scale}px Arial`;
+    ctx.font = `bold ${36 * this.scale}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Reset Game', resetButtonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+    ctx.fillText('🔄 Reset Game', resetButtonX + buttonWidth / 2, buttonY + buttonHeight / 2);
 
     // Store button positions globally for click detection
     this.clearBoardButtonBounds = {
@@ -3156,7 +3233,8 @@ class AxesMundiApp {
   }
 
   /**
-    * Draw "Weiter" button for learning mode (positioned next to player hand)
+    * Draw "Weiter" button for learning mode (positioned centered below the axis/board area)
+    * Styled with gradient, shadow, and emoji - twice as big
     */
   private drawWeiterButton(ctx: CanvasRenderingContext2D): void {
     // Find any incorrect card on the board to show the button
@@ -3167,31 +3245,46 @@ class AxesMundiApp {
     // Only draw if we have an incorrect card that needs the button
     if (!incorrectCard) return;
 
-    const cardWidth = 200 * this.scale;
-    const cardHeight = 300 * this.scale;
-    const cardSpacing = 220 * this.scale;
+    // Button dimensions (twice as big)
+    const buttonWidth = 300 * this.scale;
+    const buttonHeight = 110 * this.scale;
+    const borderRadius = 24 * this.scale;
 
-    // Calculate player hand area position
-    const playerTotalWidth = 5 * cardSpacing - 20 * this.scale;
-    const playerStartX = (this.gameCanvas.width - playerTotalWidth) / 2;
-    const playerY = this.gameCanvas.height - 320 * this.scale;
+    // Position button centered horizontally, below the axis/board area
+    const buttonX = (this.gameCanvas.width - buttonWidth) / 2;
+    const buttonY = this.gameCanvas.height / 2 + 180 * this.scale;
 
-    // Position button to the right of player hand area
-    const buttonWidth = 120 * this.scale; // Larger button
-    const buttonHeight = 40 * this.scale; // Larger button
-    const buttonX = playerStartX + playerTotalWidth + 20 * this.scale; // Right of hand area
-    const buttonY = playerY + cardHeight / 2 - buttonHeight / 2; // Vertically centered with hand
+    // Shadow
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    ctx.shadowBlur = 20 * this.scale;
+    ctx.shadowOffsetX = 6 * this.scale;
+    ctx.shadowOffsetY = 6 * this.scale;
 
-    // Button background
-    ctx.fillStyle = '#ff9800';
-    this.drawRoundedRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 8 * this.scale);
+    // Gradient background (warm orange/gold)
+    const weiterGradient = ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
+    weiterGradient.addColorStop(0, '#ffa726');
+    weiterGradient.addColorStop(1, '#e65100');
+    ctx.fillStyle = weiterGradient;
+    this.drawRoundedRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, borderRadius);
 
-    // Button text
+    // Reset shadow for text
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    // Border highlight
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 4 * this.scale;
+    this.roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, borderRadius);
+    ctx.stroke();
+
+    // Button text with emoji (twice as large)
     ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${16 * this.scale}px Arial`; // Larger font
+    ctx.font = `bold ${40 * this.scale}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Weiter', buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+    ctx.fillText('➡️ Weiter', buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
 
     // Store button position globally for click detection
     this.weiterButtonBounds = {
@@ -3517,6 +3610,41 @@ class AxesMundiApp {
     ctx.lineTo(x, y + radius);
     ctx.quadraticCurveTo(x, y, x + radius, y);
     ctx.closePath();
+  }
+
+  /**
+    * Draw avatar box (styled like landing page avatar selection)
+    * Shows avatar emoji centered with player name below
+    * Square box (200x200)
+    */
+  private drawAvatarBox(ctx: CanvasRenderingContext2D, x: number, y: number, avatar: string, name: string): void {
+    const boxWidth = 200 * this.scale;
+    const boxHeight = 200 * this.scale;
+    const borderRadius = 15 * this.scale;
+
+    // Draw background box (10% transparency / 90% opaque gray)
+    ctx.fillStyle = 'rgba(128, 128, 128, 0.9)';
+    ctx.strokeStyle = 'rgba(128, 128, 128, 0.9)';
+    ctx.lineWidth = 2;
+
+    this.roundRect(ctx, x, y, boxWidth, boxHeight, borderRadius);
+    ctx.fill();
+    ctx.stroke();
+
+    // Draw avatar emoji (large, centered in upper portion)
+    ctx.fillStyle = '#000000';
+    ctx.font = `${96 * this.scale}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(avatar, x + boxWidth / 2, y + boxHeight / 2 - 25 * this.scale);
+
+    // Draw player name (below avatar, larger, black)
+    ctx.font = `bold ${26 * this.scale}px Arial`;
+    ctx.textBaseline = 'top';
+    ctx.fillText(name, x + boxWidth / 2, y + boxHeight / 2 + 35 * this.scale);
+
+    // Reset text baseline
+    ctx.textBaseline = 'alphabetic';
   }
 
   /**
