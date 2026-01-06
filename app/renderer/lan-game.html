@@ -22,27 +22,47 @@
         
         #lan-status {
             position: fixed;
-            top: 20px;
+            top: 60px;
             left: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            color: #ffffff;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-size: 16px;
-            z-index: 100;
-        }
-        
-        #lan-info {
-            position: fixed;
-            top: 20px;
-            right: 20px;
             background: rgba(0, 0, 0, 0.8);
             color: #ffffff;
             padding: 10px 15px;
             border-radius: 5px;
             font-size: 14px;
             z-index: 100;
-            text-align: right;
+        }
+        
+        #lan-info {
+            position: fixed;
+            top: 110px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #ffffff;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 100;
+            text-align: left;
+        }
+        
+        #back-to-menu {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #ffffff;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 100;
+            text-align: left;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s ease;
+        }
+        
+        #back-to-menu:hover {
+            background: rgba(50, 50, 50, 0.9);
         }
         
         /* UI States */
@@ -59,6 +79,7 @@
 <body>
 
     
+    <button id="back-to-menu">✕ Beenden</button>
     <div id="lan-status">🎮 Verbinde...</div>
     <div id="lan-info">
         <div id="playerName">Spieler: ...</div>

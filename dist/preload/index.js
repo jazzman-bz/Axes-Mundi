@@ -14,7 +14,7 @@ electron_1.contextBridge.exposeInMainWorld('AXM', {
     getEnvironment: () => electron_1.ipcRenderer.invoke('get-environment'),
     placeCard: (index) => electron_1.ipcRenderer.invoke('place-card', index),
     // LAN Server management
-    startLANServer: (playerName) => electron_1.ipcRenderer.invoke('start-lan-server', playerName),
+    startLANServer: (playerName, playerAvatar) => electron_1.ipcRenderer.invoke('start-lan-server', playerName, playerAvatar || 'default'),
     stopLANServer: () => electron_1.ipcRenderer.invoke('stop-lan-server'),
     sendDeckSelection: (deckId) => electron_1.ipcRenderer.invoke('send-deck-selection', deckId),
     sendCurrentPlayerUpdate: (currentPlayer) => electron_1.ipcRenderer.invoke('send-current-player-update', currentPlayer),

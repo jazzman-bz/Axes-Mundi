@@ -256,9 +256,9 @@ function setupIPC() {
         }
     });
     // LAN Server management
-    electron_1.ipcMain.handle('start-lan-server', async (_, playerName) => {
+    electron_1.ipcMain.handle('start-lan-server', async (_, playerName, playerAvatar = 'default') => {
         try {
-            logger_1.logger.info({ scope: 'main/lan', msg: 'Starting LAN server...', meta: { playerName } });
+            logger_1.logger.info({ scope: 'main/lan', msg: 'Starting LAN server...', meta: { playerName, playerAvatar } });
             if (lanServer) {
                 logger_1.logger.info({ scope: 'main/lan', msg: 'Stopping existing server' });
                 lanServer.stop();
@@ -270,7 +270,7 @@ function setupIPC() {
             for (const port of ports) {
                 try {
                     logger_1.logger.info({ scope: 'main/lan', msg: `Trying port ${port}...` });
-                    lanServer = new websocket_server_1.LANWebSocketServer(port, playerName);
+                    lanServer = new websocket_server_1.LANWebSocketServer(port, playerName, playerAvatar);
                     await lanServer.start();
                     startedPort = port;
                     logger_1.logger.info({ scope: 'main/lan', msg: `Successfully started on port ${port}` });

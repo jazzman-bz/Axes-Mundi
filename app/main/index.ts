@@ -279,9 +279,9 @@ function setupIPC(): void {
   });
 
   // LAN Server management
-  ipcMain.handle('start-lan-server', async (_, playerName: string) => {
+  ipcMain.handle('start-lan-server', async (_, playerName: string, playerAvatar: string = 'default') => {
     try {
-      logger.info({ scope: 'main/lan', msg: 'Starting LAN server...', meta: { playerName } });
+      logger.info({ scope: 'main/lan', msg: 'Starting LAN server...', meta: { playerName, playerAvatar } });
 
       if (lanServer) {
         logger.info({ scope: 'main/lan', msg: 'Stopping existing server' });
@@ -296,7 +296,7 @@ function setupIPC(): void {
       for (const port of ports) {
         try {
           logger.info({ scope: 'main/lan', msg: `Trying port ${port}...` });
-          lanServer = new LANWebSocketServer(port, playerName);
+          lanServer = new LANWebSocketServer(port, playerName, playerAvatar);
           await lanServer.start();
           startedPort = port;
       logger.info({ scope: 'main/lan', msg: `Successfully started on port ${port}` });

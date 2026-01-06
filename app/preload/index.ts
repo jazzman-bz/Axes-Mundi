@@ -15,7 +15,7 @@ contextBridge.exposeInMainWorld('AXM', {
   placeCard: (index: number) => ipcRenderer.invoke('place-card', index),
 
   // LAN Server management
-  startLANServer: (playerName: string) => ipcRenderer.invoke('start-lan-server', playerName),
+  startLANServer: (playerName: string, playerAvatar?: string) => ipcRenderer.invoke('start-lan-server', playerName, playerAvatar || 'default'),
   stopLANServer: () => ipcRenderer.invoke('stop-lan-server'),
   sendDeckSelection: (deckId: string) => ipcRenderer.invoke('send-deck-selection', deckId),
   sendCurrentPlayerUpdate: (currentPlayer: string) => ipcRenderer.invoke('send-current-player-update', currentPlayer),
@@ -55,7 +55,7 @@ declare global {
       getVersion: () => Promise<string>;
       getEnvironment: () => Promise<{ env: string; logLevel: string }>;
       placeCard: (index: number) => Promise<{ success: boolean; score: number }>;
-      startLANServer: (playerName: string) => Promise<{ success: boolean; port: number }>;
+      startLANServer: (playerName: string, playerAvatar?: string) => Promise<{ success: boolean; port: number }>;
       stopLANServer: () => Promise<{ success: boolean }>;
       sendDeckSelection: (deckId: string) => Promise<{ success: boolean }>;
       sendCurrentPlayerUpdate: (currentPlayer: string) => Promise<{ success: boolean }>;

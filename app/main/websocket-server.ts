@@ -5,6 +5,7 @@ import { logger } from './logger';
 interface Player {
   id: string;
   name: string;
+  avatar: string;
   ws: WebSocket;
 }
 
@@ -17,12 +18,16 @@ export class LANWebSocketServer {
 
   private serverPlayerName: string;
 
+  private serverPlayerAvatar: string;
+
   private serverIP: string;
 
-  constructor(port: number = 8080, serverPlayerName: string = 'Server') {
+  constructor(port: number = 8080, serverPlayerName: string = 'Server', serverPlayerAvatar: string = 'default') {
     this.port = port;
     this.serverPlayerName = serverPlayerName;
+    this.serverPlayerAvatar = serverPlayerAvatar;
     this.serverIP = this.getLocalIPAddress();
+    console.log('🎭 WebSocket Server created with avatar:', serverPlayerAvatar);
   }
 
   start(): Promise<void> {
@@ -121,7 +126,8 @@ export class LANWebSocketServer {
 
     switch (message.type) {
     case 'join':
-      this.handleJoin(playerId, ws, message.playerName);
+      console.log('🎭 WebSocket Server: Received join with avatar:', message.playerAvatar);
+      this.handleJoin(playerId, ws, message.playerName, message.playerAvatar || 'default');
       break;
     case 'ready':
       this.handleReady(playerId);
@@ -168,10 +174,11 @@ export class LANWebSocketServer {
     }
   }
 
-  private handleJoin(playerId: string, ws: WebSocket, playerName: string): void {
+  private handleJoin(playerId: string, ws: WebSocket, playerName: string, playerAvatar: string): void {
     const player: Player = {
       id: playerId,
       name: playerName,
+      avatar: playerAvatar,
       ws,
     };
 
@@ -180,18 +187,21 @@ export class LANWebSocketServer {
     logger.info({
       scope: 'main/websocket',
       msg: 'Player joined',
-      meta: { playerId, playerName },
+      meta: { playerId, playerName, playerAvatar },
     });
 
-    // Send confirmation to the joining player with SERVER's name and CLIENT's name
+    // Send confirmation to the joining player with SERVER's name, avatar and CLIENT's name
     const joinedMessage = {
       type: 'joined',
       playerId,
       message: 'Connected to server successfully',
       playerName: this.serverPlayerName, // Send SERVER's name to client
+      playerAvatar: this.serverPlayerAvatar, // Send SERVER's avatar to client
       clientPlayerName: playerName, // Send CLIENT's name back to client
     };
 
+    console.log('🎭 WebSocket Server: Sending joined message with avatar:', this.serverPlayerAvatar);
+    console.log('🎭 WebSocket Server: Full joined message:', JSON.stringify(joinedMessage, null, 2));
     ws.send(JSON.stringify(joinedMessage));
     logger.info({
       scope: 'main/websocket',
@@ -200,15 +210,18 @@ export class LANWebSocketServer {
         playerId,
         clientPlayerName: playerName, // Client's name
         serverPlayerName: this.serverPlayerName, // Server's name
+        serverPlayerAvatar: this.serverPlayerAvatar, // Server's avatar
         message: joinedMessage,
       },
     });
 
-    // IMPORTANT: Notify the server-client (Electron) about the new client player name
+    // IMPORTANT: Notify the server-client (Electron) about the new client player name and avatar
     // This ensures the overlay shows the real client name instead of "Waiting for client..."
     if (global.mainWindow && global.mainWindow.webContents) {
+      console.log('🎭 WebSocket Server: Sending client-player-joined event with avatar:', playerAvatar);
       global.mainWindow.webContents.send('client-player-joined', {
         clientPlayerName: playerName,
+        clientPlayerAvatar: playerAvatar,
         playerId,
       });
 
@@ -217,6 +230,7 @@ export class LANWebSocketServer {
         msg: 'Notified server-client about new client player',
         meta: {
           clientPlayerName: playerName,
+          clientPlayerAvatar: playerAvatar,
           playerId,
         },
       });

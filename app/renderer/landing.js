@@ -351,6 +351,9 @@ class LandingPageController {
         this.playerData.avatar = avatarId;
         // Update header display immediately when avatar changes
         this.updatePlayerInfoDisplay();
+        // Save avatar immediately to localStorage
+        this.savePlayerData();
+        console.log('🎭 Avatar selected and saved:', avatarId);
         logger.debug({ 
           scope: 'landing/avatar', 
           msg: 'first player avatar selected', 
@@ -614,7 +617,7 @@ class LandingPageController {
         throw new Error('window.AXM.startLANServer is not available');
       }
       
-             const result = await window.AXM.startLANServer(this.playerData.name);
+             const result = await window.AXM.startLANServer(this.playerData.name, this.playerData.avatar);
       console.log('🚀 Result from startLANServer:', result);
        
                       if (result.success) {
@@ -624,8 +627,10 @@ class LandingPageController {
          // Store in localStorage for persistence
          localStorage.setItem('isServerClient', 'true');
          localStorage.setItem('serverPlayerName', this.playerData.name);
+         localStorage.setItem('serverPlayerAvatar', this.playerData.avatar || 'default');
          console.log('🎮 isServerClient saved to localStorage');
          console.log('🎮 serverPlayerName saved to localStorage:', this.playerData.name);
+         console.log('🎮 serverPlayerAvatar saved to localStorage:', this.playerData.avatar);
          
         // Get server IP for display
         const serverIP = this.getServerIP();
@@ -707,7 +712,8 @@ class LandingPageController {
       // Try to connect to the specified server
       try {
         console.log(`🔍 Trying to connect to ${serverIP}:8080...`);
-        const client = new LANClient(serverUrl, this.playerData.name);
+        console.log('🎭 Creating LANClient with avatar:', this.playerData.avatar, 'type:', typeof this.playerData.avatar);
+        const client = new LANClient(serverUrl, this.playerData.name, this.playerData.avatar || 'default');
            
            client.onMessage((message) => {
              console.log(`📨 Received message from ${serverIP}:8080:`, message);
@@ -831,6 +837,19 @@ class LandingPageController {
         window.AXM.on('server-info-update', (serverInfo) => {
           console.log('📡 Received server info update:', serverInfo);
           this.handleServerInfoUpdate(serverInfo);
+        });
+
+        // Listen for client player joined events to store avatar early
+        window.AXM.on('client-player-joined', (data) => {
+          console.log('🎭 Landing: Received client-player-joined:', data);
+          if (data.clientPlayerAvatar) {
+            localStorage.setItem('clientPlayerAvatar', data.clientPlayerAvatar);
+            console.log('🎭 Landing: Stored client avatar in localStorage:', data.clientPlayerAvatar);
+          }
+          if (data.clientPlayerName) {
+            localStorage.setItem('clientPlayerName', data.clientPlayerName);
+            console.log('🎭 Landing: Stored client name in localStorage:', data.clientPlayerName);
+          }
         });
       }
       

@@ -17,6 +17,8 @@ export class LANGameClient {
 
   private playerName: string;
 
+  private playerAvatar: string;
+
   private onMessageCallback: ((message: LANMessage) => void) | null = null;
 
   private onConnectionChangeCallback: ((connected: boolean) => void) | null = null;
@@ -34,21 +36,22 @@ export class LANGameClient {
 
   private onGameStateUpdateCallback: ((gameState: any) => void) | null = null;
 
-  constructor(serverUrl: string, playerName: string) {
+  constructor(serverUrl: string, playerName: string, playerAvatar: string = 'default') {
     this.serverUrl = serverUrl;
     this.playerName = playerName;
+    this.playerAvatar = playerAvatar;
 
-    console.log('🎮 LANGameClient constructor called for:', playerName);
+    console.log('🎮 LANGameClient constructor called for:', playerName, 'with avatar:', playerAvatar);
     console.log('🎮 Connecting to server:', serverUrl);
   }
 
   /**
    * Create client with server IP and port
    */
-  static createWithServerInfo(serverIP: string, port: number, playerName: string): LANGameClient {
+  static createWithServerInfo(serverIP: string, port: number, playerName: string, playerAvatar: string = 'default'): LANGameClient {
     const serverUrl = `ws://${serverIP}:${port}`;
-    console.log('🎮 Creating LAN client with server info:', { serverIP, port, serverUrl });
-    return new LANGameClient(serverUrl, playerName);
+    console.log('🎮 Creating LAN client with server info:', { serverIP, port, serverUrl, playerAvatar });
+    return new LANGameClient(serverUrl, playerName, playerAvatar);
   }
 
   /**
@@ -67,10 +70,11 @@ export class LANGameClient {
       this.ws.onopen = () => {
         logger.info({ scope: 'lan/client', msg: 'Connected to server' });
 
-        // Send join message
+        // Send join message with avatar
         this.sendMessage({
           type: 'join',
           playerName: this.playerName,
+          playerAvatar: this.playerAvatar,
         });
 
         if (this.onConnectionChangeCallback) {
@@ -176,11 +180,22 @@ export class LANGameClient {
   private handleJoinedMessage(message: any): void {
     try {
       console.log('🎮 LAN client: Handling joined message:', message);
+      console.log('🎮 LAN client: Full message details:', JSON.stringify(message, null, 2));
 
       // Store server player name from the joined message
       if (message.playerName) {
         localStorage.setItem('serverPlayerName', message.playerName);
         console.log('🎮 LAN client: Stored server player name:', message.playerName);
+      }
+
+      // Store server player avatar from the joined message
+      console.log('🎮 LAN client: Server avatar in message:', message.playerAvatar);
+      if (message.playerAvatar) {
+        localStorage.setItem('serverPlayerAvatar', message.playerAvatar);
+        console.log('🎮 LAN client: Stored server player avatar:', message.playerAvatar);
+      } else {
+        console.warn('🎮 LAN client: No server avatar in message, using default');
+        localStorage.setItem('serverPlayerAvatar', 'default');
       }
 
       // Store client player name from the joined message (server confirms our name)
@@ -192,6 +207,11 @@ export class LANGameClient {
         localStorage.setItem('clientPlayerName', this.playerName);
         console.log('🎮 LAN client: Stored client player name (fallback):', this.playerName);
       }
+
+      // Store client player avatar (our own)
+      console.log('🎮 LAN client: Own avatar (this.playerAvatar):', this.playerAvatar);
+      localStorage.setItem('clientPlayerAvatar', this.playerAvatar);
+      console.log('🎮 LAN client: Stored client player avatar:', this.playerAvatar);
 
       // Update UI immediately with player names (no current player yet)
       console.log('🎮 LAN client: About to update player names UI...');

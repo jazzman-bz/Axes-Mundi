@@ -301,11 +301,23 @@ export class LANGameManager {
       const serverUrl = localStorage.getItem('lanServerUrl') || 'ws://localhost:8080';
       const playerName = this.clientPlayerName;
 
-      console.log('🎮 Connecting to server:', serverUrl, 'as:', playerName);
+      // Get player avatar from localStorage
+      let playerAvatar = 'default';
+      try {
+        const playerDataStr = localStorage.getItem('axesMundiPlayer');
+        if (playerDataStr) {
+          const playerData = JSON.parse(playerDataStr);
+          playerAvatar = playerData.avatar || 'default';
+        }
+      } catch (e) {
+        console.warn('🎮 Could not parse player data for avatar');
+      }
+
+      console.log('🎮 Connecting to server:', serverUrl, 'as:', playerName, 'with avatar:', playerAvatar);
 
       // Import and initialize LAN client
       const { LANClient } = await import('./lan-client');
-      this.lanClient = new LANClient(serverUrl, playerName);
+      this.lanClient = new LANClient(serverUrl, playerName, playerAvatar);
 
       // Set up message handlers
       this.lanClient.onMessage((message: any) => {
@@ -384,6 +396,15 @@ export class LANGameManager {
         case 'currentPlayerUpdate':
         // DISABLED: currentPlayer logic before card distribution
           console.log('🎮 Received currentPlayerUpdate - IGNORED (waiting for card distribution)');
+          break;
+        case 'currentPlayerSet':
+        // IMPORTANT: Forward currentPlayerSet messages to lan-game-main.ts for processing
+          console.log('🎮 LANGameManager: Forwarding currentPlayerSet to lan-game-main.ts');
+          if (this.onMessageCallback) {
+            this.onMessageCallback(message);
+          } else {
+            console.warn('🎮 LANGameManager: No message callback set for currentPlayerSet');
+          }
           break;
         default:
           console.log('🎮 Unknown message type:', message.type);
