@@ -1536,14 +1536,12 @@ class AxesMundiApp {
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    console.log('handleMouseDown called:', { x, y, handSize: this.playerHand.length });
 
     // Check player hand cards
     if (this.isHotseatMode) {
       // Check current player hand in hotseat mode
       for (const card of this.currentPlayerHand) {
         if (card.containsPoint(x, y)) {
-          console.log('Card selected:', card.card.title);
           this.selectedCard = card;
           card.startDrag(x, y);
           this.isDragging = true;
@@ -1554,7 +1552,6 @@ class AxesMundiApp {
       // Check standard player hand in normal mode
       for (const card of this.playerHand) {
         if (card.containsPoint(x, y)) {
-          console.log('Card selected:', card.card.title);
           this.selectedCard = card;
           card.startDrag(x, y);
           this.isDragging = true;
@@ -1562,28 +1559,16 @@ class AxesMundiApp {
         }
       }
     }
-
-    console.log('After mouse down:', {
-      isDragging: this.isDragging,
-      hasSelectedCard: !!this.selectedCard,
-    });
   }
 
   /**
    * Handle mouse move
    */
   private handleMouseMove(event: MouseEvent): void {
-    console.log('handleMouseMove called:', {
-      isDragging: this.isDragging,
-      hasSelectedCard: !!this.selectedCard,
-    });
-
     if (this.isDragging && this.selectedCard) {
       const rect = this.gameCanvas.getBoundingClientRect();
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
-
-      console.log('Dragging card to:', { x, y });
 
       this.selectedCard.updateDrag(x, y);
 
@@ -1647,7 +1632,6 @@ class AxesMundiApp {
     const isOverAxis = mouseY >= axisTop && mouseY <= axisBottom;
 
     // Simple test: log every time this method is called
-    console.log('showPlacementPreview called:', { mouseX, mouseY, isOverAxis });
 
     logger.debug({
       scope: 'renderer/preview',
@@ -1759,7 +1743,6 @@ class AxesMundiApp {
 
     this.lastPreviewX = previewX;
 
-    console.log('showAxisPreview called with previewX:', previewX);
 
     // Combine all cards in their current order (board + left + right)
     const allCards = [
@@ -2523,7 +2506,6 @@ class AxesMundiApp {
         });
       } else {
         // Card was released outside the axis - return it to hand
-        console.log('Card released outside axis - returning to hand');
 
         // Clear any preview positions
         this.hideAxisPreview();

@@ -353,7 +353,6 @@ class LandingPageController {
         this.updatePlayerInfoDisplay();
         // Save avatar immediately to localStorage
         this.savePlayerData();
-        console.log('🎭 Avatar selected and saved:', avatarId);
         logger.debug({ 
           scope: 'landing/avatar', 
           msg: 'first player avatar selected', 
@@ -712,7 +711,6 @@ class LandingPageController {
       // Try to connect to the specified server
       try {
         console.log(`🔍 Trying to connect to ${serverIP}:8080...`);
-        console.log('🎭 Creating LANClient with avatar:', this.playerData.avatar, 'type:', typeof this.playerData.avatar);
         const client = new LANClient(serverUrl, this.playerData.name, this.playerData.avatar || 'default');
            
            client.onMessage((message) => {
@@ -841,14 +839,11 @@ class LandingPageController {
 
         // Listen for client player joined events to store avatar early
         window.AXM.on('client-player-joined', (data) => {
-          console.log('🎭 Landing: Received client-player-joined:', data);
           if (data.clientPlayerAvatar) {
             localStorage.setItem('clientPlayerAvatar', data.clientPlayerAvatar);
-            console.log('🎭 Landing: Stored client avatar in localStorage:', data.clientPlayerAvatar);
           }
           if (data.clientPlayerName) {
             localStorage.setItem('clientPlayerName', data.clientPlayerName);
-            console.log('🎭 Landing: Stored client name in localStorage:', data.clientPlayerName);
           }
         });
       }

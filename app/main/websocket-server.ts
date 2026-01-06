@@ -27,7 +27,6 @@ export class LANWebSocketServer {
     this.serverPlayerName = serverPlayerName;
     this.serverPlayerAvatar = serverPlayerAvatar;
     this.serverIP = this.getLocalIPAddress();
-    console.log('🎭 WebSocket Server created with avatar:', serverPlayerAvatar);
   }
 
   start(): Promise<void> {
@@ -126,7 +125,6 @@ export class LANWebSocketServer {
 
     switch (message.type) {
     case 'join':
-      console.log('🎭 WebSocket Server: Received join with avatar:', message.playerAvatar);
       this.handleJoin(playerId, ws, message.playerName, message.playerAvatar || 'default');
       break;
     case 'ready':
@@ -200,8 +198,6 @@ export class LANWebSocketServer {
       clientPlayerName: playerName, // Send CLIENT's name back to client
     };
 
-    console.log('🎭 WebSocket Server: Sending joined message with avatar:', this.serverPlayerAvatar);
-    console.log('🎭 WebSocket Server: Full joined message:', JSON.stringify(joinedMessage, null, 2));
     ws.send(JSON.stringify(joinedMessage));
     logger.info({
       scope: 'main/websocket',
@@ -218,7 +214,6 @@ export class LANWebSocketServer {
     // IMPORTANT: Notify the server-client (Electron) about the new client player name and avatar
     // This ensures the overlay shows the real client name instead of "Waiting for client..."
     if (global.mainWindow && global.mainWindow.webContents) {
-      console.log('🎭 WebSocket Server: Sending client-player-joined event with avatar:', playerAvatar);
       global.mainWindow.webContents.send('client-player-joined', {
         clientPlayerName: playerName,
         clientPlayerAvatar: playerAvatar,
