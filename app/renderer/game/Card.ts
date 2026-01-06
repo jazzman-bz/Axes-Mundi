@@ -315,6 +315,20 @@ export class GameCard {
   }
 
   /**
+   * Get the original X position (before preview) or current X if no preview active
+   */
+  public getOriginalX(): number {
+    return this.originalX !== null ? this.originalX : this.x;
+  }
+
+  /**
+   * Get the original Y position (before preview) or current Y if no preview active
+   */
+  public getOriginalY(): number {
+    return this.originalY !== null ? this.originalY : this.y;
+  }
+
+  /**
    * Tick animation
    */
   public tick(): void {

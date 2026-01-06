@@ -63,6 +63,7 @@ class LANGameApp {
   private snapThreshold: number = 50; // Distance to axis for snapping
 
   private isPreviewActive: boolean = false; // Track if preview is currently active
+  private lastPreviewX: number = 0; // Track last preview position for dynamic updates
 
   private lastSentCardPlacement: string | null = null; // Prevent duplicate card placement sends
 
@@ -1381,6 +1382,16 @@ class LANGameApp {
     const cardSpacing = 20 * this.scale; // Use same spacing as recenterBoard
     const axisY = this.canvas!.height / 2;
 
+    // Sort cards by their axis VALUE to ensure correct order (smallest to largest)
+    const sortedCards = [...this.board].sort((a, b) => {
+      const aValue = this.convertToComparable(a.card.value, a.card.unit);
+      const bValue = this.convertToComparable(b.card.value, b.card.unit);
+      return aValue - bValue;
+    });
+
+    // Update board array to match sorted order
+    this.board = sortedCards;
+
     // Calculate the total width needed for all cards
     const totalWidth = this.board.length * cardWidth + (this.board.length - 1) * cardSpacing;
 
@@ -1396,13 +1407,15 @@ class LANGameApp {
       cardSpacing,
     });
 
-    // Layout all cards sequentially based on their array index (sorted order)
+    // Layout all cards sequentially based on their sorted order
     this.board.forEach((card, index) => {
       const targetX = startX + index * (cardWidth + cardSpacing);
       const targetY = centerY;
 
       console.log('🎮 layoutAxisCards - Card positioned:', {
         cardTitle: card.card.title,
+        value: card.card.value,
+        unit: card.card.unit,
         index,
         targetX,
         targetY,
@@ -2447,9 +2460,10 @@ class LANGameApp {
             let insertIndex = this.board.length; // Default to end
 
             // Find the correct position by comparing with existing cards
+            // Use getOriginalX() to handle case where preview might be active
             for (let i = 0; i < this.board.length; i++) {
               const existingCard = this.board[i];
-              const existingCardCenterX = existingCard.x + existingCard.width / 2;
+              const existingCardCenterX = existingCard.getOriginalX() + existingCard.width / 2;
 
               if (cardCenterX < existingCardCenterX) {
                 // Card should be inserted before this existing card
@@ -2478,8 +2492,8 @@ class LANGameApp {
             // Center the player hand after card removal
             this.layoutHand();
 
-            // Center all cards on the axis with proper spacing
-            this.layoutAxisCards();
+            // DON'T call layoutAxisCards() here - card should stay where player dropped it
+            // to show them their placement. Cards will be re-centered after validation.
 
             // The board position is now the same as the insertion index
             const boardPosition = insertIndex;
@@ -2554,11 +2568,8 @@ class LANGameApp {
       const isOverAxis = mouseY >= axisTop && mouseY <= axisBottom;
 
       if (isOverAxis) {
-        // Only show preview if not already active
-        if (!this.isPreviewActive) {
-          console.log('🎮 Mouse over axis, showing placement preview');
-          this.showAxisPreview(mouseX);
-        }
+        // Show/update preview - will dynamically update card positions as we move
+        this.showAxisPreview(mouseX);
       } else {
         // Hide preview if mouse is not over axis
         if (this.isPreviewActive) {
@@ -2626,10 +2637,12 @@ class LANGameApp {
     try {
       if (this.board.length === 0) return;
 
-      // Only move cards if preview is not already active
-      if (this.isPreviewActive) {
+      // Update if preview position changed significantly (allows dynamic updates)
+      if (this.isPreviewActive && Math.abs(previewX - this.lastPreviewX) < 20) {
         return;
       }
+
+      this.lastPreviewX = previewX;
 
       console.log('🎮 showAxisPreview called with previewX:', previewX);
 
@@ -2644,12 +2657,13 @@ class LANGameApp {
       const axisY = this.canvas!.height / 2;
       const centerY = axisY - (300 * this.scale) / 2;
 
-      // Find the insertion point based on previewX
+      // Find the insertion point based on previewX (use original positions, not shifted ones)
       let insertIndex = allCards.length; // Default to end
       
       for (let i = 0; i < allCards.length; i++) {
         const existingCard = allCards[i];
-        const existingCardCenterX = existingCard.x + existingCard.width / 2;
+        // Use original position to avoid cumulative shifting
+        const existingCardCenterX = existingCard.getOriginalX() + existingCard.width / 2;
         
         if (previewX < existingCardCenterX) {
           insertIndex = i;
@@ -2707,6 +2721,7 @@ class LANGameApp {
 
       // Mark preview as inactive
       this.isPreviewActive = false;
+      this.lastPreviewX = 0;
 
       console.log('🎮 Preview deactivated');
     } catch (error) {
@@ -3248,6 +3263,9 @@ class LANGameApp {
           }, 300); // Small delay after placement sound
           console.log('🎮 Card placed correctly - showing green feedback');
           
+          // NOW sort and center the cards (only after validation confirms correct)
+          this.layoutAxisCards();
+          
           // Check for win condition after correct placement
           this.checkForWin();
           
@@ -3256,14 +3274,15 @@ class LANGameApp {
             this.switchToNextPlayer();
           }, 2000); // Wait 2 seconds for green feedback
         } else {
-          // Incorrect placement - show red feedback for 2 seconds, then move to graveyard and play error sound
+          // Incorrect placement - show red feedback for 2 seconds, then move to graveyard
+          // DON'T call layoutAxisCards() here - card stays where player dropped it
           placedCard.setIncorrect();
           setTimeout(() => {
             soundManager.play(SoundType.ERROR);
           }, 300); // Small delay after placement sound
-          console.log('🎮 Card placed incorrectly - showing red feedback');
+          console.log('🎮 Card placed incorrectly - showing red feedback, card stays at drop position');
           
-          // After 2 seconds, move the incorrect card to graveyard
+          // After 2 seconds, move the incorrect card to graveyard (which will re-center remaining cards)
           setTimeout(() => {
             this.moveCardToGraveyard(placedCard);
           }, 2000); // Wait 2 seconds for red feedback
@@ -3656,6 +3675,32 @@ class LANGameApp {
       
     } catch (error) {
       console.error('🎮 Failed to restart LAN game with same deck:', error);
+    }
+  }
+
+  /**
+   * Convert value to comparable units for sorting
+   */
+  private convertToComparable(value: number, unit: string): number {
+    switch (unit.toLowerCase()) {
+      // Height units
+      case 'm':
+        return value;
+      case 'km':
+        return value * 1000;
+      case 'cm':
+        return value / 100;
+      case 'mm':
+        return value / 1000;
+
+      // Temperature units
+      case '°c':
+      case 'c':
+        // Celsius values are already comparable (colder = smaller, hotter = larger)
+        return value;
+
+      default:
+        return value;
     }
   }
 }

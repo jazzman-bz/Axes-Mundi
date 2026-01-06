@@ -83,6 +83,8 @@ class AxesMundiApp {
 
   private isPreviewActive: boolean = false; // Track if preview is currently active
 
+  private lastPreviewX: number = 0; // Track last preview position for dynamic updates
+
   private scale: number = 1; // Global scale factor
 
   private isGameStarted: boolean = false; // Track if first card has been placed on axis
@@ -1280,121 +1282,72 @@ class AxesMundiApp {
   }
 
   /**
-   * Simulate AI drag to find correct position using player mechanics
+   * Simulate AI drag to find correct position - animates directly to the correct position
    */
   private simulateAIDragToCorrectPosition(aiCard: GameCard): void {
     // Start drag from opponent hand position
     const startX = aiCard.x;
     const startY = aiCard.y;
 
+    // Calculate the correct target position directly (no scanning needed)
+    const targetX = this.findCorrectPosition(aiCard);
+    const axisY = this.gameCanvas.height / 2;
+    const targetY = axisY - aiCard.height / 2;
+
+    logger.info({
+      scope: 'renderer/ai',
+      msg: 'AI calculated correct position',
+      meta: {
+        cardTitle: aiCard.card.title,
+        cardValue: aiCard.card.value,
+        cardUnit: aiCard.card.unit,
+        startX,
+        startY,
+        targetX,
+        targetY,
+      },
+    });
+
     // Simulate picking up card from hand
     aiCard.startDrag(startX, startY);
 
-    // Animate card from hand to start scan position (left edge of axis)
-    const axisY = this.gameCanvas.height / 2; // Same height as axis cards
-    const scanStartX = 50 * this.scale; // Left edge where scanning starts
-    const handToScanDuration = 400; // 400ms to move from hand to scan start
-    const handToScanSteps = 20; // 20 steps
-    const stepDuration = handToScanDuration / handToScanSteps;
+    // Animate card from hand directly to correct position
+    const animationDuration = 800; // 800ms to move from hand to target
+    const animationSteps = 40; // 40 steps for smooth animation
+    const stepDuration = animationDuration / animationSteps;
 
     let step = 0;
-    const handToScanInterval = setInterval(() => {
-      // Interpolate from hand position to scan start position
-      const progress = step / handToScanSteps;
-      const currentX = startX + (scanStartX - startX) * progress;
-      const currentY = startY + (axisY - startY) * progress;
+    const animationInterval = setInterval(() => {
+      // Interpolate from hand position to target position
+      const progress = step / animationSteps;
+      // Use easeOutQuad for smooth deceleration
+      const easedProgress = 1 - (1 - progress) * (1 - progress);
+      
+      const currentX = startX + (targetX - startX) * easedProgress;
+      const currentY = startY + (targetY - startY) * easedProgress;
 
-      // Move card to scan start position
+      // Move card to current position
       aiCard.updateDrag(currentX, currentY);
 
       step++;
-      if (step >= handToScanSteps) {
-        clearInterval(handToScanInterval);
+      if (step >= animationSteps) {
+        clearInterval(animationInterval);
 
-        // Now start scanning across the axis from left to right
-        this.scanAxisForCorrectPosition(aiCard, axisY);
+        // Place the card at the correct position
+        this.placeAICardAtPosition(aiCard, targetX, axisY);
       }
     }, stepDuration);
   }
 
   /**
-   * Scan across the axis to find the correct position for AI card
-   */
-  private scanAxisForCorrectPosition(aiCard: GameCard, axisY: number): void {
-    const stepSize = 20 * this.scale; // Larger steps for faster scanning
-    let currentX = 50 * this.scale; // Start from left edge
-    const maxX = this.gameCanvas.width - 50 * this.scale; // End at right edge
-
-    const scanInterval = setInterval(() => {
-      // Move card to current position
-      aiCard.updateDrag(currentX, axisY);
-
-      // Check if this position is correct using the same logic as player
-      const isCorrect = this.checkPositionCorrectness(aiCard, currentX);
-
-      if (isCorrect) {
-        // Found correct position! Place the card
-        clearInterval(scanInterval);
-        this.placeAICardAtPosition(aiCard, currentX, axisY);
-        return;
-      }
-
-      // Move to next position
-      currentX += stepSize;
-
-      // If we've scanned the entire axis, place at the end
-      if (currentX > maxX) {
-        clearInterval(scanInterval);
-        this.placeAICardAtPosition(aiCard, maxX, axisY);
-      }
-    }, 20); // 20ms between steps for faster animation
-  }
-
-  /**
-   * Check if a position is correct for a card (same logic as player)
-   */
-  private checkPositionCorrectness(card: GameCard, x: number): boolean {
-    // Get all cards currently on axis
-    const allCards = [
-      this.boardCard,
-      ...this.placedLeft,
-      ...this.placedRight,
-    ].filter(Boolean) as GameCard[];
-
-    // Add the new card to the list
-    const cardsWithNew = [...allCards, card];
-
-    // Sort by axis value to find correct order
-    const sortedCards = cardsWithNew.sort((a, b) => {
-      const aValue = this.convertToComparable(a.card.value, a.card.unit);
-      const bValue = this.convertToComparable(b.card.value, b.card.unit);
-      return aValue - bValue;
-    });
-
-    // Find the index of the new card in the sorted list
-    const cardIndex = sortedCards.findIndex((c) => c === card);
-
-    // Calculate what the correct X position should be
-    const cardWidth = 200 * this.scale;
-    const spacing = 5 * this.scale;
-    const totalWidth = sortedCards.length * cardWidth + (sortedCards.length - 1) * spacing;
-    const startX = (this.gameCanvas.width - totalWidth) / 2;
-    const correctX = startX + cardIndex * (cardWidth + spacing);
-
-    // Check if current position is close to correct position
-    const tolerance = 20 * this.scale; // 20px tolerance
-    return Math.abs(x - correctX) < tolerance;
-  }
-
-  /**
-   * Place AI card at the found position
+   * Place AI card at the calculated correct position
    */
   private placeAICardAtPosition(aiCard: GameCard, x: number, y: number): void {
     // Stop dragging
     aiCard.stopDrag();
 
     // Set final position
-    aiCard.setTargetPosition(x, y);
+    aiCard.setTargetPosition(x, y - aiCard.height / 2);
 
     // After animation, update game state
     setTimeout(() => {
@@ -1405,9 +1358,13 @@ class AxesMundiApp {
         this.layoutOpponentHand();
       }
 
-      // Add to appropriate array based on position
-      const boardCenterX = this.boardCard ? (this.boardCard.x + this.boardCard.width / 2) : this.gameCanvas.width / 2;
-      const isLeft = x < boardCenterX;
+      // Add to appropriate array based on card value (not position)
+      // Determine left/right by comparing card value to board card value
+      const aiCardValue = this.convertToComparable(aiCard.card.value, aiCard.card.unit);
+      const boardCardValue = this.boardCard 
+        ? this.convertToComparable(this.boardCard.card.value, this.boardCard.card.unit) 
+        : 0;
+      const isLeft = aiCardValue < boardCardValue;
 
       // Play card placement sound for AI
       soundManager.play(SoundType.CARD_PLACE);
@@ -1445,6 +1402,7 @@ class AxesMundiApp {
           cardTitle: aiCard.card.title,
           turn: this.currentTurn,
           position: { x, y },
+          isLeft,
         },
       });
     }, 1000); // Wait for animation
@@ -1500,7 +1458,8 @@ class AxesMundiApp {
       this.layoutOpponentHand();
 
       // Add to appropriate array based on position
-      const boardCenterX = this.boardCard ? (this.boardCard.x + this.boardCard.width / 2) : this.gameCanvas.width / 2;
+      // Use getOriginalX() to handle case where preview might be active
+      const boardCenterX = this.boardCard ? (this.boardCard.getOriginalX() + this.boardCard.width / 2) : this.gameCanvas.width / 2;
       const isLeft = targetX < boardCenterX;
 
       // Play card placement sound for AI animation
@@ -1768,14 +1727,17 @@ class AxesMundiApp {
 
   /**
    * Show axis preview by moving cards to make space
+   * Updates dynamically as the dragged card moves along the axis
    */
   private showAxisPreview(previewX: number): void {
     if (!this.boardCard) return;
 
-    // Only move cards if preview is not already active
-    if (this.isPreviewActive) {
+    // Update if preview position changed significantly (allows dynamic updates)
+    if (this.isPreviewActive && Math.abs(previewX - this.lastPreviewX) < 20) {
       return;
     }
+
+    this.lastPreviewX = previewX;
 
     console.log('showAxisPreview called with previewX:', previewX);
 
@@ -1788,30 +1750,31 @@ class AxesMundiApp {
 
     if (allCards.length === 0) return;
 
-    // Create a subtle spread effect - only 40px each side
-    const spreadDistance = 40; // Reduced from 120px to 40px
+    // Spread distance - how far cards move apart
+    const spreadDistance = 60;
 
     allCards.forEach((card) => {
-      const cardCenterX = card.x + card.width / 2;
-      let newX = card.x;
+      // Use original position to calculate offset, not the current (possibly shifted) position
+      const originalX = card.getOriginalX();
+      const cardCenterX = originalX + card.width / 2;
+      let newX = originalX;
 
-      if (cardCenterX < previewX - 20) {
-        // Move cards to the left of preview position slightly left
-        newX = card.x - spreadDistance;
-      } else if (cardCenterX > previewX + 20) {
-        // Move cards to the right of preview position slightly right
-        newX = card.x + spreadDistance;
+      if (cardCenterX < previewX - 30) {
+        // Move cards to the left of preview position left
+        newX = originalX - spreadDistance;
+      } else if (cardCenterX > previewX + 30) {
+        // Move cards to the right of preview position right
+        newX = originalX + spreadDistance;
       }
-      // Cards very close to preview position stay in place
 
-      card.setPreviewPosition(newX, card.y);
+      card.setPreviewPosition(newX, card.getOriginalY());
 
       logger.debug({
         scope: 'renderer/preview',
         msg: 'set preview position for card',
         meta: {
           cardTitle: card.card.title,
-          oldX: card.x,
+          originalX,
           newX,
           previewX,
           cardCenterX,
@@ -1853,6 +1816,7 @@ class AxesMundiApp {
 
     // Mark preview as inactive
     this.isPreviewActive = false;
+    this.lastPreviewX = 0;
   }
 
   /**
@@ -2287,7 +2251,8 @@ class AxesMundiApp {
           });
         } else {
           // Normal case: Determine if it's left or right of center for array placement
-          const boardCenterX = this.boardCard.x + this.boardCard.width / 2;
+          // Use getOriginalX() to handle case where preview is still active
+          const boardCenterX = this.boardCard.getOriginalX() + this.boardCard.width / 2;
           const isLeft = snapX < boardCenterX;
 
           // Set the exact position where the card was dropped
@@ -2455,15 +2420,16 @@ class AxesMundiApp {
             },
           });
         } else {
-          // 4. STAY: Incorrect placement - card turns red and stays on board
+          // 4. STAY: Incorrect placement - card turns red and stays WHERE PLAYER DROPPED IT
           releasedCard.setIncorrect();
           // Play error sound for incorrect placement
           setTimeout(() => {
             soundManager.play(SoundType.ERROR);
           }, 300); // Small delay after placement sound
 
-          // Center the axis immediately after incorrect placement
-          this.layoutAxisCards();
+          // DON'T call layoutAxisCards() here - card should stay where player dropped it
+          // to show them their mistake. Cards will be re-centered when incorrect card
+          // is moved to graveyard.
 
           if (this.isLearningMode) {
             // LEARNING MODE: Show tooltip automatically for incorrect card
@@ -3737,8 +3703,12 @@ class AxesMundiApp {
 
     if (allCards.length <= 1) return; // No need to spread if only one card
 
-    // Sort cards by their current X position to maintain relative order
-    const sortedCards = allCards.sort((a, b) => a.x - b.x);
+    // Sort cards by their axis VALUE to ensure correct order (smallest to largest)
+    const sortedCards = allCards.sort((a, b) => {
+      const aValue = this.convertToComparable(a.card.value, a.card.unit);
+      const bValue = this.convertToComparable(b.card.value, b.card.unit);
+      return aValue - bValue;
+    });
 
     // Use fixed 5px spacing between cards
     const cardWidth = 200 * this.scale;
