@@ -1316,6 +1316,10 @@ class AxesMundiApp {
     const animationSteps = 40; // 40 steps for smooth animation
     const stepDuration = animationDuration / animationSteps;
 
+    // Calculate when to start showing the preview (when card is 30% through animation)
+    const previewStartStep = Math.floor(animationSteps * 0.3);
+    let previewShown = false;
+
     let step = 0;
     const animationInterval = setInterval(() => {
       // Interpolate from hand position to target position
@@ -1329,11 +1333,23 @@ class AxesMundiApp {
       // Move card to current position
       aiCard.updateDrag(currentX, currentY);
 
+      // Show axis preview when card gets close to the axis (board cards spread apart)
+      if (step >= previewStartStep && !previewShown) {
+        this.showAxisPreview(targetX + aiCard.width / 2);
+        previewShown = true;
+      } else if (previewShown) {
+        // Update preview position as card moves
+        this.showAxisPreview(currentX + aiCard.width / 2);
+      }
+
       step++;
       if (step >= animationSteps) {
         clearInterval(animationInterval);
 
-        // Place the card at the correct position
+        // DON'T hide preview here - let the card be placed into the open space
+        // The preview will be cleared when layoutAxisCards() is called after placement
+
+        // Place the card at the correct position (into the open space)
         this.placeAICardAtPosition(aiCard, targetX, axisY);
       }
     }, stepDuration);
@@ -1346,38 +1362,42 @@ class AxesMundiApp {
     // Stop dragging
     aiCard.stopDrag();
 
-    // Set final position
-    aiCard.setTargetPosition(x, y - aiCard.height / 2);
+    // The card is now at its position in the gap created by the preview
+    // DON'T set target position yet - let the card stay where it is
 
-    // After animation, update game state
+    // Immediately update game state (no delay - card is already in position)
+    // Remove the specific card from opponent hand
+    const cardIndex = this.opponentHand.indexOf(aiCard);
+    if (cardIndex > -1) {
+      this.opponentHand.splice(cardIndex, 1);
+      this.layoutOpponentHand();
+    }
+
+    // Add to appropriate array based on card value (not position)
+    // Determine left/right by comparing card value to board card value
+    const aiCardValue = this.convertToComparable(aiCard.card.value, aiCard.card.unit);
+    const boardCardValue = this.boardCard 
+      ? this.convertToComparable(this.boardCard.card.value, this.boardCard.card.unit) 
+      : 0;
+    const isLeft = aiCardValue < boardCardValue;
+
+    // Play card placement sound for AI
+    soundManager.play(SoundType.CARD_PLACE);
+
+    if (isLeft) {
+      this.placedLeft.push(aiCard);
+      aiCard.isInHand = false;
+    } else {
+      this.placedRight.push(aiCard);
+      aiCard.isInHand = false;
+    }
+
+    // Small delay to show the card in position, then re-center all cards smoothly
     setTimeout(() => {
-      // Remove the specific card from opponent hand
-      const cardIndex = this.opponentHand.indexOf(aiCard);
-      if (cardIndex > -1) {
-        this.opponentHand.splice(cardIndex, 1);
-        this.layoutOpponentHand();
-      }
+      // Clear preview positions before re-centering
+      this.hideAxisPreview();
 
-      // Add to appropriate array based on card value (not position)
-      // Determine left/right by comparing card value to board card value
-      const aiCardValue = this.convertToComparable(aiCard.card.value, aiCard.card.unit);
-      const boardCardValue = this.boardCard 
-        ? this.convertToComparable(this.boardCard.card.value, this.boardCard.card.unit) 
-        : 0;
-      const isLeft = aiCardValue < boardCardValue;
-
-      // Play card placement sound for AI
-      soundManager.play(SoundType.CARD_PLACE);
-
-      if (isLeft) {
-        this.placedLeft.push(aiCard);
-        aiCard.isInHand = false;
-      } else {
-        this.placedRight.push(aiCard);
-        aiCard.isInHand = false;
-      }
-
-      // Center all cards
+      // Center all cards (including the newly placed AI card)
       this.layoutAxisCards();
 
       // Mark card as correct and play success sound
@@ -1405,7 +1425,7 @@ class AxesMundiApp {
           isLeft,
         },
       });
-    }, 1000); // Wait for animation
+    }, 400); // Brief pause to show card in the gap, then re-center
   }
 
   /**
@@ -2635,6 +2655,9 @@ class AxesMundiApp {
     // Draw hand position indicators (gray boxes) - BEFORE cards so cards are on top
     this.drawHandPositionIndicators(ctx);
 
+    // Track any card being dragged (to render last for correct z-order)
+    let draggingCard: GameCard | null = null;
+
     // Draw board card (if exists)
     if (this.boardCard) {
       this.boardCard.render(ctx);
@@ -2646,7 +2669,11 @@ class AxesMundiApp {
       if (this.currentPlayerIndex === 0) {
         // Player 1 is current player - show player1Hand at bottom
         for (const card of this.player1Hand) {
-          card.render(ctx);
+          if (card.isDragging) {
+            draggingCard = card;
+          } else {
+            card.render(ctx);
+          }
         }
         // Player 2 is next player - show player2Hand at top as card backs
         for (const card of this.player2Hand) {
@@ -2655,7 +2682,11 @@ class AxesMundiApp {
       } else {
         // Player 2 is current player - show player2Hand at bottom
         for (const card of this.player2Hand) {
-          card.render(ctx);
+          if (card.isDragging) {
+            draggingCard = card;
+          } else {
+            card.render(ctx);
+          }
         }
         // Player 1 is next player - show player1Hand at top as card backs
         for (const card of this.player1Hand) {
@@ -2668,12 +2699,21 @@ class AxesMundiApp {
     } else {
       // Normal mode
       for (const card of this.playerHand) {
-        card.render(ctx);
+        if (card.isDragging) {
+          draggingCard = card;
+        } else {
+          card.render(ctx);
+        }
       }
 
-      // Draw opponent hand cards (show card backs)
+      // Draw opponent hand cards (show card backs) - check for AI dragging
       for (const card of this.opponentHand) {
-        this.drawOpponentCardBack(ctx, card);
+        if (card.isDragging) {
+          draggingCard = card;
+          // Don't draw card back for dragging card - will render as front later
+        } else {
+          this.drawOpponentCardBack(ctx, card);
+        }
       }
     }
 
@@ -2695,6 +2735,11 @@ class AxesMundiApp {
       }
       card.render(ctx);
       ctx.globalAlpha = 1; // Reset alpha
+    }
+
+    // Draw dragging card LAST so it appears on top of everything
+    if (draggingCard) {
+      draggingCard.render(ctx);
     }
 
     // Draw score and turn information (only in normal mode)
@@ -3002,9 +3047,9 @@ class AxesMundiApp {
       ctx.fill();
       ctx.stroke();
 
-      // Draw avatar boxes centered above/below hand areas (square: 200x200)
-      const avatarBoxWidth = 200 * this.scale;
-      const avatarBoxHeight = 200 * this.scale;
+      // Draw avatar boxes centered above/below hand areas (square: 100x100 - half size)
+      const avatarBoxWidth = 100 * this.scale;
+      const avatarBoxHeight = 100 * this.scale;
 
       // Use player names in hotseat mode, player name in singleplayer modes
       if (this.isHotseatMode) {
@@ -3039,8 +3084,8 @@ class AxesMundiApp {
       }
     } else {
       // Learning mode: only draw player avatar box (centered above player hand, 20px gap)
-      const avatarBoxWidth = 200 * this.scale;
-      const avatarBoxHeight = 200 * this.scale;
+      const avatarBoxWidth = 100 * this.scale;
+      const avatarBoxHeight = 100 * this.scale;
       const playerName = this.player1Data?.name || 'Player';
       const playerAvatar = getAvatarEmoji(this.player1Data?.avatar);
       this.drawAvatarBox(ctx, this.gameCanvas.width / 2 - avatarBoxWidth / 2, playerY - avatarBoxHeight - 20 * this.scale, playerAvatar, playerName);
@@ -3581,12 +3626,12 @@ class AxesMundiApp {
   /**
     * Draw avatar box (styled like landing page avatar selection)
     * Shows avatar emoji centered with player name below
-    * Square box (200x200)
+    * Square box (100x100 - half size)
     */
   private drawAvatarBox(ctx: CanvasRenderingContext2D, x: number, y: number, avatar: string, name: string): void {
-    const boxWidth = 200 * this.scale;
-    const boxHeight = 200 * this.scale;
-    const borderRadius = 15 * this.scale;
+    const boxWidth = 100 * this.scale;
+    const boxHeight = 100 * this.scale;
+    const borderRadius = 8 * this.scale;
 
     // Draw background box (10% transparency / 90% opaque gray)
     ctx.fillStyle = 'rgba(128, 128, 128, 0.9)';
@@ -3597,17 +3642,17 @@ class AxesMundiApp {
     ctx.fill();
     ctx.stroke();
 
-    // Draw avatar emoji (large, centered in upper portion)
+    // Draw avatar emoji (centered in upper portion)
     ctx.fillStyle = '#000000';
-    ctx.font = `${96 * this.scale}px Arial`;
+    ctx.font = `${48 * this.scale}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(avatar, x + boxWidth / 2, y + boxHeight / 2 - 25 * this.scale);
+    ctx.fillText(avatar, x + boxWidth / 2, y + boxHeight / 2 - 12 * this.scale);
 
-    // Draw player name (below avatar, larger, black)
-    ctx.font = `bold ${26 * this.scale}px Arial`;
+    // Draw player name (below avatar, black)
+    ctx.font = `bold ${13 * this.scale}px Arial`;
     ctx.textBaseline = 'top';
-    ctx.fillText(name, x + boxWidth / 2, y + boxHeight / 2 + 35 * this.scale);
+    ctx.fillText(name, x + boxWidth / 2, y + boxHeight / 2 + 18 * this.scale);
 
     // Reset text baseline
     ctx.textBaseline = 'alphabetic';

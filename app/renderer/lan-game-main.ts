@@ -897,12 +897,12 @@ class LANGameApp {
   /**
    * Draw avatar box (styled like landing page avatar selection)
    * Shows avatar emoji centered with player name below
-   * Square box (200x200)
+   * Square box (100x100 - half size)
    */
   private drawAvatarBox(ctx: CanvasRenderingContext2D, x: number, y: number, avatar: string, name: string): void {
-    const boxWidth = 200 * this.scale;
-    const boxHeight = 200 * this.scale;
-    const borderRadius = 15 * this.scale;
+    const boxWidth = 100 * this.scale;
+    const boxHeight = 100 * this.scale;
+    const borderRadius = 8 * this.scale;
 
     // Draw background box (10% transparency / 90% opaque gray)
     ctx.fillStyle = 'rgba(128, 128, 128, 0.9)';
@@ -913,17 +913,17 @@ class LANGameApp {
     ctx.fill();
     ctx.stroke();
 
-    // Draw avatar emoji (large, centered in upper portion)
+    // Draw avatar emoji (centered in upper portion)
     ctx.fillStyle = '#000000';
-    ctx.font = `${96 * this.scale}px Arial`;
+    ctx.font = `${48 * this.scale}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(avatar, x + boxWidth / 2, y + boxHeight / 2 - 25 * this.scale);
+    ctx.fillText(avatar, x + boxWidth / 2, y + boxHeight / 2 - 12 * this.scale);
 
-    // Draw player name (below avatar, larger, black)
-    ctx.font = `bold ${26 * this.scale}px Arial`;
+    // Draw player name (below avatar, black)
+    ctx.font = `bold ${13 * this.scale}px Arial`;
     ctx.textBaseline = 'top';
-    ctx.fillText(name, x + boxWidth / 2, y + boxHeight / 2 + 35 * this.scale);
+    ctx.fillText(name, x + boxWidth / 2, y + boxHeight / 2 + 18 * this.scale);
 
     // Reset text baseline
     ctx.textBaseline = 'alphabetic';
@@ -993,9 +993,9 @@ class LANGameApp {
       // Fallback to default avatar
     }
 
-    // Draw avatar boxes centered above/below hand areas (square: 200x200)
-    const avatarBoxWidth = 200 * this.scale;
-    const avatarBoxHeight = 200 * this.scale;
+    // Draw avatar boxes centered above/below hand areas (square: 100x100 - half size)
+    const avatarBoxWidth = 100 * this.scale;
+    const avatarBoxHeight = 100 * this.scale;
     const playerName = isServerClient ? serverPlayerName : clientPlayerName;
     const opponentName = isServerClient ? clientPlayerName : serverPlayerName;
 
