@@ -2676,8 +2676,6 @@ class AxesMundiApp {
         }
       }
 
-      // DEBUG: Draw position information for Hotseat mode
-      this.drawHotseatDebugInfo();
     } else {
       // Normal mode
       for (const card of this.playerHand) {
@@ -2726,12 +2724,36 @@ class AxesMundiApp {
 
     // Draw score and turn information (only in normal mode)
     if (this.isHotseatMode) {
-      // Hotseat mode: show current player information
+      // Hotseat mode: show current player information with prominent background
       const currentPlayer = this.currentPlayerIndex === 0 ? this.player1Data : this.player2Data;
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `bold ${18 * this.scale}px Arial`;
+      const turnText = `🎮 ${currentPlayer?.name || 'Spieler'} ist am Zug`;
+      const fontSize = 28 * this.scale;
+      ctx.font = `bold ${fontSize}px Arial`;
       ctx.textAlign = 'left';
-      ctx.fillText(`🎮 ${currentPlayer?.name || 'Spieler'} ist am Zug`, 20 * this.scale, 40 * this.scale);
+      
+      // Measure text for background box
+      const textMetrics = ctx.measureText(turnText);
+      const textWidth = textMetrics.width;
+      const padding = 14 * this.scale;
+      const boxX = 12 * this.scale;
+      const boxY = 12 * this.scale;
+      const boxHeight = fontSize + padding * 1.4;
+      
+      // Draw light gray background box with rounded corners
+      ctx.fillStyle = 'rgba(180, 180, 180, 0.9)';
+      ctx.beginPath();
+      const radius = 10 * this.scale;
+      ctx.roundRect(boxX, boxY, textWidth + padding * 2, boxHeight, radius);
+      ctx.fill();
+      
+      // Draw subtle border
+      ctx.strokeStyle = 'rgba(100, 100, 100, 0.5)';
+      ctx.lineWidth = 2 * this.scale;
+      ctx.stroke();
+      
+      // Draw text
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillText(turnText, boxX + padding, boxY + fontSize + padding * 0.2);
     } else if (!this.isLearningMode) {
       ctx.fillStyle = '#ffffff';
       ctx.font = `${18 * this.scale}px Arial`;
@@ -2841,47 +2863,6 @@ class AxesMundiApp {
     }
   }
 
-  /**
-    * Draw debugging information for Hotseat mode card positions
-    */
-  private drawHotseatDebugInfo(): void {
-    const ctx = this.gameContext;
-
-    // Set up text style for debugging - smaller font
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '8px Arial';
-    ctx.textAlign = 'left';
-
-    let debugY = 80;
-
-    // Debug info for Player 1 Hand - single line per card
-    const player1Name = this.player1Data?.name || 'Spieler 1';
-    ctx.fillStyle = '#00ff00';
-    ctx.fillText(`${player1Name} (${this.player1Hand.length}):`, 10, debugY);
-    debugY += 12;
-
-    this.player1Hand.forEach((card, index) => {
-      ctx.fillStyle = '#00ff00';
-      ctx.fillText(`  ${index}: "${card.card.title}" | Current:(${Math.round(card.x)},${Math.round(card.y)}) | Target:(${card.targetX !== null ? Math.round(card.targetX) : 'null'},${card.targetY !== null ? Math.round(card.targetY) : 'null'})`, 10, debugY);
-      debugY += 10;
-    });
-
-    // Debug info for Player 2 Hand - single line per card
-    const player2Name = this.player2Data?.name || 'Spieler 2';
-    ctx.fillStyle = '#ff00ff';
-    ctx.fillText(`${player2Name} (${this.player2Hand.length}):`, 10, debugY);
-    debugY += 12;
-
-    this.player2Hand.forEach((card, index) => {
-      ctx.fillStyle = '#ff00ff';
-      ctx.fillText(`  ${index}: "${card.card.title}" | Current:(${Math.round(card.x)},${Math.round(card.y)}) | Target:(${card.targetX !== null ? Math.round(card.targetX) : 'null'},${card.targetY !== null ? Math.round(card.targetY) : 'null'})`, 10, debugY);
-      debugY += 10;
-    });
-
-    // Debug info for Current/Next Player Hands - compact
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(`Current:${this.currentPlayerIndex} | CurrentHand:${this.currentPlayerHand.length} | NextHand:${this.nextPlayerHand.length} | Remaining:${this.remainingCards.length}`, 10, debugY);
-  }
 
   /**
    * Give player a new card from the deck (turn-based)
