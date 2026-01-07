@@ -192,6 +192,9 @@ class LANGameApp {
       // Calculate scale factor (like Single-Player)
       this.calculateScale();
 
+      // Apply initial scale to HTML UI elements
+      this.updateUIElementsScale();
+
       console.log('🎮 Canvas context initialized successfully');
     } catch (error) {
       console.error('🎮 Failed to initialize Canvas context:', error);
@@ -1244,9 +1247,25 @@ class LANGameApp {
       // Recalculate scale factor
       this.calculateScale();
 
-      // Re-layout all cards with new scale
+      // Update scale for all existing cards (this also adjusts their positions proportionally)
+      this.updateAllCardsScale();
+
+      // Re-layout all cards with new scale to ensure proper positioning
       this.layoutHand();
       this.layoutOpponentHand();
+      this.layoutAxisCards();
+
+      // Update graveyard card positions
+      if (this.graveyard.length > 0) {
+        const graveyardX = this.canvas!.width - 230 * this.scale;
+        const graveyardY = 50 * this.scale;
+        for (const card of this.graveyard) {
+          card.setTargetPosition(graveyardX, graveyardY);
+        }
+      }
+
+      // Update HTML UI elements scale
+      this.updateUIElementsScale();
 
       logger.debug({
         scope: 'renderer/lan-game',
@@ -1259,6 +1278,82 @@ class LANGameApp {
         msg: 'resize failed',
         err: { message: (error as Error).message, stack: (error as Error).stack },
       });
+    }
+  }
+
+  /**
+   * Update scale for all existing cards
+   */
+  private updateAllCardsScale(): void {
+    // Update player hand cards
+    for (const card of this.playerHand) {
+      card.updateScale(this.scale);
+    }
+
+    // Update opponent hand cards
+    for (const card of this.opponentHand) {
+      card.updateScale(this.scale);
+    }
+
+    // Update board/axis cards
+    for (const card of this.board) {
+      card.updateScale(this.scale);
+    }
+
+    // Update graveyard cards
+    for (const card of this.graveyard) {
+      card.updateScale(this.scale);
+    }
+  }
+
+  /**
+   * Update HTML UI elements scale (back button, lan-info box)
+   */
+  private updateUIElementsScale(): void {
+    // Base values at scale 1.0
+    const baseFontSize = 14;
+    const basePadding = 10;
+    const baseBorderRadius = 5;
+    const baseTop = 20;
+    const baseLeft = 20;
+    const baseInfoTop = 110;
+
+    // Scale factors
+    const fontSize = Math.round(baseFontSize * this.scale);
+    const padding = Math.round(basePadding * this.scale);
+    const borderRadius = Math.round(baseBorderRadius * this.scale);
+    const top = Math.round(baseTop * this.scale);
+    const left = Math.round(baseLeft * this.scale);
+    const infoTop = Math.round(baseInfoTop * this.scale);
+
+    // Update back-to-menu button
+    const backButton = document.getElementById('back-to-menu');
+    if (backButton) {
+      backButton.style.fontSize = `${fontSize}px`;
+      backButton.style.padding = `${padding}px ${Math.round(15 * this.scale)}px`;
+      backButton.style.borderRadius = `${borderRadius}px`;
+      backButton.style.top = `${top}px`;
+      backButton.style.left = `${left}px`;
+    }
+
+    // Update lan-info box
+    const lanInfo = document.getElementById('lan-info');
+    if (lanInfo) {
+      lanInfo.style.fontSize = `${fontSize}px`;
+      lanInfo.style.padding = `${padding}px ${Math.round(15 * this.scale)}px`;
+      lanInfo.style.borderRadius = `${borderRadius}px`;
+      lanInfo.style.top = `${infoTop}px`;
+      lanInfo.style.left = `${left}px`;
+    }
+
+    // Update lan-status box (connection status)
+    const lanStatus = document.getElementById('lan-status');
+    if (lanStatus) {
+      lanStatus.style.fontSize = `${fontSize}px`;
+      lanStatus.style.padding = `${padding}px ${Math.round(15 * this.scale)}px`;
+      lanStatus.style.borderRadius = `${borderRadius}px`;
+      lanStatus.style.top = `${Math.round(60 * this.scale)}px`;
+      lanStatus.style.left = `${left}px`;
     }
   }
 
@@ -2171,27 +2266,27 @@ class LANGameApp {
         });
       }
 
-      // Add mouse down event listener for drag & drop
+      // Add mouse down event listener for drag & drop (on canvas)
       this.canvas.addEventListener('mousedown', (event) => {
         this.handleMouseDown(event);
       });
 
-      // Add mouse move event listener for hover effects and dragging
-      this.canvas.addEventListener('mousemove', (event) => {
+      // Add mouse move event listener for hover effects and dragging (on WINDOW for smooth dragging outside canvas)
+      window.addEventListener('mousemove', (event) => {
         this.handleMouseMove(event);
       });
 
-      // Add mouse up event listener for drag & drop
-      this.canvas.addEventListener('mouseup', (event) => {
+      // Add mouse up event listener for drag & drop (on WINDOW to catch releases outside canvas)
+      window.addEventListener('mouseup', (event) => {
         this.handleMouseUp(event);
       });
 
-      // Add mouse leave event listener to clear hover effects
+      // Add mouse leave event listener to clear hover effects only (dragging continues)
       this.canvas.addEventListener('mouseleave', () => {
-        this.clearAllHoverEffects();
-        // Also stop dragging if mouse leaves canvas
-        if (this.isDragging) {
-          this.stopDragging();
+        // Only clear hover effects, don't stop dragging
+        // This allows cards to be dragged outside the canvas and back
+        if (!this.isDragging) {
+          this.clearAllHoverEffects();
         }
       });
 
@@ -2291,7 +2386,7 @@ class LANGameApp {
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
 
-      // Handle dragging if active
+      // Handle dragging if active (works even outside canvas bounds)
       if (this.isDragging && this.selectedCard) {
         this.selectedCard.updateDrag(x, y);
 
@@ -2302,6 +2397,11 @@ class LANGameApp {
 
       // Clear all hover effects first
       this.clearAllHoverEffects();
+
+      // Only handle hover effects when mouse is inside canvas bounds
+      if (x < 0 || x > rect.width || y < 0 || y > rect.height) {
+        return; // Mouse is outside canvas, skip hover effects
+      }
 
       // Check if game has started (current player is set)
       const currentPlayer = localStorage.getItem('currentPlayer');
