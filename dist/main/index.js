@@ -19,6 +19,7 @@ function createWindow() {
             height: 800,
             minWidth: 800,
             minHeight: 600,
+            autoHideMenuBar: true, // Hide menu bar (press Alt to show temporarily)
             webPreferences: {
                 nodeIntegration: false,
                 contextIsolation: true,
