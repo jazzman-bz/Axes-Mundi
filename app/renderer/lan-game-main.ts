@@ -61,7 +61,7 @@ class LANGameApp {
 
   private selectedCard: any = null;
 
-  private snapThreshold: number = 50; // Distance to axis for snapping
+  private snapThreshold: number = 80; // Distance to axis for snapping (will be scaled)
 
   private isPreviewActive: boolean = false; // Track if preview is currently active
   private lastPreviewX: number = 0; // Track last preview position for dynamic updates
@@ -212,6 +212,9 @@ class LANGameApp {
     const scaleX = window.innerWidth / baseWidth;
     const scaleY = window.innerHeight / baseHeight;
     this.scale = Math.min(scaleX, scaleY, 1.5); // Cap at 1.5x for very large screens
+
+    // Update snap threshold for new scale
+    this.snapThreshold = 80 * this.scale;
 
     console.log('🎮 Scale calculated:', this.scale);
   }
@@ -2590,20 +2593,26 @@ class LANGameApp {
    */
   private showPlacementPreview(mouseX: number, mouseY: number): void {
     try {
-      // Define the axis area as a collision box
+      // Use the CARD's position, not mouse position, for more intuitive dragging
+      if (!this.selectedCard) return;
+
       const axisY = this.canvas!.height / 2;
-      const axisHeight = 100; // Height of the axis collision area
-      const axisTop = axisY - axisHeight / 2;
-      const axisBottom = axisY + axisHeight / 2;
+      const cardHeight = this.selectedCard.height;
 
-      // Check if mouse is within the axis collision box
-      const isOverAxis = mouseY >= axisTop && mouseY <= axisBottom;
+      // Board cards bottom edge (cards are centered on axis)
+      const boardCardsBottom = axisY + cardHeight / 2;
 
-      if (isOverAxis) {
+      // Dragged card top edge
+      const draggedCardTop = this.selectedCard.y;
+
+      // Trigger preview when card's TOP reaches board cards' BOTTOM
+      const isNearAxis = draggedCardTop <= boardCardsBottom;
+
+      if (isNearAxis) {
         // Show/update preview - will dynamically update card positions as we move
         this.showAxisPreview(mouseX);
       } else {
-        // Hide preview if mouse is not over axis
+        // Hide preview if card is not near axis
         if (this.isPreviewActive) {
           this.hidePlacementPreview();
         }

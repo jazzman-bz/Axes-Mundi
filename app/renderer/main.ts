@@ -1622,16 +1622,20 @@ class AxesMundiApp {
    * Show preview of where card would be placed on axis
    */
   private showPlacementPreview(mouseX: number, mouseY: number): void {
-    // Define the axis area as a collision box
+    // Use the CARD's position, not mouse position, for more intuitive dragging
+    if (!this.selectedCard) return;
+
     const axisY = this.gameCanvas.height / 2;
-    const axisHeight = 100; // Height of the axis collision area
-    const axisTop = axisY - axisHeight / 2;
-    const axisBottom = axisY + axisHeight / 2;
+    const cardHeight = this.selectedCard.height;
 
-    // Check if mouse is within the axis collision box
-    const isOverAxis = mouseY >= axisTop && mouseY <= axisBottom;
+    // Board cards bottom edge (cards are centered on axis)
+    const boardCardsBottom = axisY + cardHeight / 2;
 
-    // Simple test: log every time this method is called
+    // Dragged card top edge
+    const draggedCardTop = this.selectedCard.y;
+
+    // Trigger preview when card's TOP reaches board cards' BOTTOM
+    const isNearAxis = draggedCardTop <= boardCardsBottom;
 
     logger.debug({
       scope: 'renderer/preview',
@@ -1639,14 +1643,13 @@ class AxesMundiApp {
       meta: {
         mouseX,
         mouseY,
-        axisY,
-        axisTop,
-        axisBottom,
-        isOverAxis,
+        draggedCardTop,
+        boardCardsBottom,
+        isNearAxis,
       },
     });
 
-    if (isOverAxis) {
+    if (isNearAxis) {
       // Show preview by temporarily moving existing cards to make space
       this.showAxisPreview(mouseX);
     } else {
