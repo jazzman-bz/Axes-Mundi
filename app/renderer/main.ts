@@ -1,5 +1,5 @@
 import { logger } from '@/utils/logger';
-import { loadDeck, dealCards, getRandomBoardCard } from '@/data/deckLoader';
+import { loadDeck } from '@/data/deckLoader';
 import { isAxisCorrectlySorted, getScore } from '@/data/scoring';
 import { GameCard } from '@/game/Card';
 import { Card as CardData } from '@/data/types';
@@ -36,9 +36,9 @@ class AxesMundiApp {
 
   private gameContext: CanvasRenderingContext2D;
 
-  private animationId: number;
+  private animationId: number = 0;
 
-  private lastTime: number;
+  private lastTime: number = 0;
 
   private fps: number = 60;
 
@@ -208,7 +208,7 @@ class AxesMundiApp {
             },
           });
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error({
           scope: 'renderer/hotseat',
           msg: 'failed to load player data',
@@ -230,7 +230,7 @@ class AxesMundiApp {
             meta: { player1: this.player1Data },
           });
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error({
           scope: 'renderer/singleplayer',
           msg: 'failed to load player data',
@@ -281,7 +281,7 @@ class AxesMundiApp {
       this.gameCanvas.height = window.innerHeight;
 
       logger.info({ scope: 'renderer/app', msg: 'canvas initialized' });
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/app',
         msg: 'failed to initialize canvas',
@@ -323,7 +323,7 @@ class AxesMundiApp {
         this.logoImage = null;
       };
       this.logoImage.src = './assets/axes-mundi logo.png';
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/app',
         msg: 'failed to load logo',
@@ -363,7 +363,7 @@ class AxesMundiApp {
         this.arrowRightImage = null;
       };
       this.arrowRightImage.src = './assets/arrow right.png';
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/app',
         msg: 'failed to load arrow images',
@@ -388,7 +388,7 @@ class AxesMundiApp {
         this.backgroundImage = null;
       };
       this.backgroundImage.src = './assets/background.jpg';
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/app',
         msg: 'failed to load background image',
@@ -446,7 +446,7 @@ class AxesMundiApp {
         logger.debug({ scope: 'renderer/app', msg: 'arrow converted to white successfully' });
       };
       whiteImage.src = canvas.toDataURL();
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/app',
         msg: 'failed to convert arrow to white',
@@ -515,7 +515,7 @@ class AxesMundiApp {
 
       // Update snap threshold for new scale
       this.snapThreshold = 80 * this.scale;
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/app',
         msg: 'resize failed',
@@ -590,7 +590,7 @@ class AxesMundiApp {
           isLearningMode: this.isLearningMode,
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/game',
         msg: 'failed to load game',
@@ -664,7 +664,7 @@ class AxesMundiApp {
         msg: 'deck shuffled successfully',
         meta: { cardCount: this.remainingCards.length },
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/game',
         msg: 'failed to shuffle deck',
@@ -962,7 +962,7 @@ class AxesMundiApp {
           isLearningMode: true,
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/game',
         msg: 'failed to deal cards to player (learning mode)',
@@ -1026,7 +1026,7 @@ class AxesMundiApp {
           },
         });
       }, totalDealTime);
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/game',
         msg: 'failed to deal cards to players (hotseat mode)',
@@ -2225,7 +2225,7 @@ class AxesMundiApp {
   /**
    * Handle mouse up
    */
-  private handleMouseUp(event: MouseEvent): void {
+  private handleMouseUp(_event: MouseEvent): void {
     if (this.isDragging && this.selectedCard) {
       // Snap logic: if released near axis, place left/right of center
       const releasedCard = this.selectedCard;
@@ -2555,7 +2555,7 @@ class AxesMundiApp {
       }
 
       this.animationId = requestAnimationFrame(this.gameLoop.bind(this));
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/gameloop',
         msg: 'game loop error',
@@ -2569,7 +2569,7 @@ class AxesMundiApp {
   /**
    * Update game state
    */
-  private update(deltaTime: number): void {
+  private update(_deltaTime: number): void {
     // Tick animations for all cards
     if (this.boardCard) {
       this.boardCard.tick?.();
@@ -2966,7 +2966,7 @@ class AxesMundiApp {
      * Draw hand position indicators (single gray box per hand)
      */
   private drawHandPositionIndicators(ctx: CanvasRenderingContext2D): void {
-    const cardWidth = 200 * this.scale;
+    const _cardWidth = 200 * this.scale; // Reserved for future use
     const cardHeight = 300 * this.scale;
     const cardSpacing = 220 * this.scale;
 
@@ -4013,7 +4013,7 @@ class AxesMundiApp {
         msg: 'custom win dialog displayed',
       });
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/game',
         msg: 'failed to show custom win dialog',
@@ -4040,7 +4040,7 @@ class AxesMundiApp {
         msg: 'navigating to main menu',
       });
       window.location.href = './index.html';
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/game',
         msg: 'failed to navigate to main menu',
@@ -4316,7 +4316,7 @@ async function initSoundManagerAsync(): Promise<void> {
   try {
     await soundManager.init();
     logger.info({ scope: 'renderer/app', msg: 'sound manager initialized' });
-  } catch (error) {
+  } catch (error: any) {
     logger.error({
       scope: 'renderer/app',
       msg: 'failed to initialize sound manager',
@@ -4333,7 +4333,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     new AxesMundiApp();
     logger.info({ scope: 'renderer/app', msg: 'app initialized successfully' });
-  } catch (error) {
+  } catch (error: any) {
     logger.error({
       scope: 'renderer/app',
       msg: 'app initialization failed',
