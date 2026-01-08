@@ -782,10 +782,12 @@ class LandingPageController {
           this.showConnectionStatus(`${message.playerName} is ready!`, false);
           break;
                  case 'readyConfirmed':
-           this.showConnectionStatus('You are ready! Connected to player ' + this.serverPlayerName, false);
-           // Navigate to deck selection for server-client
+           // Navigate to deck selection for server-client, show waiting message for browser client
            if (this.isServerClient) {
+             this.showConnectionStatus('You are ready! Connected to player ' + this.serverPlayerName, false);
              this.navigateToSection('deck-selection');
+           } else {
+             this.showConnectionStatus('You are ready! Connected to player ' + this.serverPlayerName + ' - waiting for server to select deck...', false);
            }
            break;
                    case 'deckSelection':

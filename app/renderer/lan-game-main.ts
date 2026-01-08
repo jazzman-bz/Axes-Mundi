@@ -3000,6 +3000,11 @@ class LANGameApp {
     try {
       // Play card shuffle sound for drawing a single card
       soundManager.play(SoundType.CARD_SHUFFLE);
+
+      // Recycle graveyard if deck is empty
+      if (this.remainingCards.length === 0 && this.graveyard.length > 0) {
+        this.recycleGraveyard();
+      }
       
       if (this.remainingCards.length > 0) {
         const newCardData = this.remainingCards.shift()!;
@@ -3100,6 +3105,29 @@ class LANGameApp {
     } catch (error) {
       console.error('🎮 Failed to give new card:', error);
     }
+  }
+
+  /**
+   * Recycle graveyard cards back to deck when deck is empty
+   * Moves cards in their current order (no shuffle for LAN sync)
+   */
+  private recycleGraveyard(): void {
+    if (this.graveyard.length === 0) return;
+
+    console.log('🎮 Recycling graveyard cards to deck:', {
+      graveyardSize: this.graveyard.length,
+    });
+
+    // Extract card data from GameCard objects (keeps original order)
+    const graveyardCardData = this.graveyard.map((gameCard: any) => gameCard.card);
+
+    // Add cards to remainingCards (in graveyard order)
+    this.remainingCards.push(...graveyardCardData);
+
+    // Clear the graveyard (GameCard objects)
+    this.graveyard = [];
+
+    console.log('🎮 Graveyard recycled, new deck size:', this.remainingCards.length);
   }
 
   /**

@@ -770,6 +770,11 @@ class AxesMundiApp {
    * Deal a card to the player
    */
   private dealCardToPlayer(): void {
+    // Recycle graveyard if deck is empty
+    if (this.remainingCards.length === 0 && this.graveyard.length > 0) {
+      this.recycleGraveyard();
+    }
+
     if (this.remainingCards.length > 0) {
       const cardData = this.remainingCards.shift()!;
       const card = new GameCard(
@@ -818,6 +823,11 @@ class AxesMundiApp {
       msg: 'dealCardToOpponent called',
       meta: { remainingCards: this.remainingCards.length, opponentHandSize: this.opponentHand.length },
     });
+
+    // Recycle graveyard if deck is empty
+    if (this.remainingCards.length === 0 && this.graveyard.length > 0) {
+      this.recycleGraveyard();
+    }
 
     if (this.remainingCards.length > 0) {
       const cardData = this.remainingCards.shift()!;
@@ -1039,6 +1049,11 @@ class AxesMundiApp {
    * Deal a card to player 1 (hotseat mode)
    */
   private dealCardToPlayer1(): void {
+    // Recycle graveyard if deck is empty
+    if (this.remainingCards.length === 0 && this.graveyard.length > 0) {
+      this.recycleGraveyard();
+    }
+
     if (this.remainingCards.length > 0) {
       const cardData = this.remainingCards.shift()!;
       const card = new GameCard(
@@ -1065,6 +1080,11 @@ class AxesMundiApp {
    * Deal a card to player 2 (hotseat mode)
    */
   private dealCardToPlayer2(): void {
+    // Recycle graveyard if deck is empty
+    if (this.remainingCards.length === 0 && this.graveyard.length > 0) {
+      this.recycleGraveyard();
+    }
+
     if (this.remainingCards.length > 0) {
       const cardData = this.remainingCards.shift()!;
       const card = new GameCard(
@@ -2871,6 +2891,11 @@ class AxesMundiApp {
    * Give player a new card from the deck (turn-based)
    */
   private giveNewCard(): void {
+    // Recycle graveyard if deck is empty
+    if (this.remainingCards.length === 0 && this.graveyard.length > 0) {
+      this.recycleGraveyard();
+    }
+
     if (this.remainingCards.length > 0) {
       // Play card shuffle sound for drawing a single card
       soundManager.play(SoundType.CARD_SHUFFLE);
@@ -2921,6 +2946,35 @@ class AxesMundiApp {
         },
       });
     }
+  }
+
+  /**
+   * Recycle graveyard cards back to deck when deck is empty
+   * Moves cards in their current order (no shuffle for LAN sync compatibility)
+   */
+  private recycleGraveyard(): void {
+    if (this.graveyard.length === 0) return;
+
+    logger.info({
+      scope: 'renderer/game',
+      msg: 'recycling graveyard cards to deck',
+      meta: { graveyardSize: this.graveyard.length },
+    });
+
+    // Extract card data from GameCard objects (keeps original order)
+    const graveyardCardData = this.graveyard.map((gameCard) => gameCard.card);
+
+    // Add cards to remainingCards (in graveyard order)
+    this.remainingCards.push(...graveyardCardData);
+
+    // Clear the graveyard (GameCard objects)
+    this.graveyard = [];
+
+    logger.info({
+      scope: 'renderer/game',
+      msg: 'graveyard recycled',
+      meta: { newDeckSize: this.remainingCards.length },
+    });
   }
 
   /**
