@@ -24,7 +24,7 @@ export class LANGameManager {
 
   private clientPlayerName: string = '';
 
-  private currentPlayer: string = ''; // Wer ist am Zug
+  private currentPlayer: string = ''; // Whose turn is it
 
   // WebSocket client for non-server clients
   public lanClient: any = null;
@@ -45,7 +45,7 @@ export class LANGameManager {
     this.isServerClient = localStorage.getItem('isServerClient') === 'true';
     this.serverPlayerName = localStorage.getItem('serverPlayerName') || 'Server';
     this.clientPlayerName = localStorage.getItem('clientPlayerName') || 'Waiting for client...';
-    // currentPlayer wird beim Spielstart zufällig gesetzt
+    // currentPlayer is randomly set at game start
 
     console.log('🎮 LANGameManager constructor - isServerClient set to:', this.isServerClient);
     console.log('🎮 LANGameManager constructor - serverPlayerName:', this.serverPlayerName);
@@ -220,13 +220,13 @@ export class LANGameManager {
       console.log('🎮 Server client detected, proceeding with initialization');
 
       // Load deck from localStorage with validation
-      let selectedDeck = localStorage.getItem('selectedDeck') || 'buildings-height-de';
+      let selectedDeck = localStorage.getItem('selectedDeck') || 'buildings-height-en';
 
-      // Validate that the selected deck exists, fallback to buildings-height-de if not
-      const validDecks = ['buildings-height-de', 'time-inventions-en', 'temperatures-temperature-de', 'sky-objects-distance-en', 'political-events-time-en'];
+      // Validate that the selected deck exists, fallback to buildings-height-en if not
+      const validDecks = ['buildings-height-en', 'time-inventions-en', 'temperatures-temperature-en', 'sky-objects-distance-en', 'political-events-time-en'];
       if (!validDecks.includes(selectedDeck)) {
-        console.warn('🎮 Invalid deck ID in localStorage:', selectedDeck, 'falling back to buildings-height-de');
-        selectedDeck = 'buildings-height-de';
+        console.warn('🎮 Invalid deck ID in localStorage:', selectedDeck, 'falling back to buildings-height-en');
+        selectedDeck = 'buildings-height-en';
         localStorage.setItem('selectedDeck', selectedDeck);
       }
 

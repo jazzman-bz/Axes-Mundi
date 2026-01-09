@@ -574,19 +574,19 @@ export class LANGameClient {
       const currentTurnElement = document.getElementById('currentTurn');
 
       if (playerNameElement) {
-        playerNameElement.textContent = `Spieler: ${clientPlayerName}`;
+        playerNameElement.textContent = `Player: ${clientPlayerName}`;
         playerNameElement.classList.add('waiting-turn');
         playerNameElement.classList.remove('current-turn');
       }
 
       if (opponentNameElement) {
-        opponentNameElement.textContent = `Gegner: ${serverPlayerName}`;
+        opponentNameElement.textContent = `Opponent: ${serverPlayerName}`;
         opponentNameElement.classList.add('waiting-turn');
         opponentNameElement.classList.remove('current-turn');
       }
 
       if (currentTurnElement) {
-        currentTurnElement.textContent = 'Zug: Warte auf Spielstart...';
+        currentTurnElement.textContent = 'Turn: Waiting for game start...';
       }
     } catch (error) {
       logger.error({
@@ -611,7 +611,7 @@ export class LANGameClient {
       const currentTurnElement = document.getElementById('currentTurn');
 
       if (playerNameElement) {
-        playerNameElement.textContent = `Spieler: ${clientPlayerName}`;
+        playerNameElement.textContent = `Player: ${clientPlayerName}`;
         if (currentPlayer === clientPlayerName) {
           playerNameElement.classList.add('current-turn');
           playerNameElement.classList.remove('waiting-turn');
@@ -622,7 +622,7 @@ export class LANGameClient {
       }
 
       if (opponentNameElement) {
-        opponentNameElement.textContent = `Gegner: ${serverPlayerName}`;
+        opponentNameElement.textContent = `Opponent: ${serverPlayerName}`;
         if (currentPlayer === serverPlayerName) {
           opponentNameElement.classList.add('current-turn');
           opponentNameElement.classList.remove('waiting-turn');
@@ -633,7 +633,7 @@ export class LANGameClient {
       }
 
       if (currentTurnElement) {
-        currentTurnElement.textContent = `Zug: ${currentPlayer}`;
+        currentTurnElement.textContent = `Turn: ${currentPlayer}`;
       }
     } catch (error) {
       logger.error({

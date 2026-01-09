@@ -424,7 +424,7 @@ export class GameScene {
       this.axisLine.lineTo(this.app.screen.width - 100, this.app.screen.height / 2);
 
       // Create axis label
-      this.axisLabel = new Text('Höhe (m)', {
+      this.axisLabel = new Text('Height (m)', {
         fontFamily: 'Arial',
         fontSize: 24,
         fill: 0xffffff,
@@ -459,7 +459,7 @@ export class GameScene {
       this.testCard.endFill();
 
       // Add card text
-      const cardText = new Text('Test\nKarte', {
+      const cardText = new Text('Test\nCard', {
         fontFamily: 'Arial',
         fontSize: 14,
         fill: 0xffffff,

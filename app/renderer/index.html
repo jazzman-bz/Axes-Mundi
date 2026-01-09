@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Axes-Mundi - Willkommen</title>
+    <title>Axes-Mundi - Welcome</title>
     <link rel="stylesheet" href="./styles/main.css">
 </head>
 <body>
@@ -12,7 +12,7 @@
         <div class="loading-content">
             <img src="./assets/axes-mundi logo.png" alt="Axes-Mundi Logo" class="loading-logo">
             <div class="spinner"></div>
-            <div class="loading-text">Axes-Mundi wird geladen...</div>
+            <div class="loading-text">Loading Axes-Mundi...</div>
         </div>
     </div>
 
@@ -34,17 +34,17 @@
             <!-- Player Setup Section -->
             <section id="player-setup" class="section active">
                 <div class="section-content">
-                    <h2 class="section-title">Willkommen bei Axes-Mundi!</h2>
-                    <p class="section-description">Erstelle dein Spielerprofil, um zu beginnen.</p>
+                    <h2 class="section-title">Welcome to Axes-Mundi!</h2>
+                    <p class="section-description">Create your player profile to begin.</p>
                     
                     <form id="player-form" class="player-form">
                         <div class="form-group">
-                            <label for="player-name" class="form-label">Dein Name</label>
-                            <input type="text" id="player-name" class="form-input" placeholder="Gib deinen Namen ein" required>
+                            <label for="player-name" class="form-label">Your Name</label>
+                            <input type="text" id="player-name" class="form-input" placeholder="Enter your name" required>
                         </div>
                         
                         <div class="form-group">
-                            <label class="form-label">Wähle deinen Avatar</label>
+                            <label class="form-label">Choose your Avatar</label>
                             <div class="avatar-grid">
                                 <div class="avatar-option" data-avatar="1">
                                     <div class="avatar-circle">👨‍🚀</div>
@@ -73,7 +73,7 @@
                             </div>
                         </div>
                         
-                        <button type="submit" class="btn btn-primary">Weiter</button>
+                        <button type="submit" class="btn btn-primary">Continue</button>
                     </form>
                 </div>
             </section>
@@ -81,102 +81,102 @@
             <!-- Game Mode Selection Section -->
             <section id="game-mode-selection" class="section">
                 <div class="section-content">
-                    <h2 class="section-title">Wähle deinen Spielmodus</h2>
-                    <p class="section-description">Wie möchtest du spielen?</p>
+                    <h2 class="section-title">Choose Your Game Mode</h2>
+                    <p class="section-description">How would you like to play?</p>
                     
                     <div class="game-mode-grid">
                         <div class="game-mode-card" data-mode="singleplayer">
                             <div class="mode-icon">🎮</div>
                             <h3 class="mode-title">Single Player</h3>
-                            <p class="mode-description">Spiele alleine gegen die KI oder im Lernmodus</p>
+                            <p class="mode-description">Play alone against the AI or in learning mode</p>
                         </div>
                         
                         <div class="game-mode-card" data-mode="multiplayer">
                             <div class="mode-icon">👥</div>
                             <h3 class="mode-title">Multiplayer</h3>
-                            <p class="mode-description">Spiele mit Freunden am gleichen Computer oder über LAN</p>
+                            <p class="mode-description">Play with friends on the same computer or over LAN</p>
                         </div>
                     </div>
                     
-                    <button class="btn btn-secondary back-btn">← Zurück</button>
+                    <button class="btn btn-secondary back-btn">← Back</button>
                 </div>
             </section>
 
             <!-- Single Player Options Section -->
             <section id="singleplayer-options" class="section">
                 <div class="section-content">
-                    <h2 class="section-title">Single Player Optionen</h2>
-                    <p class="section-description">Wähle deine Spielart</p>
+                    <h2 class="section-title">Single Player Options</h2>
+                    <p class="section-description">Choose your game type</p>
                     
                     <div class="option-grid">
                         <div class="option-card" data-option="ai">
                             <div class="option-icon">🤖</div>
-                            <h3 class="option-title">Gegen KI</h3>
-                            <p class="option-description">Fordere die künstliche Intelligenz heraus</p>
+                            <h3 class="option-title">Against AI</h3>
+                            <p class="option-description">Challenge the artificial intelligence</p>
                         </div>
                         
                         <div class="option-card" data-option="educational">
                             <div class="option-icon">📚</div>
-                            <h3 class="option-title">Lernmodus</h3>
-                            <p class="option-description">Lerne spielerisch neue Fakten</p>
+                            <h3 class="option-title">Learning Mode</h3>
+                            <p class="option-description">Learn new facts while playing</p>
                         </div>
                     </div>
                     
-                    <button class="btn btn-secondary back-btn">← Zurück</button>
+                    <button class="btn btn-secondary back-btn">← Back</button>
                 </div>
             </section>
 
             <!-- AI Difficulty Selection Section -->
             <section id="ai-difficulty" class="section">
                 <div class="section-content">
-                    <h2 class="section-title">Wähle die Schwierigkeit</h2>
-                    <p class="section-description">Wie schwer soll die KI sein?</p>
+                    <h2 class="section-title">Choose Difficulty</h2>
+                    <p class="section-description">How difficult should the AI be?</p>
                     
                     <div class="difficulty-grid">
                         <div class="difficulty-card" data-difficulty="easy">
                             <div class="difficulty-icon">😊</div>
-                            <h3 class="difficulty-title">Einfach</h3>
-                            <p class="difficulty-description">30 Sekunden pro Zug - Perfekt für Anfänger</p>
+                            <h3 class="difficulty-title">Easy</h3>
+                            <p class="difficulty-description">30 seconds per turn - Perfect for beginners</p>
                         </div>
                         
                         <div class="difficulty-card" data-difficulty="medium">
                             <div class="difficulty-icon">😐</div>
-                            <h3 class="difficulty-title">Mittel</h3>
-                            <p class="difficulty-description">20 Sekunden pro Zug - Für erfahrene Spieler</p>
+                            <h3 class="difficulty-title">Medium</h3>
+                            <p class="difficulty-description">20 seconds per turn - For experienced players</p>
                         </div>
                         
                         <div class="difficulty-card" data-difficulty="hard">
                             <div class="difficulty-icon">😈</div>
-                            <h3 class="difficulty-title">Schwer</h3>
-                            <p class="difficulty-description">10 Sekunden pro Zug - Nur für Experten!</p>
+                            <h3 class="difficulty-title">Hard</h3>
+                            <p class="difficulty-description">10 seconds per turn - Experts only!</p>
                         </div>
                     </div>
                     
-                    <button class="btn btn-secondary back-btn">← Zurück</button>
+                    <button class="btn btn-secondary back-btn">← Back</button>
                 </div>
             </section>
 
             <!-- Multiplayer Options Section -->
             <section id="multiplayer-options" class="section">
                 <div class="section-content">
-                    <h2 class="section-title">Multiplayer Optionen</h2>
-                    <p class="section-description">Wie möchtest du mit Freunden spielen?</p>
+                    <h2 class="section-title">Multiplayer Options</h2>
+                    <p class="section-description">How would you like to play with friends?</p>
                     
                     <div class="option-grid">
                         <div class="option-card" data-option="hotseat">
                             <div class="option-icon">🪑</div>
                             <h3 class="option-title">Hot Seat</h3>
-                            <p class="option-description">Am gleichen Computer abwechselnd spielen</p>
+                            <p class="option-description">Take turns on the same computer</p>
                         </div>
                         
                         <div class="option-card" data-option="lan">
                             <div class="option-icon">🌐</div>
                             <h3 class="option-title">LAN</h3>
-                            <p class="option-description">Über das lokale Netzwerk spielen</p>
+                            <p class="option-description">Play over the local network</p>
                         </div>
                     </div>
                     
-                    <button class="btn btn-secondary back-btn">← Zurück</button>
+                    <button class="btn btn-secondary back-btn">← Back</button>
                 </div>
             </section>
 
@@ -184,51 +184,51 @@
             <section id="lan-options" class="section">
                 <div class="section-content">
                     <h2 class="section-title">LAN Multiplayer</h2>
-                    <p class="section-description">Starte ein Spiel oder tritt einem bestehenden Spiel bei</p>
+                    <p class="section-description">Start a game or join an existing game</p>
                     
                     <div class="option-grid">
                         <div class="option-card" data-option="start-game">
                             <div class="option-icon">🎮</div>
                             <h3 class="option-title">Start Game</h3>
-                            <p class="option-description">Erstelle einen Server und warte auf Spieler</p>
+                            <p class="option-description">Create a server and wait for players</p>
                         </div>
                         
                         <div class="option-card" data-option="join-game">
                             <div class="option-icon">🔗</div>
                             <h3 class="option-title">Join Game</h3>
-                            <p class="option-description">Verbinde dich mit einem bestehenden Server</p>
+                            <p class="option-description">Connect to an existing server</p>
                         </div>
                     </div>
                     
                     <!-- Server IP Input for Join Game -->
                     <div id="server-ip-input" class="form-group" style="display: none;">
-                        <label for="server-ip" class="form-label">Server IP-Adresse</label>
-                        <input type="text" id="server-ip" class="form-input" placeholder="z.B. 192.168.1.100" value="">
-                        <small class="form-help">Gib die IP-Adresse des Servers ein, der das Spiel gestartet hat</small>
-                        <button id="connect-server-btn" class="btn btn-primary" style="margin-top: 1rem;">Verbinden</button>
+                        <label for="server-ip" class="form-label">Server IP Address</label>
+                        <input type="text" id="server-ip" class="form-input" placeholder="e.g. 192.168.1.100" value="">
+                        <small class="form-help">Enter the IP address of the server that started the game</small>
+                        <button id="connect-server-btn" class="btn btn-primary" style="margin-top: 1rem;">Connect</button>
                     </div>
                     
                     <!-- Connection Status Display -->
                     <div class="connection-status"></div>
                     
-                    <button class="btn btn-secondary back-btn">← Zurück</button>
+                    <button class="btn btn-secondary back-btn">← Back</button>
                 </div>
             </section>
 
             <!-- Second Player Setup Section -->
             <section id="second-player-setup" class="section">
                 <div class="section-content">
-                    <h2 class="section-title">Zweiter Spieler</h2>
-                    <p class="section-description">Erstelle das Profil für den zweiten Spieler.</p>
+                    <h2 class="section-title">Second Player</h2>
+                    <p class="section-description">Create the profile for the second player.</p>
                     
                     <form id="second-player-form" class="player-form">
                         <div class="form-group">
-                            <label for="second-player-name" class="form-label">Name des zweiten Spielers</label>
-                            <input type="text" id="second-player-name" class="form-input" placeholder="Gib den Namen ein" required>
+                            <label for="second-player-name" class="form-label">Second Player's Name</label>
+                            <input type="text" id="second-player-name" class="form-input" placeholder="Enter name" required>
                         </div>
                         
                         <div class="form-group">
-                            <label class="form-label">Wähle den Avatar</label>
+                            <label class="form-label">Choose the Avatar</label>
                             <div class="avatar-grid">
                                 <div class="avatar-option" data-avatar="1">
                                     <div class="avatar-circle">👨‍🚀</div>
@@ -236,74 +236,74 @@
                                 </div>
                                 <div class="avatar-option" data-avatar="2">
                                     <div class="avatar-circle">🧙‍♂️</div>
-                                    <span class="avatar-name">Magier</span>
+                                    <span class="avatar-name">Wizard</span>
                                 </div>
                                 <div class="avatar-option" data-avatar="3">
                                     <div class="avatar-circle">🏴‍☠️</div>
-                                    <span class="avatar-name">Pirat</span>
+                                    <span class="avatar-name">Pirate</span>
                                 </div>
                                 <div class="avatar-option" data-avatar="4">
                                     <div class="avatar-circle">🦄</div>
-                                    <span class="avatar-name">Einhorn</span>
+                                    <span class="avatar-name">Unicorn</span>
                                 </div>
                                 <div class="avatar-option" data-avatar="5">
                                     <div class="avatar-circle">🤖</div>
-                                    <span class="avatar-name">Roboter</span>
+                                    <span class="avatar-name">Robot</span>
                                 </div>
                                 <div class="avatar-option" data-avatar="6">
                                     <div class="avatar-circle">🐉</div>
-                                    <span class="avatar-name">Drache</span>
+                                    <span class="avatar-name">Dragon</span>
                                 </div>
                             </div>
                         </div>
                         
-                        <button type="submit" class="btn btn-primary">Weiter</button>
+                        <button type="submit" class="btn btn-primary">Continue</button>
                     </form>
                     
-                    <button class="btn btn-secondary back-btn">← Zurück</button>
+                    <button class="btn btn-secondary back-btn">← Back</button>
                 </div>
             </section>
 
             <!-- Deck Selection Section -->
             <section id="deck-selection" class="section">
                 <div class="section-content">
-                    <h2 class="section-title">Wähle dein Deck</h2>
-                    <p class="section-description">Welche Achse möchtest du erkunden?</p>
+                    <h2 class="section-title">Choose Your Deck</h2>
+                    <p class="section-description">Which axis would you like to explore?</p>
                     
                     <div class="deck-grid">
                         <div class="deck-card" data-deck="time-inventions-en">
-                            <div class="deck-theme">Geschichte & Zeit</div>
-                            <h3 class="deck-title">Zeit - Erfindungen & Entdeckungen</h3>
+                            <div class="deck-theme">History & Time</div>
+                            <h3 class="deck-title">Time - Inventions & Discoveries</h3>
                             <p class="deck-description">
-                                Reise durch die Menschheitsgeschichte von der Vorgeschichte bis zur Moderne.
+                                Journey through human history from prehistory to the modern era.
                             </p>
                             <div class="deck-stats">
-                                <span>75 Karten</span>
-                                <span>Englisch</span>
+                                <span>75 Cards</span>
+                                <span>English</span>
                             </div>
                         </div>
                         
-                        <div class="deck-card" data-deck="buildings-height-de">
-                            <div class="deck-theme">Architektur & Höhe</div>
-                            <h3 class="deck-title">Gebäude – Höhe</h3>
+                        <div class="deck-card" data-deck="buildings-height-en">
+                            <div class="deck-theme">Architecture & Height</div>
+                            <h3 class="deck-title">Buildings – Height</h3>
                             <p class="deck-description">
-                                Entdecke die beeindruckendsten Bauwerke der Welt von Brücken bis zu Wolkenkratzern.
+                                Discover the most impressive structures in the world from bridges to skyscrapers.
                             </p>
                             <div class="deck-stats">
-                                <span>75 Karten</span>
-                                <span>Deutsch</span>
+                                <span>64 Cards</span>
+                                <span>English</span>
                             </div>
                         </div>
                         
-                        <div class="deck-card" data-deck="temperatures-temperature-de">
-                            <div class="deck-theme">Wissenschaft & Temperatur</div>
-                            <h3 class="deck-title">Temperaturen – Von kalt bis heiß</h3>
+                        <div class="deck-card" data-deck="temperatures-temperature-en">
+                            <div class="deck-theme">Science & Temperature</div>
+                            <h3 class="deck-title">Temperatures – From Cold to Hot</h3>
                             <p class="deck-description">
-                                Erforsche die faszinierende Welt der Temperaturen vom absoluten Nullpunkt bis zu den heißesten Orten im Universum.
+                                Explore the fascinating world of temperatures from absolute zero to the hottest places in the universe.
                             </p>
                             <div class="deck-stats">
-                                <span>60 Karten</span>
-                                <span>Deutsch</span>
+                                <span>52 Cards</span>
+                                <span>English</span>
                             </div>
                         </div>
                         
@@ -314,7 +314,7 @@
                                 Explore the distances of objects in the sky from birds to spacecraft and celestial bodies.
                             </p>
                             <div class="deck-stats">
-                                <span>50 Karten</span>
+                                <span>50 Cards</span>
                                 <span>English</span>
                             </div>
                         </div>
@@ -326,13 +326,13 @@
                                 Journey through major political events from ancient civilizations to modern history.
                             </p>
                             <div class="deck-stats">
-                                <span>51 Karten</span>
+                                <span>51 Cards</span>
                                 <span>English</span>
                             </div>
                         </div>
                     </div>
                     
-                    <button class="btn btn-secondary back-btn">← Zurück</button>
+                    <button class="btn btn-secondary back-btn">← Back</button>
                 </div>
             </section>
         </main>
@@ -342,7 +342,7 @@
             <div class="progress-bar">
                 <div class="progress-fill" id="progress-fill"></div>
             </div>
-            <div class="progress-text" id="progress-text">Schritt 1 von 6</div>
+            <div class="progress-text" id="progress-text">Step 1 of 6</div>
         </div>
     </div>
 

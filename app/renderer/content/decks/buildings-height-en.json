@@ -1,0 +1,879 @@
+{
+  "id": "buildings-height-en",
+  "name": "Buildings – Height",
+  "axis": "height",
+  "theme": "architecture",
+  "locale": "en",
+  "version": "1.0.0",
+  "imageFolder": "Buildings JPG",
+  "cards": [
+    {
+      "id": "great-wall-watchtower",
+      "title": "Great Wall of China (Watchtower)",
+      "axis": "height",
+      "value": 10,
+      "unit": "m",
+      "displayValue": "10 m",
+      "image": "Great Wall of China (Watchtower) – China – 10",
+      "facts": ["Watchtowers of the Great Wall of China reached heights of 8-12 meters."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/438/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "helix-bridge",
+      "title": "Helix Bridge",
+      "axis": "height",
+      "value": 9,
+      "unit": "m",
+      "displayValue": "9 m",
+      "image": "Helix Bridge – Singapore – 9",
+      "facts": ["Pedestrian bridge in Singapore with characteristic double helix structure."],
+      "sources": [
+        { "label": "Singapore Tourism Board", "url": "https://www.visitsingapore.com/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "stari-most",
+      "title": "Stari Most",
+      "axis": "height",
+      "value": 24,
+      "unit": "m",
+      "displayValue": "24 m",
+      "image": "Stari Most – Bosnia and Herzegovina – 24",
+      "facts": ["Historic bridge in Mostar, UNESCO World Heritage Site."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/946/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "louvre-pyramid",
+      "title": "Louvre Pyramid",
+      "axis": "height",
+      "value": 21.6,
+      "unit": "m",
+      "displayValue": "21.6 m",
+      "image": "Louvre Pyramid – France – 21.6",
+      "facts": ["Glass pyramid in the courtyard of the Louvre Museum in Paris."],
+      "sources": [
+        { "label": "Musée du Louvre", "url": "https://www.louvre.fr/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "gateway-of-india",
+      "title": "Gateway of India",
+      "axis": "height",
+      "value": 26,
+      "unit": "m",
+      "displayValue": "26 m",
+      "image": "Gateway of India – India – 26",
+      "facts": ["Triumphal arch in Mumbai, built in 1924."],
+      "sources": [
+        { "label": "Archaeological Survey of India", "url": "https://asi.nic.in/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "brandenburg-gate",
+      "title": "Brandenburg Gate",
+      "axis": "height",
+      "value": 26,
+      "unit": "m",
+      "displayValue": "26 m",
+      "image": "Brandenburg Gate – Germany – 26",
+      "facts": ["Neoclassical monument in Berlin, symbol of German unity."],
+      "sources": [
+        { "label": "Stiftung Denkmalschutz Berlin", "url": "https://www.stiftung-denkmal.de/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "zwinger-palace",
+      "title": "Zwinger Palace",
+      "axis": "height",
+      "value": 29,
+      "unit": "m",
+      "displayValue": "29 m",
+      "image": "Zwinger Palace – Germany – 29",
+      "facts": ["Baroque palace complex in Dresden."],
+      "sources": [
+        { "label": "Staatliche Kunstsammlungen Dresden", "url": "https://www.skd.museum/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "alhambra",
+      "title": "Alhambra",
+      "axis": "height",
+      "value": 30,
+      "unit": "m",
+      "displayValue": "30 m",
+      "image": "Alhambra – Spain – 30",
+      "facts": ["Moorish palace complex in Granada, UNESCO World Heritage Site."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/314/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "chichen-itza",
+      "title": "Chichén Itzá",
+      "axis": "height",
+      "value": 30,
+      "unit": "m",
+      "displayValue": "30 m",
+      "image": "Chichen Itza – Mexico – 30",
+      "facts": ["Mayan pyramid El Castillo, UNESCO World Heritage Site."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/483/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "christ-redeemer",
+      "title": "Christ the Redeemer",
+      "axis": "height",
+      "value": 30,
+      "unit": "m",
+      "displayValue": "30 m",
+      "image": "Christ the Redeemer – Brazil – 30",
+      "facts": ["Christ statue in Rio de Janeiro, one of the New Seven Wonders of the World."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/1100/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "lotus-temple",
+      "title": "Lotus Temple",
+      "axis": "height",
+      "value": 34,
+      "unit": "m",
+      "displayValue": "34 m",
+      "image": "Lotus Temple – India – 34",
+      "facts": ["Bahá'í House of Worship in Delhi, lotus flower design."],
+      "sources": [
+        { "label": "Bahá'í World Centre", "url": "https://www.bahai.org/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "dome-of-rock",
+      "title": "Dome of the Rock",
+      "axis": "height",
+      "value": 35,
+      "unit": "m",
+      "displayValue": "35 m",
+      "image": "Dome of the Rock – Jerusalem – 35",
+      "facts": ["Islamic shrine on the Temple Mount in Jerusalem."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/148/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "schonbrunn-palace",
+      "title": "Schönbrunn Palace",
+      "axis": "height",
+      "value": 38,
+      "unit": "m",
+      "displayValue": "38 m",
+      "image": "Schönbrunn Palace – Austria – 38",
+      "facts": ["Baroque palace in Vienna, former imperial residence."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/786/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "catherine-palace",
+      "title": "Catherine Palace",
+      "axis": "height",
+      "value": 37,
+      "unit": "m",
+      "displayValue": "37 m",
+      "image": "Catherine Palace – Russia – 37",
+      "facts": ["Baroque palace in Tsarskoye Selo near St. Petersburg."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/540/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "edinburgh-castle",
+      "title": "Edinburgh Castle",
+      "axis": "height",
+      "value": 45,
+      "unit": "m",
+      "displayValue": "45 m",
+      "image": "Edinburgh Castle – Scotland – 45",
+      "facts": ["Medieval castle on Castle Rock in Edinburgh."],
+      "sources": [
+        { "label": "Historic Environment Scotland", "url": "https://www.historicenvironment.scot/" }
+      ],
+      "difficulty": "easy"
+    },
+    {
+      "id": "himeji-castle",
+      "title": "Himeji Castle",
+      "axis": "height",
+      "value": 46,
+      "unit": "m",
+      "displayValue": "46 m",
+      "image": "Himeji Castle – Japan – 46",
+      "facts": ["Japanese castle in Himeji, UNESCO World Heritage Site."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/661/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "reichstag",
+      "title": "Reichstag Building",
+      "axis": "height",
+      "value": 47,
+      "unit": "m",
+      "displayValue": "47 m",
+      "image": "Reichstag – Germany – 47",
+      "facts": ["Seat of the German Bundestag in Berlin."],
+      "sources": [
+        { "label": "Deutscher Bundestag", "url": "https://www.bundestag.de/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "allianz-arena",
+      "title": "Allianz Arena",
+      "axis": "height",
+      "value": 50,
+      "unit": "m",
+      "displayValue": "50 m",
+      "image": "Allianz Arena – Germany – 50",
+      "facts": ["Football stadium in Munich, home of Bayern Munich."],
+      "sources": [
+        { "label": "FC Bayern München", "url": "https://fcbayern.com/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "palacio-bellas-artes",
+      "title": "Palacio de Bellas Artes",
+      "axis": "height",
+      "value": 52,
+      "unit": "m",
+      "displayValue": "52 m",
+      "image": "Palacio de Bellas Artes – Mexico – 52",
+      "facts": ["Cultural palace in Mexico City, Art Deco architecture."],
+      "sources": [
+        { "label": "Instituto Nacional de Bellas Artes", "url": "https://inba.gob.mx/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "hagia-sophia",
+      "title": "Hagia Sophia",
+      "axis": "height",
+      "value": 55,
+      "unit": "m",
+      "displayValue": "55 m",
+      "image": "Hagia Sophia – Turkey – 55",
+      "facts": ["Former Byzantine church, now a museum in Istanbul."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/356/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "victoria-memorial",
+      "title": "Victoria Memorial",
+      "axis": "height",
+      "value": 56,
+      "unit": "m",
+      "displayValue": "56 m",
+      "image": "Victoria Memorial – India – 56",
+      "facts": ["Marble monument in Kolkata, built in honor of Queen Victoria."],
+      "sources": [
+        { "label": "Archaeological Survey of India", "url": "https://asi.nic.in/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "leaning-tower-pisa",
+      "title": "Leaning Tower of Pisa",
+      "axis": "height",
+      "value": 57,
+      "unit": "m",
+      "displayValue": "57 m",
+      "image": "Leaning Tower of Pisa – Italy – 57",
+      "facts": ["Bell tower of Pisa Cathedral, famous for its tilt."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/395/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "berlaymont-building",
+      "title": "Berlaymont Building",
+      "axis": "height",
+      "value": 60,
+      "unit": "m",
+      "displayValue": "60 m",
+      "image": "Berlaymont Building – Belgium – 60",
+      "facts": ["Headquarters of the European Commission in Brussels."],
+      "sources": [
+        { "label": "European Commission", "url": "https://ec.europa.eu/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "bran-castle",
+      "title": "Bran Castle",
+      "axis": "height",
+      "value": 60,
+      "unit": "m",
+      "displayValue": "60 m",
+      "image": "Bran Castle – Romania – 60",
+      "facts": ["Medieval castle in Transylvania, also known as Dracula's Castle."],
+      "sources": [
+        { "label": "Bran Castle Museum", "url": "https://bran-castle.com/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "neuschwanstein-castle",
+      "title": "Neuschwanstein Castle",
+      "axis": "height",
+      "value": 65,
+      "unit": "m",
+      "displayValue": "65 m",
+      "image": "Neuschwanstein Castle – Germany – 65",
+      "facts": ["Fairy tale castle of King Ludwig II in Bavaria."],
+      "sources": [
+        { "label": "Bayerische Schlösserverwaltung", "url": "https://www.schloesser.bayern.de/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "angkor-wat",
+      "title": "Angkor Wat",
+      "axis": "height",
+      "value": 65,
+      "unit": "m",
+      "displayValue": "65 m",
+      "image": "Angkor Wat – Cambodia – 65",
+      "facts": ["Temple complex in Cambodia, largest religious structure in the world."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/668/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "sydney-opera-house",
+      "title": "Sydney Opera House",
+      "axis": "height",
+      "value": 65,
+      "unit": "m",
+      "displayValue": "65 m",
+      "image": "Sydney Opera House – Australia – 65",
+      "facts": ["Opera house in Sydney, UNESCO World Heritage Site."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/166/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "tower-bridge",
+      "title": "Tower Bridge",
+      "axis": "height",
+      "value": 65,
+      "unit": "m",
+      "displayValue": "65 m",
+      "image": "Tower Bridge – UK – 65",
+      "facts": ["Bascule bridge over the River Thames in London."],
+      "sources": [
+        { "label": "Tower Bridge Exhibition", "url": "https://www.towerbridge.org.uk/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "versailles-palace",
+      "title": "Palace of Versailles",
+      "axis": "height",
+      "value": 67,
+      "unit": "m",
+      "displayValue": "67 m",
+      "image": "Palace of Versailles – France – 67",
+      "facts": ["Baroque palace near Paris, former residence of French kings."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/83/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "kremlin",
+      "title": "Kremlin",
+      "axis": "height",
+      "value": 71,
+      "unit": "m",
+      "displayValue": "71 m",
+      "image": "Kremlin – Russia – 71",
+      "facts": ["Fortified complex in Moscow, seat of the Russian government."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/545/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "parliament-palace",
+      "title": "Palace of Parliament",
+      "axis": "height",
+      "value": 84,
+      "unit": "m",
+      "displayValue": "84 m",
+      "image": "Palace of Parliament – Romania – 84",
+      "facts": ["Parliament building in Bucharest, second largest administrative building in the world."],
+      "sources": [
+        { "label": "Romanian Parliament", "url": "https://www.cdep.ro/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "brooklyn-bridge",
+      "title": "Brooklyn Bridge",
+      "axis": "height",
+      "value": 84,
+      "unit": "m",
+      "displayValue": "84 m",
+      "image": "Brooklyn Bridge – USA – 84",
+      "facts": ["Suspension bridge over the East River in New York."],
+      "sources": [
+        { "label": "New York City Department of Transportation", "url": "https://www1.nyc.gov/html/dot/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "statue-of-liberty",
+      "title": "Statue of Liberty",
+      "axis": "height",
+      "value": 93,
+      "unit": "m",
+      "displayValue": "93 m",
+      "image": "Statue of Liberty – USA – 93",
+      "facts": ["Statue of Liberty in New York Harbor, UNESCO World Heritage Site."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/307/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "big-ben",
+      "title": "Big Ben",
+      "axis": "height",
+      "value": 96,
+      "unit": "m",
+      "displayValue": "96 m",
+      "image": "Big Ben – UK – 96",
+      "facts": ["Clock tower of the Palace of Westminster in London."],
+      "sources": [
+        { "label": "UK Parliament", "url": "https://www.parliament.uk/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "atomium",
+      "title": "Atomium",
+      "axis": "height",
+      "value": 102,
+      "unit": "m",
+      "displayValue": "102 m",
+      "image": "Atomium – Belgium – 102",
+      "facts": ["Landmark of Brussels, enlarged iron crystal structure."],
+      "sources": [
+        { "label": "Atomium", "url": "https://atomium.be/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "florence-cathedral-dome",
+      "title": "Florence Cathedral",
+      "axis": "height",
+      "value": 114,
+      "unit": "m",
+      "displayValue": "114 m",
+      "image": "Florence Cathedral Dome – Italy – 114",
+      "facts": ["Dome of the Cathedral of Santa Maria del Fiore in Florence."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/174/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "forth-bridge",
+      "title": "Forth Bridge",
+      "axis": "height",
+      "value": 110,
+      "unit": "m",
+      "displayValue": "110 m",
+      "image": "Forth Bridge – Scotland – 110",
+      "facts": ["Railway bridge over the Firth of Forth in Scotland."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/1485/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "ulm-minster",
+      "title": "Ulm Minster",
+      "axis": "height",
+      "value": 161,
+      "unit": "m",
+      "displayValue": "161 m",
+      "image": "Ulm Minster (Side) – Germany – 161",
+      "facts": ["Tallest church tower in the world, Gothic cathedral in Ulm."],
+      "sources": [
+        { "label": "Ulmer Münster", "url": "https://www.ulmer-muenster.de/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "london-eye",
+      "title": "London Eye",
+      "axis": "height",
+      "value": 135,
+      "unit": "m",
+      "displayValue": "135 m",
+      "image": "London Eye – UK – 135",
+      "facts": ["Ferris wheel on the South Bank of the River Thames in London."],
+      "sources": [
+        { "label": "London Eye", "url": "https://www.londoneye.com/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "washington-monument",
+      "title": "Washington Monument",
+      "axis": "height",
+      "value": 169,
+      "unit": "m",
+      "displayValue": "169 m",
+      "image": "Washington Monument - USA - 169",
+      "facts": ["Obelisk in Washington D.C., monument to George Washington."],
+      "sources": [
+        { "label": "National Park Service", "url": "https://www.nps.gov/wamo/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "st-stephens-cathedral",
+      "title": "St. Stephen's Cathedral",
+      "axis": "height",
+      "value": 136,
+      "unit": "m",
+      "displayValue": "136 m",
+      "image": "St Stephens Cathedral – Austria – 136",
+      "facts": ["Gothic cathedral in Vienna, landmark of the city."],
+      "sources": [
+        { "label": "Stephansdom Wien", "url": "https://www.stephanskirche.at/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "great-pyramid-giza",
+      "title": "Great Pyramid of Giza",
+      "axis": "height",
+      "value": 146,
+      "unit": "m",
+      "displayValue": "146 m",
+      "image": "Great Pyramid of Giza – Egypt – 146",
+      "facts": ["Largest of the three Pyramids of Giza, one of the Seven Wonders of the Ancient World."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/86/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "cologne-cathedral",
+      "title": "Cologne Cathedral",
+      "axis": "height",
+      "value": 157,
+      "unit": "m",
+      "displayValue": "157 m",
+      "image": "Cologne Cathedral – Germany – 157",
+      "facts": ["Gothic cathedral in Cologne, UNESCO World Heritage Site."],
+      "sources": [
+        { "label": "UNESCO", "url": "https://whc.unesco.org/en/list/292/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "bosphorus-bridge",
+      "title": "Bosphorus Bridge",
+      "axis": "height",
+      "value": 165,
+      "unit": "m",
+      "displayValue": "165 m",
+      "image": "Bosphorus Bridge – Turkey – 165",
+      "facts": ["Suspension bridge over the Bosphorus in Istanbul."],
+      "sources": [
+        { "label": "Turkish Highways", "url": "https://www.kgm.gov.tr/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "sydney-harbour-bridge",
+      "title": "Sydney Harbour Bridge",
+      "axis": "height",
+      "value": 134,
+      "unit": "m",
+      "displayValue": "134 m",
+      "image": "Sydney Harbour Bridge – Australia – 134",
+      "facts": ["Arch bridge over Port Jackson in Sydney."],
+      "sources": [
+        { "label": "Transport for NSW", "url": "https://www.transport.nsw.gov.au/" }
+      ],
+      "difficulty": "medium"
+    },
+    {
+      "id": "golden-gate-bridge",
+      "title": "Golden Gate Bridge",
+      "axis": "height",
+      "value": 227,
+      "unit": "m",
+      "displayValue": "227 m",
+      "image": "Golden Gate Bridge – USA – 227",
+      "facts": ["Suspension bridge over the Golden Gate Strait in San Francisco."],
+      "sources": [
+        { "label": "Golden Gate Bridge Highway and Transportation District", "url": "https://www.goldengate.org/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "eiffel-tower",
+      "title": "Eiffel Tower",
+      "axis": "height",
+      "value": 312,
+      "unit": "m",
+      "displayValue": "312 m",
+      "image": "Eiffel Tower – France – 312",
+      "facts": ["Iron tower in Paris, landmark of the city."],
+      "sources": [
+        { "label": "Société d'Exploitation de la Tour Eiffel", "url": "https://www.toureiffel.paris/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "burj-al-arab",
+      "title": "Burj Al Arab",
+      "axis": "height",
+      "value": 321,
+      "unit": "m",
+      "displayValue": "321 m",
+      "image": "Burj Al Arab – UAE – 321",
+      "facts": ["Luxury hotel in Dubai, sail-shaped design."],
+      "sources": [
+        { "label": "Jumeirah Group", "url": "https://www.jumeirah.com/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "tokyo-tower",
+      "title": "Tokyo Tower",
+      "axis": "height",
+      "value": 333,
+      "unit": "m",
+      "displayValue": "333 m",
+      "image": "Tokyo Tower – Japan – 333",
+      "facts": ["Communications and observation tower in Tokyo."],
+      "sources": [
+        { "label": "Tokyo Tower", "url": "https://www.tokyotower.co.jp/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "millau-viaduct",
+      "title": "Millau Viaduct",
+      "axis": "height",
+      "value": 343,
+      "unit": "m",
+      "displayValue": "343 m",
+      "image": "Millau Viaduct – France – 343",
+      "facts": ["Cable-stayed bridge in southern France."],
+      "sources": [
+        { "label": "Eiffage", "url": "https://www.eiffage.com/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "bank-of-china-tower",
+      "title": "Bank of China Tower",
+      "axis": "height",
+      "value": 367,
+      "unit": "m",
+      "displayValue": "367 m",
+      "image": "Bank of China Tower – Hong Kong – 367",
+      "facts": ["Skyscraper in Hong Kong, headquarters of the Bank of China."],
+      "sources": [
+        { "label": "Bank of China", "url": "https://www.boc.cn/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "berlin-tv-tower",
+      "title": "Berlin TV Tower",
+      "axis": "height",
+      "value": 368,
+      "unit": "m",
+      "displayValue": "368 m",
+      "image": "Berlin TV Tower – Germany – 368",
+      "facts": ["Television tower at Alexanderplatz in Berlin."],
+      "sources": [
+        { "label": "TV Tower Berlin", "url": "https://tv-turm.de/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "marina-bay-sands",
+      "title": "Marina Bay Sands",
+      "axis": "height",
+      "value": 207,
+      "unit": "m",
+      "displayValue": "207 m",
+      "image": "Marina Bay Sands – Singapore – 207",
+      "facts": ["Luxury hotel in Singapore with infinity pool."],
+      "sources": [
+        { "label": "Marina Bay Sands", "url": "https://www.marinabaysands.com/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "transamerica-pyramid",
+      "title": "Transamerica Pyramid",
+      "axis": "height",
+      "value": 260,
+      "unit": "m",
+      "displayValue": "260 m",
+      "image": "Transamerica Pyramid – USA – 260",
+      "facts": ["Skyscraper in San Francisco, pyramid-shaped design."],
+      "sources": [
+        { "label": "Transamerica", "url": "https://www.transamerica.com/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "turning-torso",
+      "title": "Turning Torso",
+      "axis": "height",
+      "value": 190,
+      "unit": "m",
+      "displayValue": "190 m",
+      "image": "Turning Torso – Sweden – 190",
+      "facts": ["Skyscraper in Malmö, twisted design."],
+      "sources": [
+        { "label": "HSB Malmö", "url": "https://www.hsb.se/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "the-shard",
+      "title": "The Shard",
+      "axis": "height",
+      "value": 310,
+      "unit": "m",
+      "displayValue": "310 m",
+      "image": "The Shard – UK – 310",
+      "facts": ["Skyscraper in London, tallest building in the EU."],
+      "sources": [
+        { "label": "The Shard", "url": "https://www.the-shard.com/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "cn-tower",
+      "title": "CN Tower",
+      "axis": "height",
+      "value": 553,
+      "unit": "m",
+      "displayValue": "553 m",
+      "image": "CN Tower – Canada – 553",
+      "facts": ["Communications tower in Toronto, formerly the tallest freestanding structure."],
+      "sources": [
+        { "label": "CN Tower", "url": "https://www.cntower.ca/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "lotte-world-tower",
+      "title": "Lotte World Tower",
+      "axis": "height",
+      "value": 555,
+      "unit": "m",
+      "displayValue": "555 m",
+      "image": "Lotte World Tower – South Korea – 555",
+      "facts": ["Skyscraper in Seoul, tallest building in South Korea."],
+      "sources": [
+        { "label": "Lotte Corporation", "url": "https://www.lotte.co.kr/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "ping-an-finance-center",
+      "title": "Ping An Finance Center",
+      "axis": "height",
+      "value": 599,
+      "unit": "m",
+      "displayValue": "599 m",
+      "image": "Ping An Finance Center - China - 599",
+      "facts": ["Skyscraper in Shenzhen, tallest building in China."],
+      "sources": [
+        { "label": "Ping An Insurance", "url": "https://www.pingan.com/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "abraj-al-bait",
+      "title": "Abraj Al-Bait",
+      "axis": "height",
+      "value": 601,
+      "unit": "m",
+      "displayValue": "601 m",
+      "image": "Abraj Al Bait Clock Tower – Saudi Arabia – 601",
+      "facts": ["Hotel complex in Mecca, tallest building in Saudi Arabia."],
+      "sources": [
+        { "label": "Saudi Binladin Group", "url": "https://www.sbg.com.sa/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "merdeka-118",
+      "title": "Merdeka 118",
+      "axis": "height",
+      "value": 679,
+      "unit": "m",
+      "displayValue": "679 m",
+      "image": "Merdeka 118 – Malaysia – 679",
+      "facts": ["Skyscraper in Kuala Lumpur, second tallest building in the world."],
+      "sources": [
+        { "label": "PNB Merdeka Ventures", "url": "https://www.pnb.com.my/" }
+      ],
+      "difficulty": "hard"
+    },
+    {
+      "id": "burj-khalifa",
+      "title": "Burj Khalifa",
+      "axis": "height",
+      "value": 828,
+      "unit": "m",
+      "displayValue": "828 m",
+      "image": "Burj Khalifa - UAE - 828",
+      "facts": ["Skyscraper in Dubai, tallest building in the world."],
+      "sources": [
+        { "label": "Emaar Properties", "url": "https://www.emaar.com/" }
+      ],
+      "difficulty": "hard"
+    }
+  ]
+}

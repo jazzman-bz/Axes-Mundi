@@ -20,11 +20,11 @@ const logger = {
  */
 const AVATAR_EMOJIS = {
   '1': '👨‍🚀', // Astronaut
-  '2': '🧙‍♂️', // Magier
-  '3': '🏴‍☠️', // Pirat
-  '4': '🦄', // Einhorn
-  '5': '🤖', // Roboter
-  '6': '🐉', // Drache
+  '2': '🧙‍♂️', // Wizard
+  '3': '🏴‍☠️', // Pirate
+  '4': '🦄', // Unicorn
+  '5': '🤖', // Robot
+  '6': '🐉', // Dragon
 };
 
 /**
@@ -284,12 +284,12 @@ class LandingPageController {
       const playerName = nameInput.value.trim();
       
       if (!playerName) {
-        this.showError('Bitte gib deinen Namen ein.');
+        this.showError('Please enter your name.');
         return;
       }
       
       if (!this.playerData.avatar) {
-        this.showError('Bitte wähle einen Avatar aus.');
+        this.showError('Please select an avatar.');
         return;
       }
       
@@ -315,7 +315,7 @@ class LandingPageController {
         msg: 'failed to handle player form submission', 
         err: { message: error.message } 
       });
-      this.showError('Fehler beim Speichern der Spielerdaten.');
+      this.showError('Error saving player data.');
     }
   }
 
@@ -536,12 +536,12 @@ class LandingPageController {
       const playerName = nameInput.value.trim();
       
       if (!playerName) {
-        this.showError('Bitte gib den Namen des zweiten Spielers ein.');
+        this.showError('Please enter the second player\'s name.');
         return;
       }
       
       if (!this.secondPlayerData.avatar) {
-        this.showError('Bitte wähle einen Avatar für den zweiten Spieler aus.');
+        this.showError('Please select an avatar for the second player.');
         return;
       }
       
@@ -564,7 +564,7 @@ class LandingPageController {
         msg: 'failed to handle second player form submission', 
         err: { message: error.message } 
       });
-      this.showError('Fehler beim Speichern der Spielerdaten.');
+      this.showError('Error saving player data.');
     }
   }
 
@@ -688,7 +688,7 @@ class LandingPageController {
       // Get server IP from input
       const serverIPInput = document.getElementById('server-ip');
       if (!serverIPInput || !serverIPInput.value.trim()) {
-        this.showError('Bitte gib die IP-Adresse des Servers ein.');
+        this.showError('Please enter the server IP address.');
         return;
       }
       
@@ -736,7 +736,7 @@ class LandingPageController {
            return;
          } catch (error) {
            console.log(`❌ Connection to ${serverIP}:8080 failed: ${error.message}`);
-           this.showError(`Verbindung zu ${serverIP}:8080 fehlgeschlagen: ${error.message}`);
+           this.showError(`Connection to ${serverIP}:8080 failed: ${error.message}`);
            return;
          }
       
@@ -800,7 +800,7 @@ class LandingPageController {
             break;
                    case 'currentPlayer':
            console.log('🎲 Received current player update:', message.currentPlayer);
-           this.showConnectionStatus(`Spieler ${message.currentPlayer} ist am Zug!`, false);
+           this.showConnectionStatus(`Player ${message.currentPlayer}'s turn!`, false);
            break;
 
          default:
@@ -876,10 +876,10 @@ class LandingPageController {
         // Send deck selection via IPC to main process
         if (window.AXM && window.AXM.sendDeckSelection) {
           window.AXM.sendDeckSelection(deckId);
-          this.showConnectionStatus(`Deck ${deckId} wurde ausgewählt und an Client gesendet...`, false);
+          this.showConnectionStatus(`Deck ${deckId} was selected and sent to client...`, false);
           console.log('🎴 Deck selection sent via IPC, waiting for client response...');
         } else {
-          this.showError('Deck-Auswahl konnte nicht gesendet werden.');
+          this.showError('Could not send deck selection.');
         }
         
         logger.info({ 
@@ -894,7 +894,7 @@ class LandingPageController {
           msg: 'failed to send deck selection', 
           err: { message: error.message } 
         });
-        this.showError('Fehler beim Senden der Deck-Auswahl.');
+        this.showError('Error sending deck selection.');
       }
     }
 
@@ -935,9 +935,9 @@ class LandingPageController {
         // Send current player update via IPC to main process
         if (window.AXM && window.AXM.sendCurrentPlayerUpdate) {
           window.AXM.sendCurrentPlayerUpdate(currentPlayer);
-          this.showConnectionStatus(`Spieler ${currentPlayer} ist am Zug!`, false);
+          this.showConnectionStatus(`Player ${currentPlayer}'s turn!`, false);
         } else {
-          this.showError('Spielerwechsel konnte nicht gesendet werden.');
+          this.showError('Could not send player switch.');
         }
         
         logger.info({ 
@@ -952,7 +952,7 @@ class LandingPageController {
           msg: 'failed to update current player', 
           err: { message: error.message } 
         });
-        this.showError('Fehler beim Spielerwechsel.');
+        this.showError('Error during player switch.');
       }
     }
 
@@ -986,7 +986,7 @@ class LandingPageController {
            }
            
            // Show success message
-           this.showConnectionStatus(`Kartenverteilung erhalten! Starte Spiel...`, false);
+           this.showConnectionStatus(`Card distribution received! Starting game...`, false);
           
           // CLIENT: Start the game automatically after receiving card distribution
           console.log('🎮 Client: Starting game after receiving card distribution');
@@ -996,7 +996,7 @@ class LandingPageController {
           
         } else {
           console.error('🎴 Client: No distribution object in message');
-          this.showError('Fehler: Keine Kartendaten erhalten.');
+          this.showError('Error: No card data received.');
         }
         
         logger.info({ 
@@ -1016,7 +1016,7 @@ class LandingPageController {
           msg: 'failed to handle card distribution from server', 
           err: { message: error.message } 
         });
-        this.showError('Fehler beim Verarbeiten der Kartendaten.');
+        this.showError('Error processing card data.');
       }
     }
 
@@ -1030,8 +1030,8 @@ class LandingPageController {
        
       // Check if deck is available (this would normally check the actual deck files)
       const availableDecks = [
-        'buildings-height-de',
-        'temperatures-temperature-de',
+        'buildings-height-en',
+        'temperatures-temperature-en',
         'time-inventions-en',
         'sky-objects-distance-en',
         'political-events-time-en'
@@ -1057,9 +1057,9 @@ class LandingPageController {
        
        // Show status message
        if (isAvailable) {
-         this.showConnectionStatus(`Deck ${deckId} wurde gewählt und ist vorhanden!`, false);
+         this.showConnectionStatus(`Deck ${deckId} was selected and is available!`, false);
        } else {
-         this.showConnectionStatus(`Deck ${deckId} nicht vorhanden!`, false);
+         this.showConnectionStatus(`Deck ${deckId} not available!`, false);
        }
        
        logger.info({ 
@@ -1074,7 +1074,7 @@ class LandingPageController {
          msg: 'failed to handle deck selection from server', 
          err: { message: error.message } 
        });
-       this.showError('Fehler bei der Deck-Überprüfung.');
+       this.showError('Error checking deck.');
      }
    }
 
@@ -1161,7 +1161,7 @@ class LandingPageController {
             break;
                      case 'deckResponse':
              if (data.available) {
-               this.showConnectionStatus(`Deck ${data.deckId} wurde gewählt und ist vorhanden!`, false);
+               this.showConnectionStatus(`Deck ${data.deckId} was selected and is available!`, false);
                // After deck confirmation, start the game (server-client only)
                if (this.isServerClient) {
                  console.log('🎲 Deck confirmed, starting game...');
@@ -1175,7 +1175,7 @@ class LandingPageController {
              }
              break;
                            case 'currentPlayer':
-          this.showConnectionStatus(`Spieler ${data.currentPlayer} ist am Zug!`, false);
+          this.showConnectionStatus(`Player ${data.currentPlayer}'s turn!`, false);
           // Update current player in localStorage
           this.currentPlayer = data.currentPlayer;
           localStorage.setItem('currentPlayer', this.currentPlayer);
@@ -1228,7 +1228,7 @@ class LandingPageController {
          this.sendDeckSelectionToClient(deckId);
        } else if (this.lanClient) {
          // Client: This shouldn't happen, but handle gracefully
-         this.showError('Nur der Server kann ein Deck auswählen.');
+         this.showError('Only the server can select a deck.');
          return;
        } else {
          // Normal singleplayer/multiplayer game
@@ -1248,7 +1248,7 @@ class LandingPageController {
          msg: 'failed to handle deck selection', 
          err: { message: error.message } 
        });
-       this.showError('Fehler beim Laden des Spiels.');
+       this.showError('Error loading game.');
      }
    }
 
@@ -1330,7 +1330,7 @@ class LandingPageController {
       }
       
       if (progressText) {
-        progressText.textContent = `Schritt ${currentIndex + 1} von ${this.sections.length}`;
+        progressText.textContent = `Step ${currentIndex + 1} of ${this.sections.length}`;
       }
       
       logger.debug({ 
@@ -1494,7 +1494,7 @@ class LandingPageController {
       }
       
       // Show loading message
-      this.showLoadingMessage('Spiel wird gestartet...');
+      this.showLoadingMessage('Starting game...');
       
       // Redirect to game page after a short delay
       setTimeout(() => {
@@ -1579,7 +1579,7 @@ class LandingPageController {
    */
   showComingSoonMessage() {
     try {
-      alert('Diese Funktion wird bald verfügbar sein! 🚀');
+      alert('This feature will be available soon! 🚀');
       logger.info({ 
         scope: 'landing/ui', 
         msg: 'coming soon message shown' 
@@ -1631,7 +1631,7 @@ class LandingPageController {
        console.log('🎮 LAN game card distribution created (not sent yet)');
        
        // Show success message and redirect to LAN game
-       this.showConnectionStatus('LAN-Spiel gestartet - Wechsle zu Spielfläche...', false);
+       this.showConnectionStatus('LAN game started - Switching to game board...', false);
        
                // Set LAN mode flag in localStorage
         localStorage.setItem('selectedGameType', 'lan');
@@ -1656,7 +1656,7 @@ class LandingPageController {
     } catch (error) {
       console.error('🎮 Failed to start LAN game:', error);
       console.error('🎮 Error stack:', error.stack);
-      this.showError('Fehler beim Starten des LAN-Spiels.');
+      this.showError('Error starting LAN game.');
     }
   }
 
@@ -1694,7 +1694,7 @@ class LandingPageController {
        }
        
        // Show success message and redirect to LAN game
-       this.showConnectionStatus('LAN-Spiel gestartet - Wechsle zu Spielfläche...', false);
+       this.showConnectionStatus('LAN game started - Switching to game board...', false);
       
       // Redirect to LAN game after 2 seconds
       setTimeout(() => {
@@ -1710,7 +1710,7 @@ class LandingPageController {
     } catch (error) {
       console.error('🎮 Client: Failed to start LAN game:', error);
       console.error('🎮 Client: Error stack:', error.stack);
-      this.showError('Fehler beim Starten des LAN-Spiels.');
+      this.showError('Error starting LAN game.');
     }
   }
 

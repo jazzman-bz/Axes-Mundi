@@ -144,7 +144,7 @@ class LANGameApp {
       console.log('🎮 LAN game application initialized successfully');
     } catch (error) {
       console.error('🎮 Failed to initialize LAN game application:', error);
-      this.showError('Fehler beim Initialisieren des LAN-Spiels.');
+      this.showError('Error initializing LAN game.');
     }
   }
 
@@ -1230,7 +1230,7 @@ class LANGameApp {
       }
     } catch (error) {
       console.error('🎮 Failed to handle client flow:', error);
-      this.showError('Fehler beim Laden der Kartenverteilung.');
+      this.showError('Error loading card distribution.');
       throw error;
     }
   }
@@ -2105,7 +2105,7 @@ class LANGameApp {
       if (isServerClient) {
         // Server-Client perspective
         if (playerNameElement) {
-          playerNameElement.textContent = `Spieler: ${serverPlayerName}`;
+          playerNameElement.textContent = `Player: ${serverPlayerName}`;
           // Highlight if it's server's turn
           if (currentPlayer === serverPlayerName) {
             playerNameElement.classList.add('current-turn');
@@ -2116,7 +2116,7 @@ class LANGameApp {
           }
         }
         if (opponentNameElement) {
-          opponentNameElement.textContent = `Gegner: ${clientPlayerName}`;
+          opponentNameElement.textContent = `Opponent: ${clientPlayerName}`;
           // Highlight if it's client's turn
           if (currentPlayer === clientPlayerName) {
             opponentNameElement.classList.add('current-turn');
@@ -2129,7 +2129,7 @@ class LANGameApp {
       } else {
         // Client perspective
         if (playerNameElement) {
-          playerNameElement.textContent = `Spieler: ${clientPlayerName}`;
+          playerNameElement.textContent = `Player: ${clientPlayerName}`;
           // Highlight if it's client's turn
           if (currentPlayer === clientPlayerName) {
             playerNameElement.classList.add('current-turn');
@@ -2140,7 +2140,7 @@ class LANGameApp {
           }
         }
         if (opponentNameElement) {
-          opponentNameElement.textContent = `Gegner: ${serverPlayerName}`;
+          opponentNameElement.textContent = `Opponent: ${serverPlayerName}`;
           // Highlight if it's server's turn
           if (currentPlayer === serverPlayerName) {
             opponentNameElement.classList.add('current-turn');
@@ -2153,7 +2153,7 @@ class LANGameApp {
       }
 
       if (currentTurnElement) {
-        currentTurnElement.textContent = `Zug: ${currentPlayer}`;
+        currentTurnElement.textContent = `Turn: ${currentPlayer}`;
       }
 
       console.log('🎮 Current player UI updated:', currentPlayer);
@@ -3013,7 +3013,7 @@ class LANGameApp {
         // This ensures the correct imageFolder is used
         const originalDeckId = localStorage.getItem('lanCardDistribution') 
           ? JSON.parse(localStorage.getItem('lanCardDistribution')!).deckId 
-          : 'buildings-height-de';
+          : 'buildings-height-en';
         
         import('@/data/deckLoader').then(({ loadDeck }) => {
           return loadDeck(originalDeckId);
@@ -3198,7 +3198,7 @@ class LANGameApp {
       // Update the current turn indicator (matches HTML element id="currentTurn")
       const currentTurnElement = document.getElementById('currentTurn');
       if (currentTurnElement) {
-        currentTurnElement.textContent = `Zug: ${currentPlayer || 'Unknown'}`;
+        currentTurnElement.textContent = `Turn: ${currentPlayer || 'Unknown'}`;
         console.log('🎮 Updated currentTurn element:', currentTurnElement.textContent);
       } else {
         console.warn('🎮 currentTurn element not found in DOM');
@@ -3211,7 +3211,7 @@ class LANGameApp {
       if (isServerClient) {
         // Server perspective
         if (playerNameElement) {
-          playerNameElement.textContent = `Spieler: ${serverPlayerName}`;
+          playerNameElement.textContent = `Player: ${serverPlayerName}`;
           if (currentPlayer === serverPlayerName) {
             playerNameElement.classList.add('current-turn');
             playerNameElement.classList.remove('waiting-turn');
@@ -3221,7 +3221,7 @@ class LANGameApp {
           }
         }
         if (opponentNameElement) {
-          opponentNameElement.textContent = `Gegner: ${clientPlayerName}`;
+          opponentNameElement.textContent = `Opponent: ${clientPlayerName}`;
           if (currentPlayer === clientPlayerName) {
             opponentNameElement.classList.add('current-turn');
             opponentNameElement.classList.remove('waiting-turn');
@@ -3233,7 +3233,7 @@ class LANGameApp {
       } else {
         // Client perspective
         if (playerNameElement) {
-          playerNameElement.textContent = `Spieler: ${clientPlayerName}`;
+          playerNameElement.textContent = `Player: ${clientPlayerName}`;
           if (currentPlayer === clientPlayerName) {
             playerNameElement.classList.add('current-turn');
             playerNameElement.classList.remove('waiting-turn');
@@ -3243,7 +3243,7 @@ class LANGameApp {
           }
         }
         if (opponentNameElement) {
-          opponentNameElement.textContent = `Gegner: ${serverPlayerName}`;
+          opponentNameElement.textContent = `Opponent: ${serverPlayerName}`;
           if (currentPlayer === serverPlayerName) {
             opponentNameElement.classList.add('current-turn');
             opponentNameElement.classList.remove('waiting-turn');
@@ -3364,7 +3364,7 @@ class LANGameApp {
     try {
       console.error('🎮 Error:', message);
       // Use console.error instead of alert for better UX
-      console.error(`LAN-Spiel Fehler: ${message}`);
+      console.error(`LAN game error: ${message}`);
     } catch (error) {
       console.error('🎮 Failed to show error:', error);
     }
@@ -3489,7 +3489,7 @@ class LANGameApp {
       let title = '';
       let message = '';
       if (isWinner) {
-        title = '🎉 Glückwunsch! 🎉';
+        title = '🎉 Congratulations! 🎉';
         message = `Du hast das Spiel gewonnen!\n\nAlle deine Karten wurden erfolgreich sortiert!\n\nGewinner: ${winnerName}`;
       } else {
         title = '🎉 Spiel beendet! 🎉';
@@ -3567,9 +3567,9 @@ class LANGameApp {
         flex-wrap: wrap;
       `;
 
-      // Create "Hauptmenü" button
+      // Create "Main Menu" button
       const mainMenuButton = document.createElement('button');
-      mainMenuButton.textContent = 'Hauptmenü';
+      mainMenuButton.textContent = 'Main Menu';
       mainMenuButton.style.cssText = `
         background: linear-gradient(135deg, #FF6B6B 0%, #ee5a52 100%);
         color: white;
@@ -3738,7 +3738,7 @@ class LANGameApp {
       console.log('🎮 Restarting LAN game with same deck...');
       
       // Get the current deck ID from localStorage
-      const deckId = localStorage.getItem('selectedDeckId') || 'buildings-height-de';
+      const deckId = localStorage.getItem('selectedDeckId') || 'buildings-height-en';
       console.log('🎮 Using same deck for restart:', deckId);
       
       // Re-initialize the LAN game with the same deck

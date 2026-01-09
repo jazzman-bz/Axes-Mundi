@@ -532,7 +532,7 @@ class AxesMundiApp {
   private async loadGame(): Promise<void> {
     try {
       // Load deck from localStorage
-      const selectedDeck = localStorage.getItem('selectedDeck') || 'buildings-height-de';
+      const selectedDeck = localStorage.getItem('selectedDeck') || 'buildings-height-en';
 
       logger.info({
         scope: 'renderer/game',
@@ -925,9 +925,9 @@ class AxesMundiApp {
     // In hotseat mode, show current player name
     if (this.isHotseatMode) {
       const currentPlayerName = this.currentPlayerIndex === 0
-        ? (this.player1Data?.name || 'Spieler 1')
-        : (this.player2Data?.name || 'Spieler 2');
-      this.turnText = `🎮 ${currentPlayerName} ist am Zug`;
+        ? (this.player1Data?.name || 'Player 1')
+        : (this.player2Data?.name || 'Player 2');
+      this.turnText = `🎮 ${currentPlayerName}'s turn`;
       return;
     }
 
@@ -2749,7 +2749,7 @@ class AxesMundiApp {
     if (this.isHotseatMode) {
       // Hotseat mode: show current player information with prominent background
       const currentPlayer = this.currentPlayerIndex === 0 ? this.player1Data : this.player2Data;
-      const turnText = `🎮 ${currentPlayer?.name || 'Spieler'} ist am Zug`;
+      const turnText = `🎮 ${currentPlayer?.name || 'Player'}'s turn`;
       const fontSize = 28 * this.scale;
       ctx.font = `bold ${fontSize}px Arial`;
       ctx.textAlign = 'left';
@@ -3073,8 +3073,8 @@ class AxesMundiApp {
 
       // Use player names in hotseat mode, player name in singleplayer modes
       if (this.isHotseatMode) {
-        const player1Name = this.player1Data?.name || 'Spieler 1';
-        const player2Name = this.player2Data?.name || 'Spieler 2';
+        const player1Name = this.player1Data?.name || 'Player 1';
+        const player2Name = this.player2Data?.name || 'Player 2';
         const player1Avatar = getAvatarEmoji(this.player1Data?.avatar);
         const player2Avatar = getAvatarEmoji(this.player2Data?.avatar);
 
@@ -3810,8 +3810,8 @@ class AxesMundiApp {
         this.gameWon = true;
 
         const winnerName = this.currentPlayerIndex === 0
-          ? (this.player1Data?.name || 'Spieler 1')
-          : (this.player2Data?.name || 'Spieler 2');
+          ? (this.player1Data?.name || 'Player 1')
+          : (this.player2Data?.name || 'Player 2');
 
         logger.info({
           scope: 'renderer/game',
@@ -3877,7 +3877,7 @@ class AxesMundiApp {
    * Show hotseat win dialog
    */
   private showHotseatWinDialog(winnerName: string): void {
-    const title = '🎉 Glückwunsch! 🎉';
+    const title = '🎉 Congratulations! 🎉';
     const message = `${winnerName} hat das Spiel gewonnen!\n\nAlle Karten wurden erfolgreich sortiert!`;
     
     this.showCustomWinDialog(title, message);
@@ -3887,8 +3887,8 @@ class AxesMundiApp {
    * Show win dialog
    */
   private showWinDialog(): void {
-    const title = '🎉 Glückwunsch! 🎉';
-    const message = `Du hast erfolgreich alle Karten sortiert!\n\nFinale Punktzahl: ${this.score}\nAnzahl Züge: ${this.currentTurn}`;
+    const title = '🎉 Congratulations! 🎉';
+    const message = `You successfully sorted all the cards!\n\nFinal score: ${this.score}\nNumber of turns: ${this.currentTurn}`;
     
     this.showCustomWinDialog(title, message);
   }
@@ -3898,7 +3898,7 @@ class AxesMundiApp {
    */
   private showLoseDialog(): void {
     const title = '😔 Verloren! 😔';
-    const message = `Dein Gegner hat alle Karten zuerst sortiert!\n\nFinale Punktzahl: ${this.score}\nAnzahl Züge: ${this.currentTurn}`;
+    const message = `Your opponent sorted all cards first!\n\nFinal score: ${this.score}\nNumber of turns: ${this.currentTurn}`;
     
     this.showCustomWinDialog(title, message);
   }
@@ -3984,9 +3984,9 @@ class AxesMundiApp {
         min-width: 150px;
       `;
 
-      // Create "Hauptmenü" button
+      // Create "Main Menu" button
       const mainMenuButton = document.createElement('button');
-      mainMenuButton.textContent = 'Hauptmenü';
+      mainMenuButton.textContent = 'Main Menu';
       mainMenuButton.style.cssText = `
         background: linear-gradient(135deg, #FF6B6B 0%, #ee5a52 100%);
         color: white;
@@ -4332,7 +4332,7 @@ class AxesMundiApp {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(
-      `Jetzt ist ${nextPlayer?.name || 'Spieler'} am Zug!`,
+      `Now it's ${nextPlayer?.name || 'Player'}'s turn!`,
       overlayX + overlayWidth / 2,
       overlayY + overlayHeight / 2 - 30 * this.scale,
     );
