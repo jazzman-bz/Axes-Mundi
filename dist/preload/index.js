@@ -25,6 +25,14 @@ electron_1.contextBridge.exposeInMainWorld('AXM', {
     updateGameState: (gameState) => electron_1.ipcRenderer.invoke('update-lan-game-state', gameState),
     // Test IPC connection
     testIPC: () => electron_1.ipcRenderer.invoke('test-ipc'),
+    // Deck Import methods
+    importDeck: () => electron_1.ipcRenderer.invoke('import-deck'),
+    getUserDecks: () => electron_1.ipcRenderer.invoke('get-user-decks'),
+    loadUserDeck: (deckId) => electron_1.ipcRenderer.invoke('load-user-deck', deckId),
+    deleteUserDeck: (deckId) => electron_1.ipcRenderer.invoke('delete-user-deck', deckId),
+    getUserDataPaths: () => electron_1.ipcRenderer.invoke('get-user-data-paths'),
+    // Debug method to log from renderer to main process terminal
+    debugLog: (message, data) => electron_1.ipcRenderer.invoke('debug-log', message, data),
     // Event listeners
     on: (channel, func) => {
         // Whitelist channels

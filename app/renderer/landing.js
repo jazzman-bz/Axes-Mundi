@@ -237,6 +237,15 @@ class LandingPageController {
         card.addEventListener('click', this.handleDeckSelection.bind(this));
       });
 
+      // Import deck button
+      const importDeckBtn = document.getElementById('import-deck-btn');
+      if (importDeckBtn) {
+        importDeckBtn.addEventListener('click', this.handleImportDeck.bind(this));
+      }
+
+      // Load user decks on init
+      this.loadUserDecks();
+
       // Back buttons
       const backButtons = document.querySelectorAll('.back-btn');
       backButtons.forEach(button => {
@@ -1251,6 +1260,250 @@ class LandingPageController {
        this.showError('Error loading game.');
      }
    }
+
+  /**
+   * Handle import deck button click
+   * Opens file dialog to select a ZIP file containing deck.json and images
+   */
+  async handleImportDeck() {
+    try {
+      // Play button sound
+      this.playButtonSound();
+      
+      logger.info({ scope: 'landing/import', msg: 'Import deck button clicked' });
+      
+      // Check if AXM API is available (running in Electron)
+      if (!window.AXM || !window.AXM.importDeck) {
+        this.showError('Deck import is only available in the desktop app.');
+        return;
+      }
+      
+      // Call the main process to open file dialog and import deck
+      const result = await window.AXM.importDeck();
+      
+      if (result.cancelled) {
+        logger.info({ scope: 'landing/import', msg: 'Import cancelled by user' });
+        return;
+      }
+      
+      if (!result.success) {
+        this.showError(result.error || 'Failed to import deck');
+        return;
+      }
+      
+      // Successfully imported - add deck card to UI
+      this.addDeckCardToUI(result.deck);
+      this.showSuccess(`Deck "${result.deck.name}" imported successfully! (${result.deck.cardCount} cards)`);
+      
+      logger.info({ 
+        scope: 'landing/import', 
+        msg: 'Deck imported successfully', 
+        meta: result.deck 
+      });
+      
+    } catch (error) {
+      logger.error({ 
+        scope: 'landing/import', 
+        msg: 'Failed to import deck', 
+        err: { message: error.message } 
+      });
+      this.showError('Error importing deck: ' + error.message);
+    }
+  }
+
+  /**
+   * Load user-imported decks and add them to the UI
+   */
+  async loadUserDecks() {
+    try {
+      // Check if AXM API is available
+      if (!window.AXM || !window.AXM.getUserDecks) {
+        logger.debug({ scope: 'landing/import', msg: 'AXM API not available, skipping user decks load' });
+        return;
+      }
+      
+      const result = await window.AXM.getUserDecks();
+      
+      if (!result.success || !result.decks || result.decks.length === 0) {
+        logger.debug({ scope: 'landing/import', msg: 'No user decks found' });
+        return;
+      }
+      
+      // Add each user deck to the UI
+      for (const deck of result.decks) {
+        this.addDeckCardToUI(deck);
+      }
+      
+      logger.info({ 
+        scope: 'landing/import', 
+        msg: 'User decks loaded', 
+        meta: { count: result.decks.length } 
+      });
+      
+    } catch (error) {
+      logger.error({ 
+        scope: 'landing/import', 
+        msg: 'Failed to load user decks', 
+        err: { message: error.message } 
+      });
+    }
+  }
+
+  /**
+   * Add a deck card to the deck selection UI
+   */
+  addDeckCardToUI(deck) {
+    const deckGrid = document.getElementById('deck-grid');
+    if (!deckGrid) {
+      logger.warn({ scope: 'landing/import', msg: 'Deck grid not found' });
+      return;
+    }
+    
+    // Check if deck already exists in UI
+    const existingCard = deckGrid.querySelector(`[data-deck="${deck.id}"]`);
+    if (existingCard) {
+      logger.debug({ scope: 'landing/import', msg: 'Deck already in UI', meta: { deckId: deck.id } });
+      return;
+    }
+    
+    // Create deck card element
+    const deckCard = document.createElement('div');
+    deckCard.className = 'deck-card user-deck';
+    deckCard.dataset.deck = deck.id;
+    deckCard.dataset.isUserDeck = 'true';
+    
+    // Format theme display
+    const themeDisplay = deck.theme ? `${deck.theme.charAt(0).toUpperCase() + deck.theme.slice(1)} & ${deck.axis.charAt(0).toUpperCase() + deck.axis.slice(1)}` : 'Custom Deck';
+    
+    // Format locale display
+    const localeDisplay = deck.locale === 'en' ? 'English' : 
+                          deck.locale === 'de' ? 'German' : 
+                          deck.locale || 'Unknown';
+    
+    deckCard.innerHTML = `
+      <button class="delete-deck-btn" title="Delete deck" data-deck-id="${deck.id}">✕</button>
+      <div class="deck-theme">📥 ${themeDisplay}</div>
+      <h3 class="deck-title">${deck.name}</h3>
+      <p class="deck-description">User-imported deck</p>
+      <div class="deck-stats">
+        <span>${deck.cardCount} Cards</span>
+        <span>${localeDisplay}</span>
+      </div>
+    `;
+    
+    // Add click handler for deck selection
+    deckCard.addEventListener('click', (e) => {
+      // Don't trigger deck selection if delete button was clicked
+      if (e.target.classList.contains('delete-deck-btn')) {
+        return;
+      }
+      this.handleDeckSelection(e);
+    });
+    
+    // Add click handler for delete button
+    const deleteBtn = deckCard.querySelector('.delete-deck-btn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.handleDeleteDeck(deck.id, deck.name);
+      });
+    }
+    
+    // Add to deck grid
+    deckGrid.appendChild(deckCard);
+    
+    logger.info({ 
+      scope: 'landing/import', 
+      msg: 'Deck card added to UI', 
+      meta: { deckId: deck.id, name: deck.name } 
+    });
+  }
+
+  /**
+   * Handle delete deck button click
+   */
+  async handleDeleteDeck(deckId, deckName) {
+    try {
+      // Play button sound
+      this.playButtonSound();
+      
+      // Confirm deletion
+      const confirmed = confirm(`Are you sure you want to delete "${deckName}"?\n\nThis will remove the deck and all its images.`);
+      if (!confirmed) {
+        return;
+      }
+      
+      // Check if AXM API is available
+      if (!window.AXM || !window.AXM.deleteUserDeck) {
+        this.showError('Deck deletion is only available in the desktop app.');
+        return;
+      }
+      
+      const result = await window.AXM.deleteUserDeck(deckId);
+      
+      if (!result.success) {
+        this.showError(result.error || 'Failed to delete deck');
+        return;
+      }
+      
+      // Remove deck card from UI
+      const deckGrid = document.getElementById('deck-grid');
+      const deckCard = deckGrid?.querySelector(`[data-deck="${deckId}"]`);
+      if (deckCard) {
+        deckCard.remove();
+      }
+      
+      this.showSuccess(`Deck "${deckName}" deleted successfully.`);
+      
+      logger.info({ 
+        scope: 'landing/import', 
+        msg: 'Deck deleted', 
+        meta: { deckId } 
+      });
+      
+    } catch (error) {
+      logger.error({ 
+        scope: 'landing/import', 
+        msg: 'Failed to delete deck', 
+        err: { message: error.message } 
+      });
+      this.showError('Error deleting deck: ' + error.message);
+    }
+  }
+
+  /**
+   * Show success message to user
+   */
+  showSuccess(message) {
+    // Create and show a success toast/notification
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-success';
+    toast.innerHTML = `<span>✅</span> ${message}`;
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 10000;
+      animation: slideIn 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 500;
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Remove after 4 seconds
+    setTimeout(() => {
+      toast.style.animation = 'slideOut 0.3s ease';
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
+  }
 
   /**
    * Navigate to a specific section

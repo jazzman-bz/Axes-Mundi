@@ -2,25 +2,60 @@ import { Deck, Card } from './types';
 import { logger } from '@/utils/logger';
 
 /**
- * Load deck from JSON file
+ * Extended Deck interface with user deck flag
  */
-export async function loadDeck(deckId: string): Promise<Deck> {
+export interface ExtendedDeck extends Deck {
+  isUserDeck?: boolean;
+}
+
+/**
+ * Load deck from JSON file
+ * First tries bundled decks, then falls back to user-imported decks via IPC
+ */
+export async function loadDeck(deckId: string): Promise<ExtendedDeck> {
   try {
+    // First try to load from bundled decks
     const response = await fetch(`./decks/${deckId}.json`);
-    if (!response.ok) {
-      throw new Error(`Failed to load deck: ${response.statusText}`);
+    if (response.ok) {
+      const deck: ExtendedDeck = await response.json();
+      deck.isUserDeck = false;
+
+      logger.info({
+        scope: 'data/deckLoader',
+        msg: 'deck loaded successfully from bundled decks',
+        meta: { deckId, cardCount: deck.cards.length, source: 'bundled' },
+      });
+
+      return deck;
     }
 
-    const deck: Deck = await response.json();
-
+    // If bundled deck not found, try user decks via IPC
     logger.info({
       scope: 'data/deckLoader',
-      msg: 'deck loaded successfully',
-      meta: { deckId, cardCount: deck.cards.length },
+      msg: 'bundled deck not found, trying user decks',
+      meta: { deckId },
     });
 
-    return deck;
-  } catch (error) {
+    // Check if AXM API is available (running in Electron)
+    if (window.AXM && window.AXM.loadUserDeck) {
+      const result = await window.AXM.loadUserDeck(deckId);
+      
+      if (result.success && result.deck) {
+        const deck: ExtendedDeck = result.deck;
+        deck.isUserDeck = true;
+
+        logger.info({
+          scope: 'data/deckLoader',
+          msg: 'deck loaded successfully from user decks',
+          meta: { deckId, cardCount: deck.cards.length, source: 'user' },
+        });
+
+        return deck;
+      }
+    }
+
+    throw new Error(`Deck not found: ${deckId}`);
+  } catch (error: any) {
     logger.error({
       scope: 'data/deckLoader',
       msg: 'failed to load deck',

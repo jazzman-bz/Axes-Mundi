@@ -29,6 +29,16 @@ contextBridge.exposeInMainWorld('AXM', {
   // Test IPC connection
   testIPC: () => ipcRenderer.invoke('test-ipc'),
 
+  // Deck Import methods
+  importDeck: () => ipcRenderer.invoke('import-deck'),
+  getUserDecks: () => ipcRenderer.invoke('get-user-decks'),
+  loadUserDeck: (deckId: string) => ipcRenderer.invoke('load-user-deck', deckId),
+  deleteUserDeck: (deckId: string) => ipcRenderer.invoke('delete-user-deck', deckId),
+  getUserDataPaths: () => ipcRenderer.invoke('get-user-data-paths'),
+
+  // Debug method to log from renderer to main process terminal
+  debugLog: (message: string, data?: any) => ipcRenderer.invoke('debug-log', message, data),
+
   // Event listeners
   on: (channel: string, func: (...args: any[]) => void) => {
     // Whitelist channels
@@ -69,6 +79,51 @@ declare global {
       testIPC: () => Promise<{ success: boolean; message: string }>;
       on: (channel: string, func: (...args: any[]) => void) => void;
       removeAllListeners: (channel: string) => void;
+
+      // Deck Import methods
+      importDeck: () => Promise<{
+        success: boolean;
+        cancelled?: boolean;
+        error?: string;
+        deck?: {
+          id: string;
+          name: string;
+          axis: string;
+          theme: string;
+          locale: string;
+          cardCount: number;
+          imageFolder: string;
+          isUserDeck: boolean;
+        };
+      }>;
+      getUserDecks: () => Promise<{
+        success: boolean;
+        error?: string;
+        decks: Array<{
+          id: string;
+          name: string;
+          axis: string;
+          theme: string;
+          locale: string;
+          cardCount: number;
+          imageFolder: string;
+          isUserDeck: boolean;
+        }>;
+      }>;
+      loadUserDeck: (deckId: string) => Promise<{
+        success: boolean;
+        error?: string;
+        deck?: any;
+      }>;
+      deleteUserDeck: (deckId: string) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
+      getUserDataPaths: () => Promise<{
+        userDataPath: string;
+        decksPath: string;
+        imagesPath: string;
+      }>;
     };
   }
 }

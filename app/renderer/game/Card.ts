@@ -1,4 +1,5 @@
 import { Card as CardData, Deck } from '@/data/types';
+import { ExtendedDeck } from '@/data/deckLoader';
 import { logger } from '@/utils/logger';
 
 /**
@@ -15,7 +16,7 @@ export class GameCard {
 
   public card: CardData;
 
-  public deck: Deck; // Add deck reference for image folder
+  public deck: ExtendedDeck; // Add deck reference for image folder (with isUserDeck flag)
 
   public isSelected: boolean = false;
 
@@ -44,6 +45,8 @@ export class GameCard {
 
   private imageLoaded: boolean = false;
 
+  private imageLoading: boolean = false; // Prevent concurrent loads
+
   // Timer for correct card highlighting
   private correctTimer: number | null = null;
 
@@ -64,7 +67,7 @@ export class GameCard {
   // Weiter button bounds for learning mode
   public weiterButtonBounds: { x: number; y: number; width: number; height: number } | null = null;
 
-  constructor(card: CardData, deck: Deck, x: number, y: number, scale: number = 1) {
+  constructor(card: CardData, deck: ExtendedDeck | Deck, x: number, y: number, scale: number = 1) {
     this.card = card;
     this.deck = deck;
     this.x = x;
@@ -95,99 +98,183 @@ export class GameCard {
   }
 
   /**
+   * Convert a fetch Response to a base64 data URL
+   */
+  private async responseToDataUrl(response: Response): Promise<string> {
+    const arrayBuffer = await response.arrayBuffer();
+    const contentType = response.headers.get('content-type') || 'image/png';
+    
+    // Convert to base64 data URL (more reliable than blob URLs in Electron canvas)
+    const uint8Array = new Uint8Array(arrayBuffer);
+    let binary = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+      binary += String.fromCharCode(...chunk);
+    }
+    const base64 = btoa(binary);
+    return `data:${contentType};base64,${base64}`;
+  }
+
+  /**
    * Load card image if available
    */
   private loadCardImage(): void {
     if (!this.card.image) return;
 
-    // Only load if not already loaded (for initial load)
-    if (this.imageElement && this.imageLoaded) return;
+    // Only load if not already loaded or loading
+    if (this.imageLoaded) return;
+    if (this.imageLoading) return;
 
+    // Mark as loading to prevent concurrent loads
+    this.imageLoading = true;
+
+    // Start async image loading
+    this.loadCardImageAsync();
+  }
+
+  /**
+   * Async image loading to handle user deck paths
+   */
+  private async loadCardImageAsync(): Promise<void> {
     try {
       this.imageElement = new Image();
       this.imageElement.onload = () => {
         this.imageLoaded = true;
+        this.imageLoading = false;
         logger.debug({
           scope: 'game/card',
           msg: 'card image loaded successfully',
           meta: { cardId: this.card.id, image: this.card.image },
         });
       };
+      
+      // Handle errors
       this.imageElement.onerror = () => {
+        this.imageLoading = false;
         logger.warn({
           scope: 'game/card',
           msg: 'failed to load card image',
-          meta: { cardId: this.card.id, image: this.card.image },
+          meta: { cardId: this.card.id },
         });
       };
 
-      // Load from assets folder using deck's imageFolder property
-      // Try both .jpg and .png extensions since we have mixed formats
-      // Handle cases where image name already contains file extension
-      let imagePath: string;
       const imageName = this.card.image;
 
       // Check if image name already has an extension
-      // Look for actual file extensions, not just dots in the name
       const hasExtension = imageName.toLowerCase().endsWith('.jpg')
                           || imageName.toLowerCase().endsWith('.png')
                           || imageName.toLowerCase().endsWith('.jpeg');
 
-      // Build image path with RELATIVE path (./) - works in both Electron and browser
-      // When the page is loaded from http://localhost:5179/game.html, ./assets/ resolves correctly
-      if (this.deck.imageFolder && this.deck.imageFolder.trim() !== '') {
-        if (hasExtension) {
-          imagePath = `./assets/${this.deck.imageFolder}/${imageName}`;
-        } else {
-          imagePath = `./assets/${this.deck.imageFolder}/${imageName}.jpg`;
+      let imagePath: string;
+
+      // Check if this is a user-imported deck
+      if (this.deck.isUserDeck) {
+        // User deck - load from user data folder using custom protocol
+        // Protocol format: user-deck-image://imageFolder/imageName.png
+        const imageFolder = encodeURIComponent(this.deck.imageFolder || this.deck.id);
+        const fileName = hasExtension ? imageName : `${imageName}.jpg`;
+        const encodedFileName = encodeURIComponent(fileName);
+        imagePath = `user-deck-image://${imageFolder}/${encodedFileName}`;
+        
+        logger.debug({
+          scope: 'game/card',
+          msg: 'loading user deck image via custom protocol',
+          meta: { cardId: this.card.id },
+        });
+
+        // Use fetch() for custom protocol URLs - this works better with Electron's protocol handler
+        try {
+          const response = await fetch(imagePath);
+          if (!response.ok) {
+            // Try .png extension
+            const pngPath = imagePath.replace('.jpg', '.png');
+            const pngResponse = await fetch(pngPath);
+            if (pngResponse.ok) {
+              imagePath = await this.responseToDataUrl(pngResponse);
+            }
+          } else {
+            imagePath = await this.responseToDataUrl(response);
+          }
+        } catch (fetchError: any) {
+          // Try .png extension on fetch error
+          try {
+            const pngPath = imagePath.replace('.jpg', '.png');
+            const pngResponse = await fetch(pngPath);
+            if (pngResponse.ok) {
+              imagePath = await this.responseToDataUrl(pngResponse);
+            }
+          } catch {
+            logger.warn({ scope: 'game/card', msg: 'Failed to fetch user deck image', meta: { cardId: this.card.id } });
+          }
         }
-      } else if (hasExtension) {
-        imagePath = `./assets/${imageName}`;
       } else {
-        imagePath = `./assets/${imageName}.jpg`;
+        // Bundled deck - use relative path
+        imagePath = this.buildBundledImagePath(imageName, hasExtension);
       }
 
-      // Try to load the image, if it fails, try .png extension
-      console.log('🖼️ Loading card image:', imagePath);
+      // Set the image source
       this.imageElement.src = imagePath;
+      
+      // Note: PNG fallback is already handled via fetch() for user decks
+      // For bundled decks, add fallback
+      if (!this.deck.isUserDeck) {
+        const originalPath = imagePath;
+        let triedPng = false;
+        this.imageElement.onerror = () => {
+          if (!triedPng) {
+            // Try .png extension if .jpg failed
+            let pngPath: string;
+            if (originalPath.includes('.jpg')) {
+              pngPath = originalPath.replace('.jpg', '.png');
+            } else if (originalPath.includes('.jpeg')) {
+              pngPath = originalPath.replace('.jpeg', '.png');
+            } else {
+              pngPath = originalPath.replace(/(\.[^.]*)?$/, '.png');
+            }
 
-      // Add fallback for .png files
-      let triedPng = false;
-      this.imageElement.onerror = () => {
-        if (!triedPng) {
-          // Try .png extension if .jpg failed
-          let pngPath: string;
-          if (imagePath.includes('.jpg')) {
-            pngPath = imagePath.replace('.jpg', '.png');
-          } else if (imagePath.includes('.jpeg')) {
-            pngPath = imagePath.replace('.jpeg', '.png');
+            triedPng = true;
+            logger.debug({
+              scope: 'game/card',
+              msg: 'trying .png extension as fallback',
+              meta: { cardId: this.card.id, originalPath, pngPath },
+            });
+            if (this.imageElement) {
+              this.imageElement.src = pngPath;
+            }
           } else {
-            // If no extension found, try adding .png
-            pngPath = imagePath.replace(/(\.[^.]*)?$/, '.png');
+            this.imageLoading = false;
+            logger.warn({
+              scope: 'game/card',
+              msg: 'failed to load card image (both .jpg and .png)',
+              meta: { cardId: this.card.id, image: this.card.image },
+            });
           }
-
-          triedPng = true;
-          logger.debug({
-            scope: 'game/card',
-            msg: 'trying .png extension as fallback',
-            meta: { cardId: this.card.id, originalPath: imagePath, pngPath },
-          });
-          this.imageElement.src = pngPath;
-        } else {
-          logger.warn({
-            scope: 'game/card',
-            msg: 'failed to load card image (both .jpg and .png)',
-            meta: { cardId: this.card.id, image: this.card.image },
-          });
-        }
-      };
-    } catch (error) {
+        };
+      }
+    } catch (error: any) {
       logger.error({
         scope: 'game/card',
         msg: 'error loading card image',
         err: { message: error.message, stack: error.stack },
       });
     }
+  }
+
+  /**
+   * Build image path for bundled deck assets
+   */
+  private buildBundledImagePath(imageName: string, hasExtension: boolean): string {
+    if (this.deck.imageFolder && this.deck.imageFolder.trim() !== '') {
+      if (hasExtension) {
+        return `./assets/${this.deck.imageFolder}/${imageName}`;
+      }
+      return `./assets/${this.deck.imageFolder}/${imageName}.jpg`;
+    }
+    if (hasExtension) {
+      return `./assets/${imageName}`;
+    }
+    return `./assets/${imageName}.jpg`;
   }
 
   /**

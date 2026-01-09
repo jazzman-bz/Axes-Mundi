@@ -1,9 +1,155 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 const path_1 = require("path");
+const promises_1 = require("fs/promises");
+const fs_1 = require("fs");
+const adm_zip_1 = __importDefault(require("adm-zip"));
 const logger_1 = require("./logger");
 const websocket_server_1 = require("./websocket-server");
+// Register custom protocol scheme as privileged BEFORE app.ready
+// This is required for the protocol to work with image loading in the renderer
+electron_1.protocol.registerSchemesAsPrivileged([
+    {
+        scheme: 'user-deck-image',
+        privileges: {
+            standard: true,
+            secure: true,
+            supportFetchAPI: true,
+            corsEnabled: true,
+            stream: true,
+            bypassCSP: true,
+        },
+    },
+]);
+console.log('[Protocol] Scheme registered as privileged: user-deck-image');
+// User data paths for imported decks
+const getUserDecksDir = () => (0, path_1.join)(electron_1.app.getPath('userData'), 'decks');
+const getUserDeckImagesDir = () => (0, path_1.join)(electron_1.app.getPath('userData'), 'deck-images');
+/**
+ * Register custom protocol for serving user deck images
+ * This allows the renderer to load images from the user data folder
+ * using URLs like: user-deck-image://imageFolder/imageName.png
+ */
+function registerUserDeckImageProtocol() {
+    electron_1.protocol.handle('user-deck-image', async (request) => {
+        try {
+            // URL format: user-deck-image://imageFolder/imageName.png
+            const url = new URL(request.url);
+            // The hostname is the imageFolder, pathname is the image file
+            const imageFolder = decodeURIComponent(url.hostname);
+            const imageName = decodeURIComponent(url.pathname.slice(1)); // Remove leading /
+            const imagePath = (0, path_1.join)(getUserDeckImagesDir(), imageFolder, imageName);
+            console.log('[Protocol] Requested:', request.url);
+            console.log('[Protocol] Resolved path:', imagePath);
+            let finalPath = imagePath;
+            let contentType = 'image/jpeg';
+            if (!(0, fs_1.existsSync)(imagePath)) {
+                console.log('[Protocol] File NOT found:', imagePath);
+                // Try .png if .jpg was requested
+                if (imagePath.endsWith('.jpg')) {
+                    const pngPath = imagePath.replace('.jpg', '.png');
+                    if ((0, fs_1.existsSync)(pngPath)) {
+                        console.log('[Protocol] Found .png fallback:', pngPath);
+                        finalPath = pngPath;
+                        contentType = 'image/png';
+                    }
+                    else {
+                        console.log('[Protocol] .png fallback also not found');
+                        return new Response('Not Found', { status: 404 });
+                    }
+                }
+                else {
+                    return new Response('Not Found', { status: 404 });
+                }
+            }
+            else if (imagePath.endsWith('.png')) {
+                contentType = 'image/png';
+            }
+            // Read file and serve
+            const fileData = await (0, promises_1.readFile)(finalPath);
+            console.log('[Protocol] Serving file:', finalPath, 'Size:', fileData.length, 'Type:', contentType);
+            // Convert Buffer to Uint8Array for Response compatibility
+            const uint8Array = new Uint8Array(fileData);
+            return new Response(uint8Array, {
+                status: 200,
+                headers: {
+                    'Content-Type': contentType,
+                    'Content-Length': fileData.length.toString(),
+                },
+            });
+        }
+        catch (error) {
+            console.error('[Protocol] Error:', error.message, error.stack);
+            return new Response(`Internal Error: ${error.message}`, { status: 500 });
+        }
+    });
+    console.log('[Protocol] Registered user-deck-image protocol');
+}
+/**
+ * Validate deck JSON structure
+ */
+function validateDeckStructure(deck) {
+    if (!deck || typeof deck !== 'object') {
+        return { valid: false, error: 'Invalid JSON structure' };
+    }
+    if (!deck.id || typeof deck.id !== 'string') {
+        return { valid: false, error: 'Missing or invalid deck id' };
+    }
+    if (!deck.name || typeof deck.name !== 'string') {
+        return { valid: false, error: 'Missing or invalid deck name' };
+    }
+    if (!deck.axis || typeof deck.axis !== 'string') {
+        return { valid: false, error: 'Missing or invalid axis' };
+    }
+    if (!deck.cards || !Array.isArray(deck.cards) || deck.cards.length === 0) {
+        return { valid: false, error: 'Missing or empty cards array' };
+    }
+    // Validate each card has required fields
+    for (let i = 0; i < deck.cards.length; i++) {
+        const card = deck.cards[i];
+        if (!card.id || !card.title || card.value === undefined) {
+            return { valid: false, error: `Card at index ${i} missing required fields (id, title, value)` };
+        }
+    }
+    return { valid: true };
+}
 // Keep a global reference of the window object
 let mainWindow = null;
 let lanServer = null;
@@ -88,6 +234,11 @@ function setupIPC() {
     electron_1.ipcMain.handle('test-ipc', () => {
         logger_1.logger.info({ scope: 'main/ipc', msg: 'test-ipc requested' });
         return { success: true, message: 'IPC connection working' };
+    });
+    // Debug logging from renderer to main process terminal
+    electron_1.ipcMain.handle('debug-log', (_, message, data) => {
+        console.log('[RENDERER]', message, data ? JSON.stringify(data) : '');
+        return { success: true };
     });
     // Send deck selection to client
     electron_1.ipcMain.handle('send-deck-selection', async (_, deckId) => {
@@ -342,6 +493,275 @@ function setupIPC() {
             throw error;
         }
     });
+    // ========== DECK IMPORT HANDLERS ==========
+    /**
+     * Import a deck from a ZIP file
+     * ZIP structure expected:
+     * - deck.json (required)
+     * - images/ folder with card images (optional)
+     */
+    electron_1.ipcMain.handle('import-deck', async () => {
+        console.log('[Import] ==== IMPORT DECK HANDLER CALLED ====');
+        try {
+            console.log('[Import] Step 1: Opening file dialog...');
+            logger_1.logger.info({ scope: 'main/deck', msg: 'Opening deck import dialog' });
+            // Show file picker dialog
+            const result = await electron_1.dialog.showOpenDialog({
+                title: 'Import Deck',
+                filters: [
+                    { name: 'Deck Archives', extensions: ['zip'] },
+                ],
+                properties: ['openFile'],
+            });
+            if (result.canceled || result.filePaths.length === 0) {
+                logger_1.logger.info({ scope: 'main/deck', msg: 'Import cancelled by user' });
+                return { success: false, cancelled: true };
+            }
+            const zipPath = result.filePaths[0];
+            console.log('[Import] Step 2: ZIP file selected:', zipPath);
+            logger_1.logger.info({ scope: 'main/deck', msg: 'Processing ZIP file', meta: { path: zipPath } });
+            // Extract ZIP file
+            console.log('[Import] Step 3: Opening ZIP file...');
+            const zip = new adm_zip_1.default(zipPath);
+            const zipEntries = zip.getEntries();
+            // Find deck.json in the ZIP
+            let deckJsonEntry = zipEntries.find(entry => entry.entryName === 'deck.json' || entry.entryName.endsWith('/deck.json'));
+            if (!deckJsonEntry) {
+                logger_1.logger.error({ scope: 'main/deck', msg: 'No deck.json found in ZIP' });
+                return { success: false, error: 'No deck.json found in the ZIP file' };
+            }
+            // Parse and validate deck.json
+            console.log('[Import] Step 4: Parsing deck.json...');
+            const deckJsonContent = deckJsonEntry.getData().toString('utf8');
+            let deck;
+            try {
+                deck = JSON.parse(deckJsonContent);
+                console.log('[Import] Step 4: Parsed deck:', deck.id, deck.name, 'with', deck.cards?.length, 'cards');
+            }
+            catch (parseError) {
+                console.log('[Import] ERROR: Failed to parse JSON:', parseError.message);
+                logger_1.logger.error({ scope: 'main/deck', msg: 'Invalid JSON in deck.json', err: { message: parseError.message } });
+                return { success: false, error: 'Invalid JSON in deck.json' };
+            }
+            // Validate deck structure
+            console.log('[Import] Step 5: Validating deck structure...');
+            const validation = validateDeckStructure(deck);
+            if (!validation.valid) {
+                console.log('[Import] ERROR: Deck validation failed:', validation.error);
+                logger_1.logger.error({ scope: 'main/deck', msg: 'Deck validation failed', meta: { error: validation.error } });
+                return { success: false, error: validation.error };
+            }
+            console.log('[Import] Step 5: Deck validated successfully');
+            // Create user decks directory if it doesn't exist
+            const userDecksDir = getUserDecksDir();
+            console.log('[Import] Step 6: User decks dir:', userDecksDir);
+            if (!(0, fs_1.existsSync)(userDecksDir)) {
+                await (0, promises_1.mkdir)(userDecksDir, { recursive: true });
+                logger_1.logger.info({ scope: 'main/deck', msg: 'Created user decks directory', meta: { path: userDecksDir } });
+            }
+            // Save deck.json to user decks folder
+            const deckTargetPath = (0, path_1.join)(userDecksDir, `${deck.id}.json`);
+            console.log('[Import] Saving deck.json to:', deckTargetPath);
+            await (0, promises_1.writeFile)(deckTargetPath, JSON.stringify(deck, null, 2), 'utf-8');
+            console.log('[Import] Deck JSON saved successfully');
+            logger_1.logger.info({ scope: 'main/deck', msg: 'Deck JSON saved', meta: { path: deckTargetPath } });
+            // Extract images if present
+            const imageFolder = deck.imageFolder || deck.id;
+            const userImagesDir = (0, path_1.join)(getUserDeckImagesDir(), imageFolder);
+            // Find image entries (look for images/ folder or image files at root)
+            // Note: ZIP entries may use forward or backslashes depending on how they were created
+            const imageEntries = zipEntries.filter(entry => {
+                const name = entry.entryName.toLowerCase();
+                // Normalize path separators for cross-platform compatibility
+                const normalizedName = name.replace(/\\/g, '/');
+                return !entry.isDirectory &&
+                    (normalizedName.startsWith('images/') || normalizedName.includes('/images/')) &&
+                    (normalizedName.endsWith('.jpg') || normalizedName.endsWith('.jpeg') || normalizedName.endsWith('.png'));
+            });
+            console.log('[Import] Step 7: Found', imageEntries.length, 'images to extract');
+            if (imageEntries.length > 0) {
+                console.log('[Import] Step 8: Creating images directory:', userImagesDir);
+                if (!(0, fs_1.existsSync)(userImagesDir)) {
+                    await (0, promises_1.mkdir)(userImagesDir, { recursive: true });
+                    logger_1.logger.info({ scope: 'main/deck', msg: 'Created user images directory', meta: { path: userImagesDir } });
+                }
+                // Extract each image
+                let extractedCount = 0;
+                for (const imageEntry of imageEntries) {
+                    // Normalize path separators and get just the filename
+                    const normalizedPath = imageEntry.entryName.replace(/\\/g, '/');
+                    const imageName = normalizedPath.split('/').pop(); // Get just filename
+                    if (imageName) {
+                        const imageTargetPath = (0, path_1.join)(userImagesDir, imageName);
+                        const imageData = imageEntry.getData();
+                        await (0, promises_1.writeFile)(imageTargetPath, imageData);
+                        extractedCount++;
+                        logger_1.logger.debug({ scope: 'main/deck', msg: 'Extracted image', meta: { imageName, targetPath: imageTargetPath } });
+                    }
+                }
+                console.log('[Import] Step 9: Extracted', extractedCount, 'images to', userImagesDir);
+                logger_1.logger.info({ scope: 'main/deck', msg: 'Images extracted', meta: { count: imageEntries.length, folder: imageFolder } });
+            }
+            console.log('[Import] ==== IMPORT SUCCESSFUL ====');
+            console.log('[Import] Deck ID:', deck.id);
+            console.log('[Import] Deck JSON saved to:', (0, path_1.join)(userDecksDir, `${deck.id}.json`));
+            console.log('[Import] Images saved to:', userImagesDir);
+            logger_1.logger.info({
+                scope: 'main/deck',
+                msg: 'Deck imported successfully',
+                meta: {
+                    deckId: deck.id,
+                    name: deck.name,
+                    cardCount: deck.cards.length,
+                    imageCount: imageEntries.length
+                }
+            });
+            return {
+                success: true,
+                deck: {
+                    id: deck.id,
+                    name: deck.name,
+                    axis: deck.axis,
+                    theme: deck.theme || 'custom',
+                    locale: deck.locale || 'en',
+                    cardCount: deck.cards.length,
+                    imageFolder: imageFolder,
+                    isUserDeck: true,
+                },
+            };
+        }
+        catch (error) {
+            console.log('[Import] ==== IMPORT FAILED ====');
+            console.log('[Import] Error:', error.message);
+            console.log('[Import] Stack:', error.stack);
+            logger_1.logger.error({
+                scope: 'main/deck',
+                msg: 'Failed to import deck',
+                err: { message: error.message, stack: error.stack },
+            });
+            return { success: false, error: error.message };
+        }
+    });
+    /**
+     * Get list of user-imported decks
+     */
+    electron_1.ipcMain.handle('get-user-decks', async () => {
+        try {
+            const userDecksDir = getUserDecksDir();
+            if (!(0, fs_1.existsSync)(userDecksDir)) {
+                return { success: true, decks: [] };
+            }
+            const files = await (0, promises_1.readdir)(userDecksDir);
+            const deckFiles = files.filter(f => f.endsWith('.json'));
+            const decks = [];
+            for (const file of deckFiles) {
+                try {
+                    const content = await (0, promises_1.readFile)((0, path_1.join)(userDecksDir, file), 'utf-8');
+                    const deck = JSON.parse(content);
+                    decks.push({
+                        id: deck.id,
+                        name: deck.name,
+                        axis: deck.axis,
+                        theme: deck.theme || 'custom',
+                        locale: deck.locale || 'en',
+                        cardCount: deck.cards?.length || 0,
+                        imageFolder: deck.imageFolder || deck.id,
+                        isUserDeck: true,
+                    });
+                }
+                catch (e) {
+                    logger_1.logger.warn({ scope: 'main/deck', msg: 'Failed to read user deck', meta: { file } });
+                }
+            }
+            logger_1.logger.info({ scope: 'main/deck', msg: 'User decks retrieved', meta: { count: decks.length } });
+            return { success: true, decks };
+        }
+        catch (error) {
+            logger_1.logger.error({
+                scope: 'main/deck',
+                msg: 'Failed to get user decks',
+                err: { message: error.message },
+            });
+            return { success: false, error: error.message, decks: [] };
+        }
+    });
+    /**
+     * Load a specific user deck by ID
+     */
+    electron_1.ipcMain.handle('load-user-deck', async (_, deckId) => {
+        console.log('[LoadUserDeck] ==== CALLED with deckId:', deckId);
+        try {
+            if (!deckId || typeof deckId !== 'string') {
+                console.log('[LoadUserDeck] ERROR: Invalid deck ID');
+                return { success: false, error: 'Invalid deck ID' };
+            }
+            const deckPath = (0, path_1.join)(getUserDecksDir(), `${deckId}.json`);
+            console.log('[LoadUserDeck] Looking for deck at:', deckPath);
+            if (!(0, fs_1.existsSync)(deckPath)) {
+                console.log('[LoadUserDeck] ERROR: Deck file not found');
+                return { success: false, error: 'Deck not found' };
+            }
+            const content = await (0, promises_1.readFile)(deckPath, 'utf-8');
+            const deck = JSON.parse(content);
+            console.log('[LoadUserDeck] SUCCESS: Loaded deck with', deck.cards?.length, 'cards, imageFolder:', deck.imageFolder);
+            logger_1.logger.info({ scope: 'main/deck', msg: 'User deck loaded', meta: { deckId, cardCount: deck.cards?.length } });
+            return { success: true, deck };
+        }
+        catch (error) {
+            logger_1.logger.error({
+                scope: 'main/deck',
+                msg: 'Failed to load user deck',
+                err: { message: error.message },
+            });
+            return { success: false, error: error.message };
+        }
+    });
+    /**
+     * Delete a user-imported deck
+     */
+    electron_1.ipcMain.handle('delete-user-deck', async (_, deckId) => {
+        try {
+            if (!deckId || typeof deckId !== 'string') {
+                return { success: false, error: 'Invalid deck ID' };
+            }
+            const deckPath = (0, path_1.join)(getUserDecksDir(), `${deckId}.json`);
+            if (!(0, fs_1.existsSync)(deckPath)) {
+                return { success: false, error: 'Deck not found' };
+            }
+            // Read deck to get imageFolder before deleting
+            const content = await (0, promises_1.readFile)(deckPath, 'utf-8');
+            const deck = JSON.parse(content);
+            const imageFolder = deck.imageFolder || deckId;
+            // Delete deck JSON
+            const { unlink, rm } = await Promise.resolve().then(() => __importStar(require('fs/promises')));
+            await unlink(deckPath);
+            // Delete images folder if exists
+            const imagesPath = (0, path_1.join)(getUserDeckImagesDir(), imageFolder);
+            if ((0, fs_1.existsSync)(imagesPath)) {
+                await rm(imagesPath, { recursive: true, force: true });
+            }
+            logger_1.logger.info({ scope: 'main/deck', msg: 'User deck deleted', meta: { deckId } });
+            return { success: true };
+        }
+        catch (error) {
+            logger_1.logger.error({
+                scope: 'main/deck',
+                msg: 'Failed to delete user deck',
+                err: { message: error.message },
+            });
+            return { success: false, error: error.message };
+        }
+    });
+    /**
+     * Get the user data paths (for renderer to construct image URLs)
+     */
+    electron_1.ipcMain.handle('get-user-data-paths', async () => {
+        return {
+            userDataPath: electron_1.app.getPath('userData'),
+            decksPath: getUserDecksDir(),
+            imagesPath: getUserDeckImagesDir(),
+        };
+    });
 }
 /**
  * App event handlers
@@ -350,6 +770,8 @@ function setupAppEvents() {
     // App ready
     electron_1.app.whenReady().then(() => {
         logger_1.logger.info({ scope: 'main/app', msg: 'app ready' });
+        // Register custom protocol for user deck images BEFORE creating window
+        registerUserDeckImageProtocol();
         createWindow();
         setupIPC();
     });
