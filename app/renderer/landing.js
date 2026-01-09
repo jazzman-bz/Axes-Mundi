@@ -1031,22 +1031,39 @@ class LandingPageController {
 
     /**
      * Handle deck selection from server (client side)
+     * Dynamically checks if deck is available (bundled or user-imported)
      */
-    handleDeckSelectionFromServer(deckId) {
+    async handleDeckSelectionFromServer(deckId) {
      try {
        console.log('🎴 Client: Checking if deck is available:', deckId);
        console.log('🎴 Client: this.lanClient exists:', !!this.lanClient);
        
-      // Check if deck is available (this would normally check the actual deck files)
-      const availableDecks = [
-        'buildings-height-en',
-        'temperatures-temperature-en',
-        'time-inventions-en',
-        'sky-objects-distance-en',
-        'political-events-time-en'
-      ];
+       // Dynamically check if deck is available (bundled or user-imported)
+       let isAvailable = false;
        
-       const isAvailable = availableDecks.includes(deckId);
+       // First try bundled decks
+       try {
+         const response = await fetch(`./decks/${deckId}.json`);
+         if (response.ok) {
+           isAvailable = true;
+           console.log('🎴 Client: Deck found in bundled decks');
+         }
+       } catch (fetchError) {
+         console.log('🎴 Client: Deck not in bundled decks, checking user decks...');
+       }
+       
+       // If not bundled, try user decks via IPC
+       if (!isAvailable && window.AXM && window.AXM.loadUserDeck) {
+         try {
+           const result = await window.AXM.loadUserDeck(deckId);
+           if (result.success) {
+             isAvailable = true;
+             console.log('🎴 Client: Deck found in user decks');
+           }
+         } catch (ipcError) {
+           console.log('🎴 Client: Deck not found in user decks either');
+         }
+       }
        
        console.log('🎴 Client: Deck availability check:', { deckId, isAvailable });
        
@@ -1066,9 +1083,9 @@ class LandingPageController {
        
        // Show status message
        if (isAvailable) {
-         this.showConnectionStatus(`Deck ${deckId} was selected and is available!`, false);
+         this.showConnectionStatus(`Deck ${deckId} has been selected and is available!`, false);
        } else {
-         this.showConnectionStatus(`Deck ${deckId} not available!`, false);
+         this.showConnectionStatus(`Deck ${deckId} not available - please import it first!`, false);
        }
        
        logger.info({ 

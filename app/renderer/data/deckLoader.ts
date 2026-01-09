@@ -13,8 +13,8 @@ export interface ExtendedDeck extends Deck {
  * First tries bundled decks, then falls back to user-imported decks via IPC
  */
 export async function loadDeck(deckId: string): Promise<ExtendedDeck> {
+  // First try to load from bundled decks
   try {
-    // First try to load from bundled decks
     const response = await fetch(`./decks/${deckId}.json`);
     if (response.ok) {
       const deck: ExtendedDeck = await response.json();
@@ -28,42 +28,42 @@ export async function loadDeck(deckId: string): Promise<ExtendedDeck> {
 
       return deck;
     }
-
-    // If bundled deck not found, try user decks via IPC
-    logger.info({
+  } catch (fetchError) {
+    // Fetch failed (e.g., file:// protocol ERR_FILE_NOT_FOUND in production)
+    // Fall through to try user decks via IPC
+    logger.debug({
       scope: 'data/deckLoader',
-      msg: 'bundled deck not found, trying user decks',
+      msg: 'bundled deck fetch failed, will try user decks',
       meta: { deckId },
     });
-
-    // Check if AXM API is available (running in Electron)
-    if (window.AXM && window.AXM.loadUserDeck) {
-      const result = await window.AXM.loadUserDeck(deckId);
-      
-      if (result.success && result.deck) {
-        const deck: ExtendedDeck = result.deck;
-        deck.isUserDeck = true;
-
-        logger.info({
-          scope: 'data/deckLoader',
-          msg: 'deck loaded successfully from user decks',
-          meta: { deckId, cardCount: deck.cards.length, source: 'user' },
-        });
-
-        return deck;
-      }
-    }
-
-    throw new Error(`Deck not found: ${deckId}`);
-  } catch (error: any) {
-    logger.error({
-      scope: 'data/deckLoader',
-      msg: 'failed to load deck',
-      meta: { deckId },
-      err: { message: error.message, stack: error.stack },
-    });
-    throw error;
   }
+
+  // If bundled deck not found, try user decks via IPC
+  logger.info({
+    scope: 'data/deckLoader',
+    msg: 'bundled deck not found, trying user decks',
+    meta: { deckId },
+  });
+
+  // Check if AXM API is available (running in Electron)
+  if (window.AXM && window.AXM.loadUserDeck) {
+    const result = await window.AXM.loadUserDeck(deckId);
+    
+    if (result.success && result.deck) {
+      const deck: ExtendedDeck = result.deck;
+      deck.isUserDeck = true;
+
+      logger.info({
+        scope: 'data/deckLoader',
+        msg: 'deck loaded successfully from user decks',
+        meta: { deckId, cardCount: deck.cards.length, source: 'user' },
+      });
+
+      return deck;
+    }
+  }
+
+  throw new Error(`Deck not found: ${deckId}`);
 }
 
 /**

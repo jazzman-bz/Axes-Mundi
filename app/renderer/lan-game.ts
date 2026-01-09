@@ -219,21 +219,9 @@ export class LANGameManager {
 
       console.log('🎮 Server client detected, proceeding with initialization');
 
-      // Load deck from localStorage with validation
+      // Load deck from localStorage
       let selectedDeck = localStorage.getItem('selectedDeck') || 'buildings-height-en';
-
-      // Validate that the selected deck exists, fallback to buildings-height-en if not
-      const validDecks = ['buildings-height-en', 'time-inventions-en', 'temperatures-temperature-en', 'sky-objects-distance-en', 'political-events-time-en'];
-      if (!validDecks.includes(selectedDeck)) {
-        console.warn('🎮 Invalid deck ID in localStorage:', selectedDeck, 'falling back to buildings-height-en');
-        selectedDeck = 'buildings-height-en';
-        localStorage.setItem('selectedDeck', selectedDeck);
-      }
-
       console.log('🎮 Selected deck from localStorage:', selectedDeck);
-      console.log('🎮 All localStorage keys:', Object.keys(localStorage));
-      console.log('🎮 selectedDeck value:', localStorage.getItem('selectedDeck'));
-      console.log('🎮 selectedGameType value:', localStorage.getItem('selectedGameType'));
 
       logger.info({
         scope: 'renderer/lan',
@@ -244,7 +232,21 @@ export class LANGameManager {
         },
       });
 
-      this.deck = await loadDeck(selectedDeck);
+      // Try to load the deck - this handles both bundled and user-imported decks
+      try {
+        this.deck = await loadDeck(selectedDeck);
+      } catch (deckError) {
+        // If deck loading fails, fallback to default
+        console.warn('🎮 Failed to load deck:', selectedDeck, '- falling back to buildings-height-en');
+        logger.warn({
+          scope: 'renderer/lan',
+          msg: 'deck loading failed, using fallback',
+          meta: { attemptedDeck: selectedDeck, fallback: 'buildings-height-en' },
+        });
+        selectedDeck = 'buildings-height-en';
+        localStorage.setItem('selectedDeck', selectedDeck);
+        this.deck = await loadDeck(selectedDeck);
+      }
 
       // Initialize remaining cards from deck and shuffle them
       this.remainingCards = [...this.deck.cards];
