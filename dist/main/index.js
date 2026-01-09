@@ -72,26 +72,20 @@ function registerUserDeckImageProtocol() {
         try {
             // URL format: user-deck-image://imageFolder/imageName.png
             const url = new URL(request.url);
-            // The hostname is the imageFolder, pathname is the image file
             const imageFolder = decodeURIComponent(url.hostname);
             const imageName = decodeURIComponent(url.pathname.slice(1)); // Remove leading /
             const imagePath = (0, path_1.join)(getUserDeckImagesDir(), imageFolder, imageName);
-            console.log('[Protocol] Requested:', request.url);
-            console.log('[Protocol] Resolved path:', imagePath);
             let finalPath = imagePath;
             let contentType = 'image/jpeg';
             if (!(0, fs_1.existsSync)(imagePath)) {
-                console.log('[Protocol] File NOT found:', imagePath);
                 // Try .png if .jpg was requested
                 if (imagePath.endsWith('.jpg')) {
                     const pngPath = imagePath.replace('.jpg', '.png');
                     if ((0, fs_1.existsSync)(pngPath)) {
-                        console.log('[Protocol] Found .png fallback:', pngPath);
                         finalPath = pngPath;
                         contentType = 'image/png';
                     }
                     else {
-                        console.log('[Protocol] .png fallback also not found');
                         return new Response('Not Found', { status: 404 });
                     }
                 }
@@ -104,8 +98,6 @@ function registerUserDeckImageProtocol() {
             }
             // Read file and serve
             const fileData = await (0, promises_1.readFile)(finalPath);
-            console.log('[Protocol] Serving file:', finalPath, 'Size:', fileData.length, 'Type:', contentType);
-            // Convert Buffer to Uint8Array for Response compatibility
             const uint8Array = new Uint8Array(fileData);
             return new Response(uint8Array, {
                 status: 200,
@@ -116,8 +108,8 @@ function registerUserDeckImageProtocol() {
             });
         }
         catch (error) {
-            console.error('[Protocol] Error:', error.message, error.stack);
-            return new Response(`Internal Error: ${error.message}`, { status: 500 });
+            logger_1.logger.error({ scope: 'main/protocol', msg: 'Failed to serve user deck image', meta: { url: request.url }, err: { message: error.message } });
+            return new Response('Internal Error', { status: 500 });
         }
     });
     console.log('[Protocol] Registered user-deck-image protocol');
@@ -501,9 +493,7 @@ function setupIPC() {
      * - images/ folder with card images (optional)
      */
     electron_1.ipcMain.handle('import-deck', async () => {
-        console.log('[Import] ==== IMPORT DECK HANDLER CALLED ====');
         try {
-            console.log('[Import] Step 1: Opening file dialog...');
             logger_1.logger.info({ scope: 'main/deck', msg: 'Opening deck import dialog' });
             // Show file picker dialog
             const result = await electron_1.dialog.showOpenDialog({
@@ -518,10 +508,8 @@ function setupIPC() {
                 return { success: false, cancelled: true };
             }
             const zipPath = result.filePaths[0];
-            console.log('[Import] Step 2: ZIP file selected:', zipPath);
             logger_1.logger.info({ scope: 'main/deck', msg: 'Processing ZIP file', meta: { path: zipPath } });
             // Extract ZIP file
-            console.log('[Import] Step 3: Opening ZIP file...');
             const zip = new adm_zip_1.default(zipPath);
             const zipEntries = zip.getEntries();
             // Find deck.json in the ZIP
@@ -531,39 +519,30 @@ function setupIPC() {
                 return { success: false, error: 'No deck.json found in the ZIP file' };
             }
             // Parse and validate deck.json
-            console.log('[Import] Step 4: Parsing deck.json...');
             const deckJsonContent = deckJsonEntry.getData().toString('utf8');
             let deck;
             try {
                 deck = JSON.parse(deckJsonContent);
-                console.log('[Import] Step 4: Parsed deck:', deck.id, deck.name, 'with', deck.cards?.length, 'cards');
             }
             catch (parseError) {
-                console.log('[Import] ERROR: Failed to parse JSON:', parseError.message);
                 logger_1.logger.error({ scope: 'main/deck', msg: 'Invalid JSON in deck.json', err: { message: parseError.message } });
                 return { success: false, error: 'Invalid JSON in deck.json' };
             }
             // Validate deck structure
-            console.log('[Import] Step 5: Validating deck structure...');
             const validation = validateDeckStructure(deck);
             if (!validation.valid) {
-                console.log('[Import] ERROR: Deck validation failed:', validation.error);
                 logger_1.logger.error({ scope: 'main/deck', msg: 'Deck validation failed', meta: { error: validation.error } });
                 return { success: false, error: validation.error };
             }
-            console.log('[Import] Step 5: Deck validated successfully');
             // Create user decks directory if it doesn't exist
             const userDecksDir = getUserDecksDir();
-            console.log('[Import] Step 6: User decks dir:', userDecksDir);
             if (!(0, fs_1.existsSync)(userDecksDir)) {
                 await (0, promises_1.mkdir)(userDecksDir, { recursive: true });
                 logger_1.logger.info({ scope: 'main/deck', msg: 'Created user decks directory', meta: { path: userDecksDir } });
             }
             // Save deck.json to user decks folder
             const deckTargetPath = (0, path_1.join)(userDecksDir, `${deck.id}.json`);
-            console.log('[Import] Saving deck.json to:', deckTargetPath);
             await (0, promises_1.writeFile)(deckTargetPath, JSON.stringify(deck, null, 2), 'utf-8');
-            console.log('[Import] Deck JSON saved successfully');
             logger_1.logger.info({ scope: 'main/deck', msg: 'Deck JSON saved', meta: { path: deckTargetPath } });
             // Extract images if present
             const imageFolder = deck.imageFolder || deck.id;
@@ -578,15 +557,12 @@ function setupIPC() {
                     (normalizedName.startsWith('images/') || normalizedName.includes('/images/')) &&
                     (normalizedName.endsWith('.jpg') || normalizedName.endsWith('.jpeg') || normalizedName.endsWith('.png'));
             });
-            console.log('[Import] Step 7: Found', imageEntries.length, 'images to extract');
             if (imageEntries.length > 0) {
-                console.log('[Import] Step 8: Creating images directory:', userImagesDir);
                 if (!(0, fs_1.existsSync)(userImagesDir)) {
                     await (0, promises_1.mkdir)(userImagesDir, { recursive: true });
                     logger_1.logger.info({ scope: 'main/deck', msg: 'Created user images directory', meta: { path: userImagesDir } });
                 }
                 // Extract each image
-                let extractedCount = 0;
                 for (const imageEntry of imageEntries) {
                     // Normalize path separators and get just the filename
                     const normalizedPath = imageEntry.entryName.replace(/\\/g, '/');
@@ -595,17 +571,10 @@ function setupIPC() {
                         const imageTargetPath = (0, path_1.join)(userImagesDir, imageName);
                         const imageData = imageEntry.getData();
                         await (0, promises_1.writeFile)(imageTargetPath, imageData);
-                        extractedCount++;
-                        logger_1.logger.debug({ scope: 'main/deck', msg: 'Extracted image', meta: { imageName, targetPath: imageTargetPath } });
                     }
                 }
-                console.log('[Import] Step 9: Extracted', extractedCount, 'images to', userImagesDir);
                 logger_1.logger.info({ scope: 'main/deck', msg: 'Images extracted', meta: { count: imageEntries.length, folder: imageFolder } });
             }
-            console.log('[Import] ==== IMPORT SUCCESSFUL ====');
-            console.log('[Import] Deck ID:', deck.id);
-            console.log('[Import] Deck JSON saved to:', (0, path_1.join)(userDecksDir, `${deck.id}.json`));
-            console.log('[Import] Images saved to:', userImagesDir);
             logger_1.logger.info({
                 scope: 'main/deck',
                 msg: 'Deck imported successfully',
@@ -631,9 +600,6 @@ function setupIPC() {
             };
         }
         catch (error) {
-            console.log('[Import] ==== IMPORT FAILED ====');
-            console.log('[Import] Error:', error.message);
-            console.log('[Import] Stack:', error.stack);
             logger_1.logger.error({
                 scope: 'main/deck',
                 msg: 'Failed to import deck',
