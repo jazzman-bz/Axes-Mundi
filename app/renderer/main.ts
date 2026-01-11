@@ -1908,7 +1908,40 @@ class AxesMundiApp {
     * Handle learning mode clicks for card removal and buttons
     */
   private handleLearningModeClick(x: number, y: number): void {
-    // Check if click is on the "Clear Board" button first
+    // Check if there's an incorrect card on the board (Weiter button is showing)
+    const hasIncorrectCard = this.placedLeft.some((card) => card.isCorrect === false)
+                          || this.placedRight.some((card) => card.isCorrect === false)
+                          || (this.boardCard && this.boardCard.isCorrect === false);
+
+    // If we have an incorrect card, only allow the "Weiter" button to be clicked
+    if (hasIncorrectCard) {
+      // Only check for the "Weiter" button - block all other interactions
+      if (this.weiterButtonBounds) {
+        const button = this.weiterButtonBounds;
+        if (x >= button.x && x <= button.x + button.width
+             && y >= button.y && y <= button.y + button.height) {
+          // Find the incorrect card to remove
+          const incorrectCard = this.placedLeft.find((card) => card.isCorrect === false)
+                                || this.placedRight.find((card) => card.isCorrect === false)
+                                || (this.boardCard && this.boardCard.isCorrect === false ? this.boardCard : null);
+
+          if (incorrectCard) {
+            this.removeCardFromBoard(incorrectCard);
+            logger.info({
+              scope: 'renderer/learning',
+              msg: 'incorrect card removed by weiter button click',
+              meta: {
+                cardTitle: incorrectCard.card.title,
+                isLearningMode: this.isLearningMode,
+              },
+            });
+          }
+        }
+      }
+      return; // Block all other interactions when incorrect card is showing
+    }
+
+    // Check if click is on the "Clear Board" button (only when no incorrect card)
     if (this.clearBoardButtonBounds) {
       const button = this.clearBoardButtonBounds;
       if (x >= button.x && x <= button.x + button.width
@@ -1918,39 +1951,12 @@ class AxesMundiApp {
       }
     }
 
-    // Check if click is on the "Reset Game" button
+    // Check if click is on the "Reset Game" button (only when no incorrect card)
     if (this.resetGameButtonBounds) {
       const button = this.resetGameButtonBounds;
       if (x >= button.x && x <= button.x + button.width
            && y >= button.y && y <= button.y + button.height) {
         this.resetLearningGame();
-        return; // Button click handled, don't process further
-      }
-    }
-
-    // Check if click is on the "Weiter" button
-    if (this.weiterButtonBounds) {
-      const button = this.weiterButtonBounds;
-      if (x >= button.x && x <= button.x + button.width
-           && y >= button.y && y <= button.y + button.height) {
-        // Find the incorrect card to remove
-        const incorrectCard = this.placedLeft.find((card) => card.isCorrect === false)
-                              || this.placedRight.find((card) => card.isCorrect === false)
-                              || (this.boardCard && this.boardCard.isCorrect === false ? this.boardCard : null);
-
-        if (incorrectCard) {
-          // Clicked on "Weiter" button - remove card
-          this.removeCardFromBoard(incorrectCard);
-
-          logger.info({
-            scope: 'renderer/learning',
-            msg: 'incorrect card removed by weiter button click',
-            meta: {
-              cardTitle: incorrectCard.card.title,
-              isLearningMode: this.isLearningMode,
-            },
-          });
-        }
         return; // Button click handled, don't process further
       }
     }
@@ -2784,11 +2790,38 @@ class AxesMundiApp {
       ctx.fillText(`Score: ${this.score}`, 20 * this.scale, 40 * this.scale);
       ctx.fillText(`Turn: ${this.currentTurn}`, 20 * this.scale, 65 * this.scale);
     } else {
-      // Learning mode: show learning mode indicator
-      ctx.fillStyle = '#4caf50';
-      ctx.font = `bold ${18 * this.scale}px Arial`;
+      // Learning mode: show learning mode indicator with gray box and white text
+      const learningText = '📚 Learning Mode';
+      const fontSize = 18 * this.scale;
+      const padding = 10 * this.scale;
+      const boxX = 15 * this.scale;
+      const boxY = 20 * this.scale;
+
+      ctx.font = `bold ${fontSize}px Arial`;
+      const textWidth = ctx.measureText(learningText).width;
+      const boxWidth = textWidth + padding * 2;
+      const boxHeight = fontSize + padding * 1.5;
+
+      // Draw gray background box with rounded corners
+      ctx.fillStyle = 'rgba(80, 80, 80, 0.85)';
+      ctx.beginPath();
+      const radius = 6 * this.scale;
+      ctx.moveTo(boxX + radius, boxY);
+      ctx.lineTo(boxX + boxWidth - radius, boxY);
+      ctx.quadraticCurveTo(boxX + boxWidth, boxY, boxX + boxWidth, boxY + radius);
+      ctx.lineTo(boxX + boxWidth, boxY + boxHeight - radius);
+      ctx.quadraticCurveTo(boxX + boxWidth, boxY + boxHeight, boxX + boxWidth - radius, boxY + boxHeight);
+      ctx.lineTo(boxX + radius, boxY + boxHeight);
+      ctx.quadraticCurveTo(boxX, boxY + boxHeight, boxX, boxY + boxHeight - radius);
+      ctx.lineTo(boxX, boxY + radius);
+      ctx.quadraticCurveTo(boxX, boxY, boxX + radius, boxY);
+      ctx.closePath();
+      ctx.fill();
+
+      // Draw white text
+      ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'left';
-      ctx.fillText('📚 Lernmodus', 20 * this.scale, 40 * this.scale);
+      ctx.fillText(learningText, boxX + padding, boxY + fontSize + padding * 0.2);
     }
 
     // Draw turn text (only in normal mode, not hotseat)
@@ -3315,7 +3348,7 @@ class AxesMundiApp {
     ctx.font = `bold ${40 * this.scale}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('➡️ Weiter', buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+    ctx.fillText('➡️ Continue', buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
 
     // Store button position globally for click detection
     this.weiterButtonBounds = {
