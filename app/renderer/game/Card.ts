@@ -675,8 +675,8 @@ export class GameCard {
     const barY = bottomSectionY - 12 * this.scale; // Above the description section
     this.drawMetallicBar(ctx, cardX + 4 * this.scale, barY, (this.baseWidth - 8) * this.scale, barHeight);
 
-    // Draw subtle pattern in bottom section
-    this.drawPattern(ctx, cardX + 4 * this.scale, bottomSectionY, (this.baseWidth - 8) * this.scale, bottomSectionHeight);
+    // REMOVED: Draw subtle pattern in bottom section (three grey lines)
+    // this.drawPattern(ctx, cardX + 4 * this.scale, bottomSectionY, (this.baseWidth - 8) * this.scale, bottomSectionHeight);
 
     // Removed the small metallic element - measurement will be drawn directly on card
 
