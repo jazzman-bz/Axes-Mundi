@@ -69,7 +69,8 @@
     "appId": "com.axesmundi.app",
     "productName": "Axes-Mundi",
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build"
     },
     "files": [
       "dist/main/**/*",
@@ -78,6 +79,7 @@
       "node_modules/**/*"
     ],
     "win": {
+      "icon": "build/icons/win/icon.ico",
       "target": [
         {
           "target": "nsis",
@@ -92,6 +94,12 @@
           ]
         }
       ]
+    },
+    "mac": {
+      "icon": "build/icons/mac/icon.icns"
+    },
+    "linux": {
+      "icon": "build/icons/png"
     },
     "nsis": {
       "oneClick": false,
