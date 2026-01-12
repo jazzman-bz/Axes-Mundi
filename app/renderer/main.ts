@@ -1,6 +1,6 @@
 import { logger } from '@/utils/logger';
 import { loadDeck, shuffleCardsInPlace } from '@/data/deckLoader';
-import { isAxisCorrectlySorted, getScore, convertToComparable } from '@/data/scoring';
+import { isAxisCorrectlySorted, getScore } from '@/data/scoring';
 import { GameCard } from '@/game/Card';
 import { Card as CardData } from '@/data/types';
 import { soundManager, SoundType } from '@/utils/soundManager';
@@ -9,6 +9,9 @@ import { loadImage } from '@/utils/assetLoader';
 import { calculateScale, calculateSnapThreshold } from '@/utils/scaleUtils';
 import { ResizeHandler } from '@/utils/resizeHandler';
 import { getOpponentCardCount, dealCard } from '@/utils/cardDealer';
+import { CardLayoutManager, recycleGraveyard as recycleGraveyardUtil } from '@/utils/cardLayout';
+import { InputHandler } from '@/utils/inputHandler';
+import { AIManager } from '@/utils/aiManager';
 
 /**
  * Avatar emoji mapping
@@ -86,13 +89,15 @@ class AxesMundiApp {
 
   private readonly stackSpacing: number = 140; // px spacing between placed cards
 
-  private isPreviewActive: boolean = false; // Track if preview is currently active
-
-  private lastPreviewX: number = 0; // Track last preview position for dynamic updates
-
   private scale: number = 1; // Global scale factor
 
   private resizeHandler: ResizeHandler | null = null; // Resize handler for window resizing
+
+  private layoutManager: CardLayoutManager | null = null; // Card layout manager
+
+  private inputHandler: InputHandler | null = null; // Input handler for mouse events
+
+  private aiManager: AIManager | null = null; // AI manager for opponent turns
 
   private isGameStarted: boolean = false; // Track if first card has been placed on axis
 
@@ -173,10 +178,218 @@ class AxesMundiApp {
       scope: 'renderer/app',
     });
 
+    // Initialize layout manager
+    this.layoutManager = new CardLayoutManager({
+      scale: this.scale,
+      canvasWidth: this.gameCanvas.width,
+      canvasHeight: this.gameCanvas.height,
+    });
+
+    // Initialize input handler
+    this.inputHandler = new InputHandler({
+      canvas: this.gameCanvas,
+      scale: this.scale,
+      snapThreshold: this.snapThreshold,
+      isLearningMode: this.isLearningMode,
+      isHotseatMode: this.isHotseatMode,
+      isPlayerTurn: this.isPlayerTurn,
+      gameWon: this.gameWon,
+      gameLost: this.gameLost,
+      playerSwitchOverlayVisible: this.playerSwitchOverlayVisible,
+      callbacks: {
+        onCardSelected: (card) => {
+          this.selectedCard = card;
+          this.isDragging = true;
+        },
+        onCardPlaced: (card, x, y, isLeft, isFirstCard) => {
+          this.handleCardPlacement(card, x, y, isLeft, isFirstCard);
+        },
+        onCardReturnedToHand: (card) => {
+          if (this.inputHandler) {
+            this.inputHandler.hidePreview();
+          }
+          if (this.isHotseatMode) {
+            this.layoutHotseatHands();
+          } else {
+            this.layoutHand();
+          }
+          logger.info({
+            scope: 'renderer/game',
+            msg: 'card returned to hand (released outside axis)',
+            meta: { cardTitle: card.card.title },
+          });
+        },
+        onWeiterButtonClick: () => {
+          const incorrectCard = this.placedLeft.find((card) => card.isCorrect === false)
+                                || this.placedRight.find((card) => card.isCorrect === false)
+                                || (this.boardCard && this.boardCard.isCorrect === false ? this.boardCard : null);
+          if (incorrectCard) {
+            this.removeCardFromBoard(incorrectCard);
+            logger.info({
+              scope: 'renderer/learning',
+              msg: 'incorrect card removed by weiter button click',
+              meta: {
+                cardTitle: incorrectCard.card.title,
+                isLearningMode: this.isLearningMode,
+              },
+            });
+          }
+        },
+        onClearBoardButtonClick: () => {
+          this.clearBoard();
+        },
+        onResetGameButtonClick: () => {
+          this.resetLearningGame();
+        },
+        onNavigationArrowClick: (direction) => {
+          if (direction === 'left') {
+            this.moveBoardCardsLeft();
+          } else {
+            this.moveBoardCardsRight();
+          }
+        },
+        onPlayerSwitchOverlayClick: () => {
+          this.switchPlayer();
+        },
+        onCardRemoved: (card) => {
+          this.removeCardFromBoard(card);
+        },
+        onTooltipHover: (card) => {
+          const hasIncorrectCard = this.placedLeft.find((c) => c.isCorrect === false)
+                                    || this.placedRight.find((c) => c.isCorrect === false)
+                                    || (this.boardCard && this.boardCard.isCorrect === false);
+          if (!hasIncorrectCard) {
+            this.hoveredCard = card;
+            this.tooltipCard = card;
+            this.tooltipVisible = !!card;
+            logger.debug({
+              scope: 'renderer/tooltip',
+              msg: 'tooltip hover state changed',
+              meta: {
+                cardTitle: card?.card.title,
+                tooltipVisible: this.tooltipVisible,
+                isLearningMode: this.isLearningMode,
+              },
+            });
+          }
+        },
+        onGetBoardCards: () => ({
+          boardCard: this.boardCard,
+          placedLeft: this.placedLeft,
+          placedRight: this.placedRight,
+        }),
+        onGetPlayerHands: () => ({
+          playerHand: this.playerHand,
+          currentPlayerHand: this.currentPlayerHand,
+          nextPlayerHand: this.nextPlayerHand,
+        }),
+        onGetButtonBounds: () => ({
+          weiterButtonBounds: this.weiterButtonBounds,
+          clearBoardButtonBounds: this.clearBoardButtonBounds,
+          resetGameButtonBounds: this.resetGameButtonBounds,
+          playerSwitchOverlayBounds: this.playerSwitchOverlayBounds,
+        }),
+        onGetBoardCardCount: () => (this.boardCard ? 1 : 0) + this.placedLeft.length + this.placedRight.length,
+        onHasIncorrectCard: () => !!(this.placedLeft.some((card) => card.isCorrect === false)
+                                 || this.placedRight.some((card) => card.isCorrect === false)
+                                 || (this.boardCard && this.boardCard.isCorrect === false)),
+        onFindIncorrectCard: () => this.placedLeft.find((card) => card.isCorrect === false)
+                                    || this.placedRight.find((card) => card.isCorrect === false)
+                                    || (this.boardCard && this.boardCard.isCorrect === false ? this.boardCard : null),
+      },
+    });
+
+    // Initialize AI manager
+    this.aiManager = new AIManager({
+      canvas: this.gameCanvas,
+      scale: this.scale,
+      isLearningMode: this.isLearningMode,
+      callbacks: {
+        onGetBoardCards: () => ({
+          boardCard: this.boardCard,
+          placedLeft: this.placedLeft,
+          placedRight: this.placedRight,
+        }),
+        onCardRemovedFromHand: (card) => {
+          const cardIndex = this.opponentHand.indexOf(card);
+          if (cardIndex > -1) {
+            this.opponentHand.splice(cardIndex, 1);
+          }
+        },
+        onLayoutOpponentHand: () => {
+          this.layoutOpponentHand();
+        },
+        onCardPlaced: (card, isLeft) => {
+          if (isLeft) {
+            this.placedLeft.push(card);
+          } else {
+            this.placedRight.push(card);
+          }
+        },
+        onLayoutAxisCards: () => {
+          this.layoutAxisCards();
+        },
+        onCardSetCorrect: (card) => {
+          card.setCorrect();
+        },
+        onTurnComplete: () => {
+          this.isPlayerTurn = true;
+          this.currentTurn++;
+          this.isAITurnInProgress = false;
+          this.startTurnTimer();
+        },
+        onCheckWin: () => {
+          this.checkForWin();
+        },
+        onStartTurnTimer: () => {
+          this.startTurnTimer();
+        },
+        onShowPreview: (x) => {
+          if (this.inputHandler) {
+            this.inputHandler.showPreview(x);
+          }
+        },
+        onHidePreview: () => {
+          if (this.inputHandler) {
+            this.inputHandler.hidePreview();
+          }
+        },
+        onPlaySound: (soundType) => {
+          soundManager.play(soundType);
+        },
+      },
+    });
+
     // Register resize callbacks
     this.resizeHandler.onResize(({ width, height, scale }) => {
       this.scale = scale;
       this.snapThreshold = calculateSnapThreshold(scale);
+
+      // Update layout manager config
+      if (this.layoutManager) {
+        this.layoutManager.updateConfig({
+          scale,
+          canvasWidth: width,
+          canvasHeight: height,
+        });
+      }
+
+      // Update input handler config
+      if (this.inputHandler) {
+        this.inputHandler.updateConfig({
+          scale,
+          snapThreshold: this.snapThreshold,
+        });
+      }
+
+      // Update AI manager config
+      if (this.aiManager) {
+        this.aiManager.updateConfig({
+          scale,
+          canvas: this.gameCanvas,
+          isLearningMode: this.isLearningMode,
+        });
+      }
 
       // Update scale for all existing cards
       this.updateAllCardsScale();
@@ -344,13 +557,10 @@ class AxesMundiApp {
       this.resizeHandler.attach();
     }
 
-    // Mouse events for card interaction - use window for mousemove/mouseup to handle drag outside canvas
-    this.gameCanvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
-    window.addEventListener('mousemove', this.handleMouseMove.bind(this));
-    window.addEventListener('mouseup', this.handleMouseUp.bind(this));
-
-    // Arrow navigation clicks
-    this.gameCanvas.addEventListener('click', this.handleCanvasClick.bind(this));
+    // Input handling (handled by InputHandler)
+    if (this.inputHandler) {
+      this.inputHandler.attach();
+    }
 
     logger.debug({ scope: 'renderer/app', msg: 'event listeners set up' });
   }
@@ -602,6 +812,7 @@ class AxesMundiApp {
     const totalDealTime = 1200 + 5 * 200 + opponentCardCount * 200; // Player cards + opponent cards
     setTimeout(() => {
       this.isPlayerTurn = true;
+      this.updateInputHandlerConfig();
 
       this.startTurnTimer(); // Start timer for first turn
 
@@ -740,17 +951,9 @@ class AxesMundiApp {
    * Layout opponent hand cards at top of screen (same logic as player hand)
    */
   private layoutOpponentHand(): void {
-    const cardSpacing = 220 * this.scale; // Same spacing as player hand
-    const totalWidth = this.opponentHand.length * cardSpacing - 20 * this.scale; // Same calculation
-    const startX = (this.gameCanvas.width - totalWidth) / 2; // Center the hand
-
-    this.opponentHand.forEach((card, index) => {
-      const x = startX + index * cardSpacing;
-      const y = 20 * this.scale; // Top edge position
-
-      // Use setTargetPosition like layoutHand (same logic)
-      card.setTargetPosition(x, y);
-    });
+    if (this.layoutManager) {
+      this.layoutManager.layoutHand(this.opponentHand, 'top');
+    }
 
     logger.debug({
       scope: 'renderer/layout',
@@ -758,8 +961,6 @@ class AxesMundiApp {
       meta: {
         cardCount: this.opponentHand.length,
         scale: this.scale,
-        cardSpacing,
-        totalWidth,
       },
     });
   }
@@ -815,6 +1016,7 @@ class AxesMundiApp {
 
       // Set player turn immediately (no timer in learning mode)
       this.isPlayerTurn = true;
+      this.updateInputHandlerConfig();
 
       logger.info({
         scope: 'renderer/game',
@@ -876,6 +1078,7 @@ class AxesMundiApp {
       const totalDealTime = 1200 + 5 * 200 + 5 * 200; // Player 1 cards + player 2 cards
       setTimeout(() => {
         this.isPlayerTurn = true;
+        this.updateInputHandlerConfig();
         this.updateTurnText();
 
         logger.info({
@@ -1070,13 +1273,14 @@ class AxesMundiApp {
       });
 
       this.isPlayerTurn = false;
+      this.updateInputHandlerConfig();
       this.currentTurn++;
       this.updateTurnText();
 
       // Let AI play immediately (only if not already in progress)
-      if (this.opponentHand.length > 0 && !this.isAITurnInProgress) {
+      if (this.opponentHand.length > 0 && !this.isAITurnInProgress && this.aiManager) {
         setTimeout(() => {
-          this.playAITurn();
+          this.isAITurnInProgress = this.aiManager!.playTurn(this.opponentHand, this.isAITurnInProgress);
         }, 500);
       }
     } else {
@@ -1092,501 +1296,6 @@ class AxesMundiApp {
     }
   }
 
-  /**
-    * Play AI turn - simulates player drag mechanics
-    */
-  private playAITurn(): void {
-    // Don't play AI turn in learning mode
-    if (this.isLearningMode) {
-      logger.info({
-        scope: 'renderer/ai',
-        msg: 'AI turn skipped in learning mode',
-        meta: { isLearningMode: true },
-      });
-      return;
-    }
-
-    // Prevent multiple AI turns from running simultaneously
-    if (this.isAITurnInProgress) {
-      logger.warn({
-        scope: 'renderer/ai',
-        msg: 'AI turn already in progress, skipping duplicate call',
-        meta: { opponentHandSize: this.opponentHand.length },
-      });
-      return;
-    }
-
-    this.isAITurnInProgress = true;
-
-    logger.info({
-      scope: 'renderer/ai',
-      msg: 'playAITurn called',
-      meta: { opponentHandSize: this.opponentHand.length },
-    });
-
-    if (this.opponentHand.length === 0) {
-      // AI has no cards, check for win or skip turn
-      logger.warn({
-        scope: 'renderer/ai',
-        msg: 'AI has no cards, skipping turn',
-        meta: { opponentHandSize: this.opponentHand.length },
-      });
-
-      // Switch back to player turn
-      this.isPlayerTurn = true;
-      this.isAITurnInProgress = false; // Reset flag
-      this.startTurnTimer(); // Start timer for player turn
-      return;
-    }
-
-    // AI randomly selects a card from hand
-    const randomIndex = Math.floor(Math.random() * this.opponentHand.length);
-    const aiCard = this.opponentHand[randomIndex];
-
-    // Simulate player drag mechanics - find correct position by scanning
-    this.simulateAIDragToCorrectPosition(aiCard);
-
-    logger.info({
-      scope: 'renderer/ai',
-      msg: 'AI starting drag simulation',
-      meta: {
-        cardTitle: aiCard.card.title,
-      },
-    });
-  }
-
-  /**
-   * Simulate AI drag to find correct position - animates directly to the correct position
-   */
-  private simulateAIDragToCorrectPosition(aiCard: GameCard): void {
-    // Start drag from opponent hand position
-    const startX = aiCard.x;
-    const startY = aiCard.y;
-
-    // Calculate the correct target position directly (no scanning needed)
-    const targetX = this.findCorrectPosition(aiCard);
-    const axisY = this.gameCanvas.height / 2;
-    const targetY = axisY - aiCard.height / 2;
-
-    logger.info({
-      scope: 'renderer/ai',
-      msg: 'AI calculated correct position',
-      meta: {
-        cardTitle: aiCard.card.title,
-        cardValue: aiCard.card.value,
-        cardUnit: aiCard.card.unit,
-        startX,
-        startY,
-        targetX,
-        targetY,
-      },
-    });
-
-    // Simulate picking up card from hand
-    aiCard.startDrag(startX, startY);
-
-    // Animate card from hand directly to correct position
-    const animationDuration = 800; // 800ms to move from hand to target
-    const animationSteps = 40; // 40 steps for smooth animation
-    const stepDuration = animationDuration / animationSteps;
-
-    // Calculate when to start showing the preview (when card is 30% through animation)
-    const previewStartStep = Math.floor(animationSteps * 0.3);
-    let previewShown = false;
-
-    let step = 0;
-    const animationInterval = setInterval(() => {
-      // Interpolate from hand position to target position
-      const progress = step / animationSteps;
-      // Use easeOutQuad for smooth deceleration
-      const easedProgress = 1 - (1 - progress) * (1 - progress);
-      
-      const currentX = startX + (targetX - startX) * easedProgress;
-      const currentY = startY + (targetY - startY) * easedProgress;
-
-      // Move card to current position
-      aiCard.updateDrag(currentX, currentY);
-
-      // Show axis preview when card gets close to the axis (board cards spread apart)
-      if (step >= previewStartStep && !previewShown) {
-        this.showAxisPreview(targetX + aiCard.width / 2);
-        previewShown = true;
-      } else if (previewShown) {
-        // Update preview position as card moves
-        this.showAxisPreview(currentX + aiCard.width / 2);
-      }
-
-      step++;
-      if (step >= animationSteps) {
-        clearInterval(animationInterval);
-
-        // DON'T hide preview here - let the card be placed into the open space
-        // The preview will be cleared when layoutAxisCards() is called after placement
-
-        // Place the card at the correct position (into the open space)
-        this.placeAICardAtPosition(aiCard, targetX, axisY);
-      }
-    }, stepDuration);
-  }
-
-  /**
-   * Place AI card at the calculated correct position
-   */
-  private placeAICardAtPosition(aiCard: GameCard, x: number, y: number): void {
-    // Stop dragging
-    aiCard.stopDrag();
-
-    // The card is now at its position in the gap created by the preview
-    // DON'T set target position yet - let the card stay where it is
-
-    // Immediately update game state (no delay - card is already in position)
-    // Remove the specific card from opponent hand
-    const cardIndex = this.opponentHand.indexOf(aiCard);
-    if (cardIndex > -1) {
-      this.opponentHand.splice(cardIndex, 1);
-      this.layoutOpponentHand();
-    }
-
-    // Add to appropriate array based on card value (not position)
-    // Determine left/right by comparing card value to board card value
-    const aiCardValue = convertToComparable(aiCard.card.value, aiCard.card.unit);
-    const boardCardValue = this.boardCard 
-      ? convertToComparable(this.boardCard.card.value, this.boardCard.card.unit) 
-      : 0;
-    const isLeft = aiCardValue < boardCardValue;
-
-    // Play card placement sound for AI
-    soundManager.play(SoundType.CARD_PLACE);
-
-    if (isLeft) {
-      this.placedLeft.push(aiCard);
-      aiCard.isInHand = false;
-    } else {
-      this.placedRight.push(aiCard);
-      aiCard.isInHand = false;
-    }
-
-    // Small delay to show the card in position, then re-center all cards smoothly
-    setTimeout(() => {
-      // Clear preview positions before re-centering
-      this.hideAxisPreview();
-
-      // Center all cards (including the newly placed AI card)
-      this.layoutAxisCards();
-
-      // Mark card as correct and play success sound
-      aiCard.setCorrect();
-      setTimeout(() => {
-        soundManager.play(SoundType.SUCCESS);
-      }, 300); // Small delay after placement sound
-
-      // Switch back to player turn
-      this.isPlayerTurn = true;
-      this.currentTurn++;
-      this.isAITurnInProgress = false; // Reset AI turn flag
-      this.startTurnTimer(); // Start timer for player turn
-
-      // Check for AI win
-      this.checkForWin();
-
-      logger.info({
-        scope: 'renderer/ai',
-        msg: 'AI card placed successfully',
-        meta: {
-          cardTitle: aiCard.card.title,
-          turn: this.currentTurn,
-          position: { x, y },
-          isLeft,
-        },
-      });
-    }, 400); // Brief pause to show card in the gap, then re-center
-  }
-
-  /**
-   * Find the correct position for a card on the axis
-   */
-  private findCorrectPosition(card: GameCard): number {
-    // Get all cards currently on axis
-    const allCards = [
-      this.boardCard,
-      ...this.placedLeft,
-      ...this.placedRight,
-    ].filter(Boolean) as GameCard[];
-
-    // Add the new card to the list
-    const cardsWithNew = [...allCards, card];
-
-    // Sort by axis value to find correct position
-    const sortedCards = cardsWithNew.sort((a, b) => {
-      const aValue = convertToComparable(a.card.value, a.card.unit);
-      const bValue = convertToComparable(b.card.value, b.card.unit);
-      return aValue - bValue;
-    });
-
-    // Find the index of the new card in the sorted list
-    const cardIndex = sortedCards.findIndex((c) => c === card);
-
-    // Calculate position based on index
-    const cardWidth = 200 * this.scale;
-    const spacing = 5 * this.scale;
-    const totalWidth = sortedCards.length * cardWidth + (sortedCards.length - 1) * spacing;
-    const startX = (this.gameCanvas.width - totalWidth) / 2;
-
-    return startX + cardIndex * (cardWidth + spacing);
-  }
-
-  /**
-   * Animate AI card to its correct position
-   */
-  private animateAICardToPosition(card: GameCard, targetX: number): void {
-    const axisY = this.gameCanvas.height / 2;
-    const targetY = axisY - card.height / 2;
-
-    // Animate card to position
-    card.setTargetPosition(targetX, targetY);
-
-    // After animation, update game state
-    setTimeout(() => {
-      // Remove from opponent hand
-      this.opponentHand = this.opponentHand.filter((c) => c !== card);
-      this.layoutOpponentHand();
-
-      // Add to appropriate array based on position
-      // Use getOriginalX() to handle case where preview might be active
-      const boardCenterX = this.boardCard ? (this.boardCard.getOriginalX() + this.boardCard.width / 2) : this.gameCanvas.width / 2;
-      const isLeft = targetX < boardCenterX;
-
-      // Play card placement sound for AI animation
-      soundManager.play(SoundType.CARD_PLACE);
-
-      if (isLeft) {
-        this.placedLeft.push(card);
-        card.isInHand = false;
-      } else {
-        this.placedRight.push(card);
-        card.isInHand = false;
-      }
-
-      // Center all cards
-      this.layoutAxisCards();
-
-      // Mark card as correct and play success sound
-      card.setCorrect();
-      setTimeout(() => {
-        soundManager.play(SoundType.SUCCESS);
-      }, 300); // Small delay after placement sound
-
-      // Switch back to player turn
-      this.isPlayerTurn = true;
-      this.currentTurn++;
-      this.isAITurnInProgress = false; // Reset AI turn flag
-      this.startTurnTimer(); // Start timer for player turn
-
-      // Check for AI win
-      this.checkForWin();
-
-      logger.info({
-        scope: 'renderer/ai',
-        msg: 'AI card placed successfully',
-        meta: {
-          cardTitle: card.card.title,
-          turn: this.currentTurn,
-        },
-      });
-    }, 1000); // Wait for animation
-  }
-
-  /**
-   * Handle mouse down
-   */
-  private handleMouseDown(event: MouseEvent): void {
-    // Only allow interaction during player turn
-    // In learning mode, ignore win/lose conditions
-    if (!this.isPlayerTurn || (!this.isLearningMode && (this.gameWon || this.gameLost))) {
-      return;
-    }
-
-    const rect = this.gameCanvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-
-    // Check player hand cards
-    if (this.isHotseatMode) {
-      // Check current player hand in hotseat mode
-      for (const card of this.currentPlayerHand) {
-        if (card.containsPoint(x, y)) {
-          this.selectedCard = card;
-          card.startDrag(x, y);
-          this.isDragging = true;
-          break;
-        }
-      }
-    } else {
-      // Check standard player hand in normal mode
-      for (const card of this.playerHand) {
-        if (card.containsPoint(x, y)) {
-          this.selectedCard = card;
-          card.startDrag(x, y);
-          this.isDragging = true;
-          break;
-        }
-      }
-    }
-  }
-
-  /**
-   * Handle mouse move
-   */
-  private handleMouseMove(event: MouseEvent): void {
-    if (this.isDragging && this.selectedCard) {
-      const rect = this.gameCanvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-
-      this.selectedCard.updateDrag(x, y);
-
-      // Show preview of where card would be placed on axis
-      this.showPlacementPreview(x, y);
-    } else {
-      // Handle hover effects for hand cards
-      const rect = this.gameCanvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-
-      // Clear hover on non-hand groups
-      if (this.boardCard) this.boardCard.isHovered = false;
-      for (const c of this.placedLeft) c.isHovered = false;
-      for (const c of this.placedRight) c.isHovered = false;
-
-      // Reset hover on hand
-      if (this.isHotseatMode) {
-        // Reset hover on hotseat hands
-        for (const c of this.currentPlayerHand) c.isHovered = false;
-        for (const c of this.nextPlayerHand) c.isHovered = false;
-
-        // Set hover for current player hand card under mouse
-        for (const card of this.currentPlayerHand) {
-          if (card.containsPoint(x, y)) {
-            card.isHovered = true;
-            break;
-          }
-        }
-      } else {
-        // Reset hover on standard hand
-        for (const c of this.playerHand) c.isHovered = false;
-
-        // Set hover for hand card under mouse
-        for (const card of this.playerHand) {
-          if (card.containsPoint(x, y)) {
-            card.isHovered = true;
-            break;
-          }
-        }
-      }
-
-      // Learning mode: handle tooltip hover for placed cards
-      if (this.isLearningMode) {
-        this.handleTooltipHover(x, y);
-      }
-    }
-  }
-
-  /**
-   * Show preview of where card would be placed on axis
-   */
-  private showPlacementPreview(mouseX: number, mouseY: number): void {
-    // Use the CARD's position, not mouse position, for more intuitive dragging
-    if (!this.selectedCard) return;
-
-    const axisY = this.gameCanvas.height / 2;
-    const cardHeight = this.selectedCard.height;
-
-    // Board cards bottom edge (cards are centered on axis)
-    const boardCardsBottom = axisY + cardHeight / 2;
-
-    // Dragged card top edge
-    const draggedCardTop = this.selectedCard.y;
-
-    // Trigger preview when card's TOP reaches board cards' BOTTOM
-    const isNearAxis = draggedCardTop <= boardCardsBottom;
-
-    logger.debug({
-      scope: 'renderer/preview',
-      msg: 'showPlacementPreview called',
-      meta: {
-        mouseX,
-        mouseY,
-        draggedCardTop,
-        boardCardsBottom,
-        isNearAxis,
-      },
-    });
-
-    if (isNearAxis) {
-      // Show preview by temporarily moving existing cards to make space
-      this.showAxisPreview(mouseX);
-    } else {
-      // Hide preview by restoring original positions
-      this.hideAxisPreview();
-    }
-  }
-
-  /**
-    * Handle tooltip hover for learning mode
-    */
-  private handleTooltipHover(mouseX: number, mouseY: number): void {
-    // Check if hovering over placed cards (left or right side)
-    let hoveredCard: GameCard | null = null;
-
-    // Check left side cards
-    for (const card of this.placedLeft) {
-      if (card.containsPoint(mouseX, mouseY)) {
-        hoveredCard = card;
-        break;
-      }
-    }
-
-    // Check right side cards
-    if (!hoveredCard) {
-      for (const card of this.placedRight) {
-        if (card.containsPoint(mouseX, mouseY)) {
-          hoveredCard = card;
-          break;
-        }
-      }
-    }
-
-    // Check center board card
-    if (!hoveredCard && this.boardCard && this.boardCard.containsPoint(mouseX, mouseY)) {
-      hoveredCard = this.boardCard;
-    }
-
-    // Update hover state ONLY if we don't have a permanent tooltip for an incorrect card
-    if (hoveredCard !== this.hoveredCard) {
-      // If we have a permanent tooltip for an incorrect card, don't change it
-      const hasIncorrectCard = this.placedLeft.find((card) => card.isCorrect === false)
-                                || this.placedRight.find((card) => card.isCorrect === false)
-                                || (this.boardCard && this.boardCard.isCorrect === false);
-
-      if (!hasIncorrectCard) {
-        this.hoveredCard = hoveredCard;
-        this.tooltipCard = hoveredCard;
-        this.tooltipVisible = !!hoveredCard;
-      }
-
-      logger.debug({
-        scope: 'renderer/tooltip',
-        msg: 'tooltip hover state changed',
-        meta: {
-          cardTitle: hoveredCard?.card.title,
-          tooltipVisible: this.tooltipVisible,
-          isLearningMode: this.isLearningMode,
-          hasIncorrectCard: !!hasIncorrectCard,
-        },
-      });
-    }
-  }
 
   /**
    * Show tooltip for incorrect card automatically
@@ -1607,250 +1316,35 @@ class AxesMundiApp {
   }
 
   /**
-   * Show axis preview by moving cards to make space
-   * Updates dynamically as the dragged card moves along the axis
-   */
-  private showAxisPreview(previewX: number): void {
-    if (!this.boardCard) return;
-
-    // Update if preview position changed significantly (allows dynamic updates)
-    if (this.isPreviewActive && Math.abs(previewX - this.lastPreviewX) < 20) {
-      return;
-    }
-
-    this.lastPreviewX = previewX;
-
-
-    // Combine all cards in their current order (board + left + right)
-    const allCards = [
-      this.boardCard,
-      ...this.placedLeft,
-      ...this.placedRight,
-    ];
-
-    if (allCards.length === 0) return;
-
-    // Spread distance - how far cards move apart
-    const spreadDistance = 60;
-
-    allCards.forEach((card) => {
-      // Use original position to calculate offset, not the current (possibly shifted) position
-      const originalX = card.getOriginalX();
-      const cardCenterX = originalX + card.width / 2;
-      let newX = originalX;
-
-      if (cardCenterX < previewX - 30) {
-        // Move cards to the left of preview position left
-        newX = originalX - spreadDistance;
-      } else if (cardCenterX > previewX + 30) {
-        // Move cards to the right of preview position right
-        newX = originalX + spreadDistance;
-      }
-
-      card.setPreviewPosition(newX, card.getOriginalY());
-
-      logger.debug({
-        scope: 'renderer/preview',
-        msg: 'set preview position for card',
-        meta: {
-          cardTitle: card.card.title,
-          originalX,
-          newX,
-          previewX,
-          cardCenterX,
-        },
-      });
-    });
-
-    // Mark preview as active
-    this.isPreviewActive = true;
-
-    logger.debug({
-      scope: 'renderer/preview',
-      msg: 'preview activated',
-      meta: {
-        previewX,
-        cardsCount: allCards.length,
-        spreadDistance,
-      },
-    });
-  }
-
-  /**
-   * Hide axis preview by restoring original positions
+   * Hide axis preview (delegates to InputHandler)
    */
   private hideAxisPreview(): void {
-    // Only restore if preview was active
-    if (!this.isPreviewActive) {
-      return;
+    if (this.inputHandler) {
+      this.inputHandler.hidePreview();
     }
-
-    logger.debug({
-      scope: 'renderer/preview',
-      msg: 'hiding axis preview',
-    });
-
-    if (this.boardCard) this.boardCard.clearPreviewPosition();
-    for (const card of this.placedLeft) card.clearPreviewPosition();
-    for (const card of this.placedRight) card.clearPreviewPosition();
-
-    // Mark preview as inactive
-    this.isPreviewActive = false;
-    this.lastPreviewX = 0;
   }
 
   /**
-   * Handle canvas click for arrow navigation
+   * Update input handler config when game state changes
    */
-  private handleCanvasClick(event: MouseEvent): void {
-    // Allow clicks if player turn is active OR if hotseat overlay is visible
-    // In learning mode or hotseat mode, ignore win/lose conditions
-    if ((!this.isPlayerTurn && !this.playerSwitchOverlayVisible) || (!this.isLearningMode && !this.isHotseatMode && (this.gameWon || this.gameLost))) {
-      return;
+  private updateInputHandlerConfig(): void {
+    if (this.inputHandler) {
+      this.inputHandler.updateConfig({
+        scale: this.scale,
+        snapThreshold: this.snapThreshold,
+        isLearningMode: this.isLearningMode,
+        isHotseatMode: this.isHotseatMode,
+        isPlayerTurn: this.isPlayerTurn,
+        gameWon: this.gameWon,
+        gameLost: this.gameLost,
+        playerSwitchOverlayVisible: this.playerSwitchOverlayVisible,
+      });
     }
 
-    const rect = this.gameCanvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    // Hotseat mode: handle player switch overlay clicks
-    if (this.isHotseatMode && this.playerSwitchOverlayVisible && this.playerSwitchOverlayBounds) {
-      const bounds = this.playerSwitchOverlayBounds;
-      if (x >= bounds.x && x <= bounds.x + bounds.width
-          && y >= bounds.y && y <= bounds.y + bounds.height) {
-        this.switchPlayer();
-        return;
-      }
-    }
-
-    // Learning mode: handle card clicks for removal
-    if (this.isLearningMode) {
-      this.handleLearningModeClick(x, y);
-    }
-
-    // Check if click is on navigation arrows
-    const totalBoardCards = (this.boardCard ? 1 : 0) + this.placedLeft.length + this.placedRight.length;
-
-    // Only show arrows if more than 5 cards
-    if (totalBoardCards > 5) {
-      const arrowWidth = 120 * this.scale;
-      const arrowHeight = 120 * this.scale;
-      const arrowY = this.gameCanvas.height / 2 - arrowHeight / 2;
-
-      // Left arrow position
-      const leftArrowX = 20 * this.scale;
-
-      // Right arrow position
-      const rightArrowX = this.gameCanvas.width - arrowWidth - 20 * this.scale;
-
-      // Check if click is on left arrow
-      if (x >= leftArrowX && x <= leftArrowX + arrowWidth
-          && y >= arrowY && y <= arrowY + arrowHeight) {
-        this.moveBoardCardsLeft();
-        return;
-      }
-
-      // Check if click is on right arrow
-      if (x >= rightArrowX && x <= rightArrowX + arrowWidth
-          && y >= arrowY && y <= arrowY + arrowHeight) {
-        this.moveBoardCardsRight();
-      }
-    }
-  }
-
-  /**
-    * Handle learning mode clicks for card removal and buttons
-    */
-  private handleLearningModeClick(x: number, y: number): void {
-    // Check if there's an incorrect card on the board (Weiter button is showing)
-    const hasIncorrectCard = this.placedLeft.some((card) => card.isCorrect === false)
-                          || this.placedRight.some((card) => card.isCorrect === false)
-                          || (this.boardCard && this.boardCard.isCorrect === false);
-
-    // If we have an incorrect card, only allow the "Weiter" button to be clicked
-    if (hasIncorrectCard) {
-      // Only check for the "Weiter" button - block all other interactions
-      if (this.weiterButtonBounds) {
-        const button = this.weiterButtonBounds;
-        if (x >= button.x && x <= button.x + button.width
-             && y >= button.y && y <= button.y + button.height) {
-          // Find the incorrect card to remove
-          const incorrectCard = this.placedLeft.find((card) => card.isCorrect === false)
-                                || this.placedRight.find((card) => card.isCorrect === false)
-                                || (this.boardCard && this.boardCard.isCorrect === false ? this.boardCard : null);
-
-          if (incorrectCard) {
-            this.removeCardFromBoard(incorrectCard);
-            logger.info({
-              scope: 'renderer/learning',
-              msg: 'incorrect card removed by weiter button click',
-              meta: {
-                cardTitle: incorrectCard.card.title,
-                isLearningMode: this.isLearningMode,
-              },
-            });
-          }
-        }
-      }
-      return; // Block all other interactions when incorrect card is showing
-    }
-
-    // Check if click is on the "Clear Board" button (only when no incorrect card)
-    if (this.clearBoardButtonBounds) {
-      const button = this.clearBoardButtonBounds;
-      if (x >= button.x && x <= button.x + button.width
-           && y >= button.y && y <= button.y + button.height) {
-        this.clearBoard();
-        return; // Button click handled, don't process further
-      }
-    }
-
-    // Check if click is on the "Reset Game" button (only when no incorrect card)
-    if (this.resetGameButtonBounds) {
-      const button = this.resetGameButtonBounds;
-      if (x >= button.x && x <= button.x + button.width
-           && y >= button.y && y <= button.y + button.height) {
-        this.resetLearningGame();
-        return; // Button click handled, don't process further
-      }
-    }
-
-    // Check if clicking on a placed card
-    let clickedCard: GameCard | null = null;
-
-    // Check left side cards
-    for (const card of this.placedLeft) {
-      if (card.containsPoint(x, y)) {
-        clickedCard = card;
-        break;
-      }
-    }
-
-    // Check right side cards
-    if (!clickedCard) {
-      for (const card of this.placedRight) {
-        if (card.containsPoint(x, y)) {
-          clickedCard = card;
-          break;
-        }
-      }
-    }
-
-    // Check center board card
-    if (!clickedCard && this.boardCard && this.boardCard.containsPoint(x, y)) {
-      clickedCard = this.boardCard;
-    }
-
-    // If clicking on an incorrect card directly (not the button)
-    if (clickedCard && clickedCard.isCorrect === false) {
-      // Could add additional functionality here if needed
-      logger.debug({
-        scope: 'renderer/learning',
-        msg: 'incorrect card clicked directly',
-        meta: {
-          cardTitle: clickedCard.card.title,
-          isLearningMode: this.isLearningMode,
-        },
+    // Update AI manager config when game state changes
+    if (this.aiManager) {
+      this.aiManager.updateConfig({
+        isLearningMode: this.isLearningMode,
       });
     }
   }
@@ -1956,7 +1450,6 @@ class AxesMundiApp {
     this.graveyard = [];
     this.selectedCard = null;
     this.isDragging = false;
-    this.isPreviewActive = false;
     this.isGameStarted = false;
     this.currentTurn = 0;
     this.isPlayerTurn = true;
@@ -1984,6 +1477,16 @@ class AxesMundiApp {
     this.weiterButtonBounds = null;
 
     // Add to graveyard and animate
+    logger.info({
+      scope: 'renderer/game',
+      msg: 'adding card to graveyard',
+      meta: {
+        cardTitle: card.card.title,
+        isCorrect: card.isCorrect,
+        isLearningMode: this.isLearningMode,
+        graveyardSizeBefore: this.graveyard.length,
+      },
+    });
     this.graveyard.push(card);
     this.animateCardToGraveyard(card);
 
@@ -2050,6 +1553,16 @@ class AxesMundiApp {
     }
 
     // Add to graveyard and animate
+    logger.info({
+      scope: 'renderer/game',
+      msg: 'moving incorrect card to graveyard',
+      meta: {
+        cardTitle: card.card.title,
+        isCorrect: card.isCorrect,
+        isLearningMode: this.isLearningMode,
+        graveyardSizeBefore: this.graveyard.length,
+      },
+    });
     this.graveyard.push(card);
     this.animateCardToGraveyard(card);
 
@@ -2103,313 +1616,269 @@ class AxesMundiApp {
   }
 
   /**
-   * Handle mouse up
+   * Handle card placement (called from InputHandler)
    */
-  private handleMouseUp(_event: MouseEvent): void {
-    if (this.isDragging && this.selectedCard) {
-      // Snap logic: if released near axis, place left/right of center
-      const releasedCard = this.selectedCard;
-      releasedCard.stopDrag();
+  private handleCardPlacement(card: GameCard, x: number, y: number, isLeft: boolean, isFirstCard: boolean): void {
+    // Play card placement sound
+    soundManager.play(SoundType.CARD_PLACE);
 
-      const axisY = this.gameCanvas.height / 2;
-      const distToAxis = Math.abs((releasedCard.y + releasedCard.height / 2) - axisY);
-      if (distToAxis <= this.snapThreshold) {
-        // 1. SNAP: Snap to axis at exact position
-        const snapX = releasedCard.x + releasedCard.width / 2; // Use the exact X position where card was dropped
-        const snapY = axisY - releasedCard.height / 2;
+    // SPECIAL CASE: If this is the first card after clearing the board, make it the boardCard
+    if (isFirstCard) {
+      this.boardCard = card;
+      card.isInHand = false;
 
-        // Play card placement sound
-        soundManager.play(SoundType.CARD_PLACE);
+      // Center the first card on the axis
+      const centerX = this.gameCanvas.width / 2 - card.width / 2;
+      card.setTargetPosition(centerX, y);
 
-        // SPECIAL CASE: If this is the first card after clearing the board, make it the boardCard
-        if (!this.boardCard) {
-          this.boardCard = releasedCard;
-          releasedCard.isInHand = false;
+      logger.info({
+        scope: 'renderer/game',
+        msg: 'first card after clear board set as boardCard',
+        meta: { cardTitle: card.card.title },
+      });
+    } else {
+      // Normal case: Add to appropriate array based on position
+      card.setTargetPosition(x, y);
 
-          // Center the first card on the axis
-          const centerX = this.gameCanvas.width / 2 - releasedCard.width / 2;
-          releasedCard.setTargetPosition(centerX, snapY);
+      if (isLeft) {
+        this.placedLeft.push(card);
+        card.isInHand = false;
+      } else {
+        this.placedRight.push(card);
+        card.isInHand = false;
+      }
+    }
 
+    // Remove from hand immediately after snap
+    if (this.isHotseatMode) {
+      // Remove from the actual player hand (not just the reference)
+      if (this.currentPlayerIndex === 0) {
+        this.player1Hand = this.player1Hand.filter((c) => c !== card);
+      } else {
+        this.player2Hand = this.player2Hand.filter((c) => c !== card);
+      }
+      this.layoutHotseatHands();
+    } else {
+      this.playerHand = this.playerHand.filter((c) => c !== card);
+      this.layoutHand();
+    }
+
+    // In learning mode, check if hand is empty and give more cards
+    if (this.isLearningMode && this.playerHand.length === 0 && this.remainingCards.length > 0) {
+      // Give more cards to keep learning going
+      const cardsToGive = Math.min(5, this.remainingCards.length);
+      for (let i = 0; i < cardsToGive; i++) {
+        this.giveNewCard();
+      }
+
+      logger.info({
+        scope: 'renderer/game',
+        msg: 'hand empty in learning mode, giving more cards',
+        meta: {
+          cardsGiven: cardsToGive,
+          remainingCards: this.remainingCards.length,
+        },
+      });
+    }
+
+    // CHECK: Evaluate placement correctness
+    // Create a sorted list of all cards based on their actual X positions
+    const allAxisCards = [
+      this.boardCard,
+      ...this.placedLeft,
+      ...this.placedRight,
+    ].filter(Boolean) as GameCard[];
+
+    // Sort by X position to get the actual order on the axis
+    const sortedAxisCards = allAxisCards.sort((a, b) => a.x - b.x);
+
+    // Extract just the card data for evaluation
+    const sortedCardData = sortedAxisCards.map((gc) => gc.card);
+
+    const isCorrect = sortedCardData.length > 0
+      ? isAxisCorrectlySorted(sortedCardData)
+      : true; // Default to correct if no cards
+
+    if (isCorrect) {
+      // STAY: Correct placement - card stays and turns green
+      // In learning mode, don't track score
+      if (!this.isLearningMode) {
+        this.score += getScore(card.card);
+      }
+      card.setCorrect();
+      // Play success sound for correct placement
+      setTimeout(() => {
+        soundManager.play(SoundType.SUCCESS);
+      }, 300); // Small delay after placement sound
+
+      // Clear global weiter button bounds for correct cards
+      this.weiterButtonBounds = null;
+
+      // Center the axis immediately after correct placement
+      this.layoutAxisCards();
+
+      // TURN-BASED: Switch turns (disabled in learning mode and hotseat mode)
+      if (!this.isLearningMode && !this.isHotseatMode) {
+        this.isPlayerTurn = false;
+        this.currentTurn++;
+        this.stopTurnTimer(); // Stop player timer
+
+        // CHECK FOR WIN: Check if player has won
+        this.checkForWin();
+
+        // AI TURN: If game not over and AI has cards, let AI play
+        if (!this.gameWon && !this.gameLost && this.opponentHand.length > 0 && !this.isAITurnInProgress && this.aiManager) {
+          setTimeout(() => {
+            this.isAITurnInProgress = this.aiManager!.playTurn(this.opponentHand, this.isAITurnInProgress);
+          }, 1000); // 1 second delay
+        } else {
+          // Keep player turn if AI has no cards
+          this.isPlayerTurn = true;
+          this.startTurnTimer(); // Start timer for player turn
+        }
+      } else if (this.isHotseatMode) {
+        // Hotseat mode: check for win, then show player switch overlay after 2 seconds
+        logger.info({
+          scope: 'renderer/game',
+          msg: 'hotseat mode: scheduling player switch overlay in 2 seconds',
+          meta: {
+            cardTitle: card.card.title,
+            currentPlayerIndex: this.currentPlayerIndex,
+          },
+        });
+
+        setTimeout(() => {
           logger.info({
             scope: 'renderer/game',
-            msg: 'first card after clear board set as boardCard',
-            meta: { cardTitle: releasedCard.card.title },
-          });
-        } else {
-          // Normal case: Determine if it's left or right of center for array placement
-          // Use getOriginalX() to handle case where preview is still active
-          const boardCenterX = this.boardCard.getOriginalX() + this.boardCard.width / 2;
-          const isLeft = snapX < boardCenterX;
-
-          // Set the exact position where the card was dropped
-          releasedCard.setTargetPosition(snapX - releasedCard.width / 2, snapY);
-
-          // Add to appropriate array based on position relative to center
-          if (isLeft) {
-            this.placedLeft.push(releasedCard);
-            releasedCard.isInHand = false;
-          } else {
-            this.placedRight.push(releasedCard);
-            releasedCard.isInHand = false;
-          }
-        }
-
-        // Remove from hand immediately after snap
-        if (this.isHotseatMode) {
-          // Remove from the actual player hand (not just the reference)
-          if (this.currentPlayerIndex === 0) {
-            this.player1Hand = this.player1Hand.filter((c) => c !== releasedCard);
-          } else {
-            this.player2Hand = this.player2Hand.filter((c) => c !== releasedCard);
-          }
-          this.layoutHotseatHands();
-        } else {
-          this.playerHand = this.playerHand.filter((c) => c !== releasedCard);
-          this.layoutHand();
-        }
-
-        // In learning mode, check if hand is empty and give more cards
-        if (this.isLearningMode && this.playerHand.length === 0 && this.remainingCards.length > 0) {
-          // Give more cards to keep learning going
-          const cardsToGive = Math.min(5, this.remainingCards.length);
-          for (let i = 0; i < cardsToGive; i++) {
-            this.giveNewCard();
-          }
-
-          logger.info({
-            scope: 'renderer/game',
-            msg: 'hand empty in learning mode, giving more cards',
+            msg: 'hotseat mode: 2 seconds passed, now checking win',
             meta: {
-              cardsGiven: cardsToGive,
-              remainingCards: this.remainingCards.length,
+              cardTitle: card.card.title,
+              currentPlayerIndex: this.currentPlayerIndex,
             },
           });
-        }
 
-        // Clear any preview positions
-        this.hideAxisPreview();
+          // Check for win condition
+          this.checkForWin();
 
-        // 3. CHECK: Evaluate placement correctness
-        // Create a sorted list of all cards based on their actual X positions
-        const allAxisCards = [
-          this.boardCard,
-          ...this.placedLeft,
-          ...this.placedRight,
-        ].filter(Boolean) as GameCard[];
-
-        // Sort by X position to get the actual order on the axis
-        const sortedAxisCards = allAxisCards.sort((a, b) => a.x - b.x);
-
-        // Extract just the card data for evaluation
-        const sortedCardData = sortedAxisCards.map((gc) => gc.card);
-
-        const isCorrect = sortedCardData.length > 0
-          ? isAxisCorrectlySorted(sortedCardData)
-          : true; // Default to correct if no cards
-
-        if (isCorrect) {
-          // 4. STAY: Correct placement - card stays and turns green
-          // In learning mode, don't track score
-          if (!this.isLearningMode) {
-            this.score += getScore(releasedCard.card);
-          }
-          releasedCard.setCorrect();
-          // Play success sound for correct placement
-          setTimeout(() => {
-            soundManager.play(SoundType.SUCCESS);
-          }, 300); // Small delay after placement sound
-
-          // Clear global weiter button bounds for correct cards
-          this.weiterButtonBounds = null;
-
-          // Center the axis immediately after correct placement
-          this.layoutAxisCards();
-
-          // 6. TURN-BASED: Switch turns (disabled in learning mode and hotseat mode)
-          if (!this.isLearningMode && !this.isHotseatMode) {
-            this.isPlayerTurn = false;
-            this.currentTurn++;
-            this.stopTurnTimer(); // Stop player timer
-
-            // 7. CHECK FOR WIN: Check if player has won
-            this.checkForWin();
-
-            // 8. AI TURN: If game not over and AI has cards, let AI play
-            if (!this.gameWon && !this.gameLost && this.opponentHand.length > 0 && !this.isAITurnInProgress) {
-              setTimeout(() => {
-                this.playAITurn();
-              }, 1000); // 1 second delay
-            } else {
-              // Keep player turn if AI has no cards
-              this.isPlayerTurn = true;
-              this.startTurnTimer(); // Start timer for player turn
-            }
-          } else if (this.isHotseatMode) {
-            // Hotseat mode: check for win, then show player switch overlay after 2 seconds
+          // Only show player switch if game is not won
+          if (!this.gameWon) {
+            // Show player switch overlay
+            this.showPlayerSwitchOverlay();
             logger.info({
               scope: 'renderer/game',
-              msg: 'hotseat mode: scheduling player switch overlay in 2 seconds',
+              msg: 'hotseat mode: showing player switch overlay after correct card',
               meta: {
-                cardTitle: releasedCard.card.title,
+                cardTitle: card.card.title,
                 currentPlayerIndex: this.currentPlayerIndex,
               },
             });
-
-            setTimeout(() => {
-              logger.info({
-                scope: 'renderer/game',
-                msg: 'hotseat mode: 2 seconds passed, now checking win',
-                meta: {
-                  cardTitle: releasedCard.card.title,
-                  currentPlayerIndex: this.currentPlayerIndex,
-                },
-              });
-
-              // Check for win condition
-              this.checkForWin();
-
-              // Only show player switch if game is not won
-              if (!this.gameWon) {
-                // Show player switch overlay
-                this.showPlayerSwitchOverlay();
-                logger.info({
-                  scope: 'renderer/game',
-                  msg: 'hotseat mode: showing player switch overlay after correct card',
-                  meta: {
-                    cardTitle: releasedCard.card.title,
-                    currentPlayerIndex: this.currentPlayerIndex,
-                  },
-                });
-              }
-            }, 2000);
-          } else {
-            // Learning mode: keep player turn, no timer, no opponent, give new card
-            this.isPlayerTurn = true;
-            this.giveNewCard(); // Give new card after correct placement
-            logger.info({
-              scope: 'renderer/game',
-              msg: 'learning mode: keeping player turn and giving new card',
-              meta: {
-                cardTitle: releasedCard.card.title,
-                isLearningMode: true,
-              },
-            });
           }
+        }, 2000);
+      } else {
+        // Learning mode: keep player turn, no timer, no opponent, give new card
+        this.isPlayerTurn = true;
+        this.giveNewCard(); // Give new card after correct placement
+        logger.info({
+          scope: 'renderer/game',
+          msg: 'learning mode: keeping player turn and giving new card',
+          meta: {
+            cardTitle: card.card.title,
+            isLearningMode: true,
+          },
+        });
+      }
 
-          logger.info({
-            scope: 'renderer/game',
-            msg: 'card placed correctly, turned green',
-            meta: {
-              cardTitle: releasedCard.card.title,
-              score: this.score,
-              turn: this.currentTurn,
-            },
-          });
-        } else {
-          // 4. STAY: Incorrect placement - card turns red and stays WHERE PLAYER DROPPED IT
-          releasedCard.setIncorrect();
-          // Play error sound for incorrect placement
+      logger.info({
+        scope: 'renderer/game',
+        msg: 'card placed correctly, turned green',
+        meta: {
+          cardTitle: card.card.title,
+          score: this.score,
+          turn: this.currentTurn,
+        },
+      });
+    } else {
+      // STAY: Incorrect placement - card turns red and stays WHERE PLAYER DROPPED IT
+      card.setIncorrect();
+      // Play error sound for incorrect placement
+      setTimeout(() => {
+        soundManager.play(SoundType.ERROR);
+      }, 300); // Small delay after placement sound
+
+      // DON'T call layoutAxisCards() here - card should stay where player dropped it
+      // to show them their mistake. Cards will be re-centered when incorrect card
+      // is moved to graveyard.
+
+      if (this.isLearningMode) {
+        // LEARNING MODE: Show tooltip automatically for incorrect card
+        this.showTooltipForIncorrectCard(card);
+        // Card stays on board until "Weiter" button is clicked
+        // NO new card here - will be given when "Weiter" button is clicked
+        logger.info({
+          scope: 'renderer/game',
+          msg: 'learning mode: incorrect card stays on board until weiter button clicked',
+          meta: {
+            cardTitle: card.card.title,
+            turn: this.currentTurn,
+          },
+        });
+      } else if (this.isHotseatMode) {
+        // HOTSEAT MODE: Move card to graveyard after 2 seconds, then switch player
+        setTimeout(() => {
+          this.moveCardToGraveyard(card);
+          // Center the axis after card is moved to graveyard
+          this.layoutAxisCards();
+
+          // Wait 2 seconds before showing player switch overlay
           setTimeout(() => {
-            soundManager.play(SoundType.ERROR);
-          }, 300); // Small delay after placement sound
-
-          // DON'T call layoutAxisCards() here - card should stay where player dropped it
-          // to show them their mistake. Cards will be re-centered when incorrect card
-          // is moved to graveyard.
-
-          if (this.isLearningMode) {
-            // LEARNING MODE: Show tooltip automatically for incorrect card
-            this.showTooltipForIncorrectCard(releasedCard);
-            // Card stays on board until "Weiter" button is clicked
-            // NO new card here - will be given when "Weiter" button is clicked
+            // Show player switch overlay
+            this.showPlayerSwitchOverlay();
             logger.info({
               scope: 'renderer/game',
-              msg: 'learning mode: incorrect card stays on board until weiter button clicked',
+              msg: 'hotseat mode: showing player switch overlay after incorrect card',
               meta: {
-                cardTitle: releasedCard.card.title,
-                turn: this.currentTurn,
+                cardTitle: card.card.title,
+                currentPlayerIndex: this.currentPlayerIndex,
               },
             });
-          } else if (this.isHotseatMode) {
-            // HOTSEAT MODE: Move card to graveyard after 2 seconds, then switch player
-            setTimeout(() => {
-              this.moveCardToGraveyard(releasedCard);
-              // Center the axis after card is moved to graveyard
-              this.layoutAxisCards();
-
-              // Wait 2 seconds before showing player switch overlay
-              setTimeout(() => {
-                // Show player switch overlay
-                this.showPlayerSwitchOverlay();
-                logger.info({
-                  scope: 'renderer/game',
-                  msg: 'hotseat mode: showing player switch overlay after incorrect card',
-                  meta: {
-                    cardTitle: releasedCard.card.title,
-                    currentPlayerIndex: this.currentPlayerIndex,
-                  },
-                });
-              }, 2000);
-            }, 2000);
-
-            logger.info({
-              scope: 'renderer/game',
-              msg: 'hotseat mode: incorrect card will be moved to graveyard in 2 seconds, then switch player',
-              meta: {
-                cardTitle: releasedCard.card.title,
-                turn: this.currentTurn,
-              },
-            });
-          } else {
-            // NORMAL MODE: Move card to graveyard after 2 seconds (old logic)
-            setTimeout(() => {
-              this.moveCardToGraveyard(releasedCard);
-              // Center the axis after card is moved
-              this.layoutAxisCards();
-            }, 2000);
-
-            logger.info({
-              scope: 'renderer/game',
-              msg: 'normal mode: incorrect card will be moved to graveyard in 2 seconds',
-              meta: {
-                cardTitle: releasedCard.card.title,
-                turn: this.currentTurn,
-              },
-            });
-          }
-        }
+          }, 2000);
+        }, 2000);
 
         logger.info({
           scope: 'renderer/game',
-          msg: 'card placed on axis',
+          msg: 'hotseat mode: incorrect card will be moved to graveyard in 2 seconds, then switch player',
           meta: {
-            cardTitle: releasedCard.card.title,
+            cardTitle: card.card.title,
             turn: this.currentTurn,
           },
         });
       } else {
-        // Card was released outside the axis - return it to hand
-
-        // Clear any preview positions
-        this.hideAxisPreview();
-
-        // Return card to hand by re-layouting
-        if (this.isHotseatMode) {
-          this.layoutHotseatHands();
-        } else {
-          this.layoutHand();
-        }
+        // NORMAL MODE: Move card to graveyard after 2 seconds (old logic)
+        setTimeout(() => {
+          this.moveCardToGraveyard(card);
+          // Center the axis after card is moved
+          this.layoutAxisCards();
+        }, 2000);
 
         logger.info({
           scope: 'renderer/game',
-          msg: 'card returned to hand (released outside axis)',
-          meta: { cardTitle: releasedCard.card.title },
+          msg: 'normal mode: incorrect card will be moved to graveyard in 2 seconds',
+          meta: {
+            cardTitle: card.card.title,
+            turn: this.currentTurn,
+          },
         });
       }
-
-      this.isDragging = false;
-      this.selectedCard = null;
     }
+
+    logger.info({
+      scope: 'renderer/game',
+      msg: 'card placed on axis',
+      meta: {
+        cardTitle: card.card.title,
+        turn: this.currentTurn,
+      },
+    });
   }
 
   /**
@@ -2817,9 +2286,11 @@ class AxesMundiApp {
         this.stopTurnTimer(); // Stop player timer
 
         // Let AI play after a short delay
-        setTimeout(() => {
-          this.playAITurn();
-        }, 1000);
+        if (this.aiManager) {
+          setTimeout(() => {
+            this.isAITurnInProgress = this.aiManager!.playTurn(this.opponentHand, this.isAITurnInProgress);
+          }, 1000);
+        }
       }
 
       logger.info({
@@ -2838,30 +2309,43 @@ class AxesMundiApp {
   /**
    * Recycle graveyard cards back to deck when deck is empty
    * Moves cards in their current order (no shuffle for LAN sync compatibility)
+   * IMPORTANT: Only recycles cards that are actually in the graveyard array,
+   * NOT cards that are on the board (boardCard, placedLeft, placedRight)
    */
   private recycleGraveyard(): void {
     if (this.graveyard.length === 0) return;
 
-    logger.info({
-      scope: 'renderer/game',
-      msg: 'recycling graveyard cards to deck',
-      meta: { graveyardSize: this.graveyard.length },
-    });
+    // Safety check: Ensure no board cards are in the graveyard
+    // This should never happen, but we check to prevent bugs
+    const boardCardIds = new Set<string>();
+    if (this.boardCard) {
+      boardCardIds.add(this.boardCard.card.id);
+    }
+    this.placedLeft.forEach((card) => boardCardIds.add(card.card.id));
+    this.placedRight.forEach((card) => boardCardIds.add(card.card.id));
 
-    // Extract card data from GameCard objects (keeps original order)
-    const graveyardCardData = this.graveyard.map((gameCard) => gameCard.card);
+    // Filter out any board cards that might have been incorrectly added to graveyard
+    const validGraveyard = this.graveyard.filter(
+      (card) => !boardCardIds.has(card.card.id),
+    );
 
-    // Add cards to remainingCards (in graveyard order)
-    this.remainingCards.push(...graveyardCardData);
+    if (validGraveyard.length !== this.graveyard.length) {
+      logger.warn({
+        scope: 'renderer/game',
+        msg: 'found board cards in graveyard during recycle - filtering them out',
+        meta: {
+          graveyardSize: this.graveyard.length,
+          validGraveyardSize: validGraveyard.length,
+          boardCardCount: boardCardIds.size,
+        },
+      });
+    }
+
+    // Use utility function to recycle only valid graveyard cards
+    this.remainingCards = recycleGraveyardUtil(validGraveyard, this.remainingCards);
 
     // Clear the graveyard (GameCard objects)
     this.graveyard = [];
-
-    logger.info({
-      scope: 'renderer/game',
-      msg: 'graveyard recycled',
-      meta: { newDeckSize: this.remainingCards.length },
-    });
   }
 
   /**
@@ -3542,63 +3026,26 @@ class AxesMundiApp {
     * Layout remaining hand cards nicely along bottom
     */
   private layoutHand(): void {
-    const cardSpacing = 220 * this.scale; // Increased spacing for larger cards
-    const totalWidth = this.playerHand.length * cardSpacing - 20 * this.scale; // Scaled spacing
-    const startX = (this.gameCanvas.width - totalWidth) / 2; // Center the hand
-    this.playerHand.forEach((card, index) => {
-      const x = startX + index * cardSpacing;
-      const y = this.gameCanvas.height - 320 * this.scale;
-      card.setTargetPosition(x, y);
-    });
+    if (this.layoutManager) {
+      this.layoutManager.layoutHand(this.playerHand, 'bottom');
+    }
   }
 
   /**
    * Layout hotseat hands (current player at bottom, next player at top)
    */
   private layoutHotseatHands(): void {
-    const cardSpacing = 220 * this.scale;
+    if (!this.layoutManager) return;
 
-    // Layout current player hand (bottom) - show card fronts
+    // Layout current player hand (bottom) and next player hand (top)
     if (this.currentPlayerIndex === 0) {
       // Player 1 is current player
-      const currentPlayerTotalWidth = this.player1Hand.length * cardSpacing - 20 * this.scale;
-      const currentPlayerStartX = (this.gameCanvas.width - currentPlayerTotalWidth) / 2;
-
-      this.player1Hand.forEach((card, index) => {
-        const x = currentPlayerStartX + index * cardSpacing;
-        const y = this.gameCanvas.height - 320 * this.scale; // Bottom position
-        card.setTargetPosition(x, y);
-      });
-
-      // Player 2 is next player
-      const nextPlayerTotalWidth = this.player2Hand.length * cardSpacing - 20 * this.scale;
-      const nextPlayerStartX = (this.gameCanvas.width - nextPlayerTotalWidth) / 2;
-
-      this.player2Hand.forEach((card, index) => {
-        const x = nextPlayerStartX + index * cardSpacing;
-        const y = 20 * this.scale; // Top position
-        card.setTargetPosition(x, y);
-      });
+      this.layoutManager.layoutHand(this.player1Hand, 'bottom');
+      this.layoutManager.layoutHand(this.player2Hand, 'top');
     } else {
       // Player 2 is current player
-      const currentPlayerTotalWidth = this.player2Hand.length * cardSpacing - 20 * this.scale;
-      const currentPlayerStartX = (this.gameCanvas.width - currentPlayerTotalWidth) / 2;
-
-      this.player2Hand.forEach((card, index) => {
-        const x = currentPlayerStartX + index * cardSpacing;
-        const y = this.gameCanvas.height - 320 * this.scale; // Bottom position
-        card.setTargetPosition(x, y);
-      });
-
-      // Player 1 is next player
-      const nextPlayerTotalWidth = this.player1Hand.length * cardSpacing - 20 * this.scale;
-      const nextPlayerStartX = (this.gameCanvas.width - nextPlayerTotalWidth) / 2;
-
-      this.player1Hand.forEach((card, index) => {
-        const x = nextPlayerStartX + index * cardSpacing;
-        const y = 20 * this.scale; // Top position
-        card.setTargetPosition(x, y);
-      });
+      this.layoutManager.layoutHand(this.player2Hand, 'bottom');
+      this.layoutManager.layoutHand(this.player1Hand, 'top');
     }
 
     logger.debug({
@@ -3617,7 +3064,7 @@ class AxesMundiApp {
    * Layout all cards on the axis - center them with fixed 5px spacing
    */
   private layoutAxisCards(): void {
-    if (!this.boardCard) return;
+    if (!this.boardCard || !this.layoutManager) return;
 
     // Combine all placed cards with the board card
     const allCards = [
@@ -3628,29 +3075,8 @@ class AxesMundiApp {
 
     if (allCards.length <= 1) return; // No need to spread if only one card
 
-    // Sort cards by their axis VALUE to ensure correct order (smallest to largest)
-    const sortedCards = allCards.sort((a, b) => {
-      const aValue = convertToComparable(a.card.value, a.card.unit);
-      const bValue = convertToComparable(b.card.value, b.card.unit);
-      return aValue - bValue;
-    });
-
-    // Use fixed 5px spacing between cards
-    const cardWidth = 200 * this.scale;
-    const spacing = 5 * this.scale; // Fixed 5px spacing as requested
-
-    // Calculate total width needed
-    const totalWidth = sortedCards.length * cardWidth + (sortedCards.length - 1) * spacing;
-    const startX = (this.gameCanvas.width - totalWidth) / 2; // Center the entire spread
-
-    // Set target positions for smooth animation
-    const axisY = this.gameCanvas.height / 2;
-
-    sortedCards.forEach((card, index) => {
-      const x = startX + index * (cardWidth + spacing);
-      const y = axisY - card.height / 2;
-      card.setTargetPosition(x, y);
-    });
+    // Use layout manager to layout axis cards (will sort by value)
+    this.layoutManager.layoutAxis(allCards);
   }
 
   /**
@@ -3668,6 +3094,7 @@ class AxesMundiApp {
 
       if (currentPlayerHandLength === 0 && !this.gameLost) {
         this.gameWon = true;
+        this.updateInputHandlerConfig();
 
         const winnerName = this.currentPlayerIndex === 0
           ? (this.player1Data?.name || 'Player 1')
@@ -3990,13 +3417,13 @@ class AxesMundiApp {
     this.graveyard = [];
     this.selectedCard = null;
     this.isDragging = false;
-    this.isPreviewActive = false;
     this.isGameStarted = false;
     this.currentTurn = 0;
     this.isPlayerTurn = true;
     this.turnText = '';
     this.turnTimer = 30;
     this.playerSwitchOverlayVisible = false;
+    this.updateInputHandlerConfig();
     this.playerSwitchOverlayBounds = null;
 
     // Reload the game
@@ -4025,33 +3452,20 @@ class AxesMundiApp {
    * Update scale for all existing cards
    */
   private updateAllCardsScale(): void {
-    // Update board card
-    if (this.boardCard) {
-      this.boardCard.updateScale(this.scale);
-    }
+    if (!this.layoutManager) return;
 
-    // Update player hand cards
-    for (const card of this.playerHand) {
-      card.updateScale(this.scale);
-    }
+    // Collect all cards
+    const allCards: GameCard[] = [
+      ...(this.boardCard ? [this.boardCard] : []),
+      ...this.playerHand,
+      ...this.opponentHand,
+      ...this.placedLeft,
+      ...this.placedRight,
+      ...this.graveyard,
+    ];
 
-    // Update opponent hand cards
-    for (const card of this.opponentHand) {
-      card.updateScale(this.scale);
-    }
-
-    // Update placed cards
-    for (const card of this.placedLeft) {
-      card.updateScale(this.scale);
-    }
-    for (const card of this.placedRight) {
-      card.updateScale(this.scale);
-    }
-
-    // Update graveyard cards
-    for (const card of this.graveyard) {
-      card.updateScale(this.scale);
-    }
+    // Update scale for all cards
+    this.layoutManager.updateScale(allCards);
   }
 
   /**
@@ -4061,6 +3475,7 @@ class AxesMundiApp {
     this.playerSwitchOverlayVisible = true;
     // Disable player turn while overlay is visible
     this.isPlayerTurn = false;
+    this.updateInputHandlerConfig();
     logger.info({
       scope: 'renderer/hotseat',
       msg: 'player switch overlay shown',
@@ -4087,6 +3502,7 @@ class AxesMundiApp {
 
     // Hide overlay and re-enable player turn
     this.playerSwitchOverlayVisible = false;
+    this.updateInputHandlerConfig();
     this.playerSwitchOverlayBounds = null;
     this.isPlayerTurn = true;
 
