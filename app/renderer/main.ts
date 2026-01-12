@@ -1,5 +1,5 @@
 import { logger } from '@/utils/logger';
-import { loadDeck } from '@/data/deckLoader';
+import { loadDeck, shuffleCardsInPlace } from '@/data/deckLoader';
 import { isAxisCorrectlySorted, getScore, convertToComparable } from '@/data/scoring';
 import { GameCard } from '@/game/Card';
 import { Card as CardData } from '@/data/types';
@@ -8,6 +8,7 @@ import { drawRoundedRect, wrapText } from '@/utils/canvasUtils';
 import { loadImage } from '@/utils/assetLoader';
 import { calculateScale, calculateSnapThreshold } from '@/utils/scaleUtils';
 import { ResizeHandler } from '@/utils/resizeHandler';
+import { getOpponentCardCount, dealCard } from '@/utils/cardDealer';
 
 /**
  * Avatar emoji mapping
@@ -436,7 +437,7 @@ class AxesMundiApp {
 
       // Initialize remaining cards from deck and shuffle them
       this.remainingCards = [...this.deck.cards];
-      this.shuffleDeck();
+      shuffleCardsInPlace(this.remainingCards);
 
       // Ensure scale is calculated with correct canvas dimensions
       this.scale = calculateScale(window.innerWidth, window.innerHeight);
@@ -540,29 +541,6 @@ class AxesMundiApp {
     });
   }
 
-  /**
-   * Shuffle the deck using Fisher-Yates algorithm
-   */
-  private shuffleDeck(): void {
-    try {
-      for (let i = this.remainingCards.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [this.remainingCards[i], this.remainingCards[j]] = [this.remainingCards[j], this.remainingCards[i]];
-      }
-
-      logger.info({
-        scope: 'renderer/game',
-        msg: 'deck shuffled successfully',
-        meta: { cardCount: this.remainingCards.length },
-      });
-    } catch (error: any) {
-      logger.error({
-        scope: 'renderer/game',
-        msg: 'failed to shuffle deck',
-        err: { message: error.message, stack: error.stack },
-      });
-    }
-  }
 
   /**
    * Animate a single card from deck to hand
@@ -581,27 +559,12 @@ class AxesMundiApp {
     });
   }
 
-  /**
-   * Get difficulty-based opponent card count
-   */
-  private getOpponentCardCount(): number {
-    switch (this.gameDifficulty) {
-      case 'easy':
-        return 7;
-      case 'medium':
-        return 6;
-      case 'hard':
-        return 5;
-      default:
-        return 5;
-    }
-  }
 
   /**
    * Deal cards to both players based on difficulty
    */
   private dealCardsToPlayers(): void {
-    const opponentCardCount = this.getOpponentCardCount();
+    const opponentCardCount = getOpponentCardCount(this.gameDifficulty);
 
     logger.info({
       scope: 'renderer/game',
@@ -666,8 +629,8 @@ class AxesMundiApp {
       this.recycleGraveyard();
     }
 
-    if (this.remainingCards.length > 0) {
-      const cardData = this.remainingCards.shift()!;
+    const cardData = dealCard(this.remainingCards);
+    if (cardData) {
       const card = new GameCard(
         cardData,
         this.deck,
@@ -720,8 +683,8 @@ class AxesMundiApp {
       this.recycleGraveyard();
     }
 
-    if (this.remainingCards.length > 0) {
-      const cardData = this.remainingCards.shift()!;
+    const cardData = dealCard(this.remainingCards);
+    if (cardData) {
       const card = new GameCard(
         cardData,
         this.deck,
@@ -2949,7 +2912,7 @@ class AxesMundiApp {
     const cardSpacing = 220 * this.scale;
 
     // Calculate opponent card count for dynamic sizing
-    const opponentCardCount = this.getOpponentCardCount();
+    const opponentCardCount = getOpponentCardCount(this.gameDifficulty);
 
     // Draw player hand area (bottom) - single large box
     const playerTotalWidth = 5 * cardSpacing - 20 * this.scale;

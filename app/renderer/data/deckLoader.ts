@@ -79,6 +79,17 @@ export function shuffleCards(cards: Card[]): Card[] {
 }
 
 /**
+ * Shuffle array of cards in-place (mutates the array)
+ * @param cards - Array of cards to shuffle
+ */
+export function shuffleCardsInPlace(cards: Card[]): void {
+  for (let i = cards.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cards[i], cards[j]] = [cards[j], cards[i]];
+  }
+}
+
+/**
  * Deal cards to players
  */
 export function dealCards(deck: Deck, handSize: number = 5): {
