@@ -309,7 +309,7 @@ export class GameStateManager {
         // Let AI play after a short delay
         const hands = this.config.callbacks.onGetHands();
         setTimeout(() => {
-          this.config.callbacks.onSetAITurnInProgress(true);
+          // Call onAITurn - it will set isAITurnInProgress internally based on playTurn's return value
           this.config.callbacks.onAITurn(hands.opponentHand);
         }, 1000);
       }
