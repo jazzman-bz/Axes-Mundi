@@ -1,9 +1,10 @@
 import { logger } from '@/utils/logger';
 import { loadDeck } from '@/data/deckLoader';
-import { isAxisCorrectlySorted, getScore } from '@/data/scoring';
+import { isAxisCorrectlySorted, getScore, convertToComparable } from '@/data/scoring';
 import { GameCard } from '@/game/Card';
 import { Card as CardData } from '@/data/types';
 import { soundManager, SoundType } from '@/utils/soundManager';
+import { drawRoundedRect, wrapText, convertImageToWhite } from '@/utils/canvasUtils';
 
 /**
  * Avatar emoji mapping
@@ -343,7 +344,14 @@ class AxesMundiApp {
       this.arrowLeftImage.onload = () => {
         logger.debug({ scope: 'renderer/app', msg: 'left arrow loaded successfully' });
         // Convert to white after loading
-        this.convertImageToWhite(this.arrowLeftImage!);
+        convertImageToWhite(this.arrowLeftImage!)
+          .then((whiteImage) => {
+            this.arrowLeftImage = whiteImage;
+            logger.debug({ scope: 'renderer/app', msg: 'left arrow converted to white' });
+          })
+          .catch((err) => {
+            logger.warn({ scope: 'renderer/app', msg: 'failed to convert left arrow to white', err: { message: err.message } });
+          });
       };
       this.arrowLeftImage.onerror = () => {
         logger.warn({ scope: 'renderer/app', msg: 'failed to load left arrow' });
@@ -356,7 +364,14 @@ class AxesMundiApp {
       this.arrowRightImage.onload = () => {
         logger.debug({ scope: 'renderer/app', msg: 'right arrow loaded successfully' });
         // Convert to white after loading
-        this.convertImageToWhite(this.arrowRightImage!);
+        convertImageToWhite(this.arrowRightImage!)
+          .then((whiteImage) => {
+            this.arrowRightImage = whiteImage;
+            logger.debug({ scope: 'renderer/app', msg: 'right arrow converted to white' });
+          })
+          .catch((err) => {
+            logger.warn({ scope: 'renderer/app', msg: 'failed to convert right arrow to white', err: { message: err.message } });
+          });
       };
       this.arrowRightImage.onerror = () => {
         logger.warn({ scope: 'renderer/app', msg: 'failed to load right arrow' });
@@ -395,63 +410,6 @@ class AxesMundiApp {
         err: { message: error.message, stack: error.stack },
       });
       this.backgroundImage = null;
-    }
-  }
-
-  /**
-   * Convert image colors to white using canvas manipulation
-   */
-  private convertImageToWhite(image: HTMLImageElement): void {
-    try {
-      // Create a canvas to manipulate the image
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d')!;
-
-      // Set canvas size to match image
-      canvas.width = image.width;
-      canvas.height = image.height;
-
-      // Draw the original image
-      ctx.drawImage(image, 0, 0);
-
-      // Get image data
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const { data } = imageData;
-
-      // Convert all non-transparent pixels to white
-      for (let i = 0; i < data.length; i += 4) {
-        const alpha = data[i + 3]; // Alpha channel
-
-        if (alpha > 0) {
-          // Keep original alpha, but set RGB to white
-          data[i] = 255; // Red
-          data[i + 1] = 255; // Green
-          data[i + 2] = 255; // Blue
-          // Alpha stays the same
-        }
-      }
-
-      // Put the modified image data back
-      ctx.putImageData(imageData, 0, 0);
-
-      // Create a new image from the canvas
-      const whiteImage = new Image();
-      whiteImage.onload = () => {
-        // Replace the original image with the white version
-        if (image === this.arrowLeftImage) {
-          this.arrowLeftImage = whiteImage;
-        } else if (image === this.arrowRightImage) {
-          this.arrowRightImage = whiteImage;
-        }
-        logger.debug({ scope: 'renderer/app', msg: 'arrow converted to white successfully' });
-      };
-      whiteImage.src = canvas.toDataURL();
-    } catch (error: any) {
-      logger.error({
-        scope: 'renderer/app',
-        msg: 'failed to convert arrow to white',
-        err: { message: error.message, stack: error.stack },
-      });
     }
   }
 
@@ -1395,9 +1353,9 @@ class AxesMundiApp {
 
     // Add to appropriate array based on card value (not position)
     // Determine left/right by comparing card value to board card value
-    const aiCardValue = this.convertToComparable(aiCard.card.value, aiCard.card.unit);
+    const aiCardValue = convertToComparable(aiCard.card.value, aiCard.card.unit);
     const boardCardValue = this.boardCard 
-      ? this.convertToComparable(this.boardCard.card.value, this.boardCard.card.unit) 
+      ? convertToComparable(this.boardCard.card.value, this.boardCard.card.unit) 
       : 0;
     const isLeft = aiCardValue < boardCardValue;
 
@@ -1464,8 +1422,8 @@ class AxesMundiApp {
 
     // Sort by axis value to find correct position
     const sortedCards = cardsWithNew.sort((a, b) => {
-      const aValue = this.convertToComparable(a.card.value, a.card.unit);
-      const bValue = this.convertToComparable(b.card.value, b.card.unit);
+      const aValue = convertToComparable(a.card.value, a.card.unit);
+      const bValue = convertToComparable(b.card.value, b.card.unit);
       return aValue - bValue;
     });
 
@@ -3231,7 +3189,7 @@ class AxesMundiApp {
     clearGradient.addColorStop(0, '#e53935');
     clearGradient.addColorStop(1, '#b71c1c');
     ctx.fillStyle = clearGradient;
-    this.drawRoundedRect(ctx, clearButtonX, buttonY, buttonWidth, buttonHeight, borderRadius);
+    drawRoundedRect(ctx, clearButtonX, buttonY, buttonWidth, buttonHeight, borderRadius);
 
     // Reset shadow for text
     ctx.shadowColor = 'transparent';
@@ -3266,7 +3224,7 @@ class AxesMundiApp {
     resetGradient.addColorStop(0, '#43a047');
     resetGradient.addColorStop(1, '#1b5e20');
     ctx.fillStyle = resetGradient;
-    this.drawRoundedRect(ctx, resetButtonX, buttonY, buttonWidth, buttonHeight, borderRadius);
+    drawRoundedRect(ctx, resetButtonX, buttonY, buttonWidth, buttonHeight, borderRadius);
 
     // Reset shadow for text
     ctx.shadowColor = 'transparent';
@@ -3329,7 +3287,7 @@ class AxesMundiApp {
     weiterGradient.addColorStop(0, '#ffa726');
     weiterGradient.addColorStop(1, '#e65100');
     ctx.fillStyle = weiterGradient;
-    this.drawRoundedRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, borderRadius);
+    drawRoundedRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, borderRadius);
 
     // Reset shadow for text
     ctx.shadowColor = 'transparent';
@@ -3377,7 +3335,7 @@ class AxesMundiApp {
     ctx.lineWidth = 2 * this.scale;
 
     // Rounded rectangle for tooltip
-    this.drawRoundedRect(ctx, tooltipX, tooltipY, tooltipWidth, tooltipHeight, 8 * this.scale);
+    drawRoundedRect(ctx, tooltipX, tooltipY, tooltipWidth, tooltipHeight, 8 * this.scale);
     ctx.stroke();
 
     // Draw tooltip text
@@ -3388,7 +3346,7 @@ class AxesMundiApp {
 
     // Wrap text if needed
     const maxWidth = tooltipWidth - tooltipPadding * 2;
-    const lines = this.wrapText(tooltipText, maxWidth, ctx);
+    const lines = wrapText(tooltipText, maxWidth, ctx);
 
     const lineHeight = 18 * this.scale;
     const startY = tooltipY + tooltipHeight / 2 - (lines.length - 1) * lineHeight / 2;
@@ -3399,33 +3357,6 @@ class AxesMundiApp {
     });
 
     // Note: "Weiter" button is now drawn separately outside the tooltip
-  }
-
-  /**
-   * Wrap text to fit within specified width
-   */
-  private wrapText(text: string, maxWidth: number, ctx: CanvasRenderingContext2D): string[] {
-    const words = text.split(' ');
-    const lines: string[] = [];
-    let currentLine = '';
-
-    for (const word of words) {
-      const testLine = currentLine + (currentLine ? ' ' : '') + word;
-      const metrics = ctx.measureText(testLine);
-
-      if (metrics.width > maxWidth && currentLine) {
-        lines.push(currentLine);
-        currentLine = word;
-      } else {
-        currentLine = testLine;
-      }
-    }
-
-    if (currentLine) {
-      lines.push(currentLine);
-    }
-
-    return lines;
   }
 
   /**
@@ -3509,12 +3440,12 @@ class AxesMundiApp {
 
     // Fill white background with rounded corners
     ctx.fillStyle = '#ffffff';
-    this.drawRoundedRect(ctx, x, y, width, height, 6);
+    drawRoundedRect(ctx, x, y, width, height, 6);
 
     // Draw black border (1px) around card back
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 1;
-    this.drawRoundedRect(ctx, x, y, width, height, 6);
+    drawRoundedRect(ctx, x, y, width, height, 6);
     ctx.stroke();
 
     // Calculate logo dimensions to fit nicely on the card
@@ -3563,12 +3494,12 @@ class AxesMundiApp {
 
     // Fill white background with rounded corners
     ctx.fillStyle = '#ffffff';
-    this.drawRoundedRect(ctx, x, y, width, height, 6);
+    drawRoundedRect(ctx, x, y, width, height, 6);
 
     // Draw black border (1px) around card back
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 1;
-    this.drawRoundedRect(ctx, x, y, width, height, 6);
+    drawRoundedRect(ctx, x, y, width, height, 6);
     ctx.stroke();
 
     // Calculate logo dimensions to fill most of the card
@@ -3803,8 +3734,8 @@ class AxesMundiApp {
 
     // Sort cards by their axis VALUE to ensure correct order (smallest to largest)
     const sortedCards = allCards.sort((a, b) => {
-      const aValue = this.convertToComparable(a.card.value, a.card.unit);
-      const bValue = this.convertToComparable(b.card.value, b.card.unit);
+      const aValue = convertToComparable(a.card.value, a.card.unit);
+      const bValue = convertToComparable(b.card.value, b.card.unit);
       return aValue - bValue;
     });
 
@@ -4228,57 +4159,6 @@ class AxesMundiApp {
   }
 
   /**
-   * Convert value to comparable units for comparison
-   */
-  private convertToComparable(value: number, unit: string): number {
-    switch (unit.toLowerCase()) {
-    // Height units
-      case 'm':
-        return value;
-      case 'km':
-        return value * 1000;
-      case 'cm':
-        return value / 100;
-      case 'mm':
-        return value / 1000;
-
-      // Temperature units
-      case '°c':
-      case 'c':
-      // Celsius values are already comparable (colder = smaller, hotter = larger)
-        return value;
-
-      default:
-        return value;
-    }
-  }
-
-  /**
-   * Draw rounded rectangle
-   */
-  private drawRoundedRect(
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    radius: number,
-  ): void {
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + width - radius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    ctx.lineTo(x + width, y + height - radius);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    ctx.lineTo(x + radius, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.closePath();
-    ctx.fill();
-  }
-
-  /**
    * Show player switch overlay for hotseat mode
    */
   private showPlayerSwitchOverlay(): void {
@@ -4349,7 +4229,7 @@ class AxesMundiApp {
 
     // Draw overlay background
     ctx.fillStyle = '#2c3e50';
-    this.drawRoundedRect(ctx, overlayX, overlayY, overlayWidth, overlayHeight, 10 * this.scale);
+    drawRoundedRect(ctx, overlayX, overlayY, overlayWidth, overlayHeight, 10 * this.scale);
 
     // Draw border
     ctx.strokeStyle = '#3498db';

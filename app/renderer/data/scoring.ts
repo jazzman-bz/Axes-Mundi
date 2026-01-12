@@ -95,8 +95,15 @@ export function evaluatePlacement(
 
 /**
  * Convert value to comparable units for sorting
+ * Normalizes different units to a common base for comparison:
+ * - Height: converts to meters
+ * - Time: BC values are negative, AD positive
+ * - Temperature: Celsius values pass through
+ * @param value - The numeric value to convert
+ * @param unit - The unit string (e.g., 'm', 'km', 'bc', '°c')
+ * @returns The normalized comparable value
  */
-function convertToComparable(value: number, unit: string): number {
+export function convertToComparable(value: number, unit: string): number {
   switch (unit.toLowerCase()) {
   // Height units
   case 'm':
