@@ -4,7 +4,10 @@ import { isAxisCorrectlySorted, getScore, convertToComparable } from '@/data/sco
 import { GameCard } from '@/game/Card';
 import { Card as CardData } from '@/data/types';
 import { soundManager, SoundType } from '@/utils/soundManager';
-import { drawRoundedRect, wrapText, convertImageToWhite } from '@/utils/canvasUtils';
+import { drawRoundedRect, wrapText } from '@/utils/canvasUtils';
+import { loadImage } from '@/utils/assetLoader';
+import { calculateScale, calculateSnapThreshold } from '@/utils/scaleUtils';
+import { ResizeHandler } from '@/utils/resizeHandler';
 
 /**
  * Avatar emoji mapping
@@ -88,6 +91,8 @@ class AxesMundiApp {
 
   private scale: number = 1; // Global scale factor
 
+  private resizeHandler: ResizeHandler | null = null; // Resize handler for window resizing
+
   private isGameStarted: boolean = false; // Track if first card has been placed on axis
 
   private currentTurn: number = 0; // Track current turn
@@ -161,6 +166,41 @@ class AxesMundiApp {
       throw new Error('Failed to get 2D canvas context. Browser may not support canvas.');
     }
     this.gameContext = context;
+
+    // Initialize resize handler
+    this.resizeHandler = new ResizeHandler(this.gameCanvas, {
+      scope: 'renderer/app',
+    });
+
+    // Register resize callbacks
+    this.resizeHandler.onResize(({ width, height, scale }) => {
+      this.scale = scale;
+      this.snapThreshold = calculateSnapThreshold(scale);
+
+      // Update scale for all existing cards
+      this.updateAllCardsScale();
+
+      // Re-layout all cards with new scale
+      this.layoutHand();
+      this.layoutOpponentHand();
+      this.layoutAxisCards();
+
+      // Re-position board card if it exists
+      if (this.boardCard) {
+        const centerX = width / 2 - this.boardCard.width / 2;
+        const centerY = height / 2 - this.boardCard.height / 2;
+        this.boardCard.setTargetPosition(centerX, centerY);
+      }
+
+      // Update graveyard positions if any cards exist there
+      if (this.graveyard.length > 0) {
+        const graveyardX = width - 230 * this.scale;
+        const graveyardY = 50 * this.scale;
+        this.graveyard.forEach((card) => {
+          card.setTargetPosition(graveyardX, graveyardY);
+        });
+      }
+    });
 
     // Initialize game difficulty from localStorage or default to medium
     const savedDifficulty = localStorage.getItem('selectedDifficulty') as 'easy' | 'medium' | 'hard';
@@ -253,10 +293,12 @@ class AxesMundiApp {
     this.initCanvas();
     this.setupEventListeners();
     this.hideLoadingScreen();
-    this.calculateScale(); // Calculate initial scale
-    this.loadLogo(); // Load the Axes Mundi logo
-    this.loadArrowImages(); // Load arrow images
-    this.loadBackgroundImage(); // Load background image
+    // Calculate initial scale
+    this.scale = calculateScale(window.innerWidth, window.innerHeight);
+    this.snapThreshold = calculateSnapThreshold(this.scale);
+
+    // Load all UI assets in parallel (fire-and-forget, they'll render when ready)
+    this.loadAssets();
 
     // Check if this is LAN mode - if so, don't start normal game
     const isLANMode = localStorage.getItem('selectedGameType') === 'lan';
@@ -296,8 +338,10 @@ class AxesMundiApp {
    * Set up event listeners
    */
   private setupEventListeners(): void {
-    // Window resize
-    window.addEventListener('resize', this.handleResize.bind(this));
+    // Window resize (handled by ResizeHandler)
+    if (this.resizeHandler) {
+      this.resizeHandler.attach();
+    }
 
     // Mouse events for card interaction - use window for mousemove/mouseup to handle drag outside canvas
     this.gameCanvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
@@ -313,174 +357,62 @@ class AxesMundiApp {
   /**
    * Load the Axes Mundi logo image
    */
-  private loadLogo(): void {
-    try {
-      this.logoImage = new Image();
-      this.logoImage.onload = () => {
-        logger.info({ scope: 'renderer/app', msg: 'logo loaded successfully' });
-      };
-      this.logoImage.onerror = () => {
-        logger.error({ scope: 'renderer/app', msg: 'failed to load logo' });
-        this.logoImage = null;
-      };
-      this.logoImage.src = './assets/axes-mundi logo.png';
-    } catch (error: any) {
-      logger.error({
-        scope: 'renderer/app',
-        msg: 'failed to load logo',
-        err: { message: error.message, stack: error.stack },
-      });
-      this.logoImage = null;
-    }
+  private async loadLogo(): Promise<void> {
+    const asset = await loadImage('./assets/axes-mundi logo.png', {
+      scope: 'renderer/app',
+    });
+    this.logoImage = asset?.image ?? null;
   }
 
   /**
    * Load arrow images for board navigation
    */
-  private loadArrowImages(): void {
-    try {
-      // Load left arrow
-      this.arrowLeftImage = new Image();
-      this.arrowLeftImage.onload = () => {
-        logger.debug({ scope: 'renderer/app', msg: 'left arrow loaded successfully' });
-        // Convert to white after loading
-        convertImageToWhite(this.arrowLeftImage!)
-          .then((whiteImage) => {
-            this.arrowLeftImage = whiteImage;
-            logger.debug({ scope: 'renderer/app', msg: 'left arrow converted to white' });
-          })
-          .catch((err) => {
-            logger.warn({ scope: 'renderer/app', msg: 'failed to convert left arrow to white', err: { message: err.message } });
-          });
-      };
-      this.arrowLeftImage.onerror = () => {
-        logger.warn({ scope: 'renderer/app', msg: 'failed to load left arrow' });
-        this.arrowLeftImage = null;
-      };
-      this.arrowLeftImage.src = './assets/arrow left.png';
-
-      // Load right arrow
-      this.arrowRightImage = new Image();
-      this.arrowRightImage.onload = () => {
-        logger.debug({ scope: 'renderer/app', msg: 'right arrow loaded successfully' });
-        // Convert to white after loading
-        convertImageToWhite(this.arrowRightImage!)
-          .then((whiteImage) => {
-            this.arrowRightImage = whiteImage;
-            logger.debug({ scope: 'renderer/app', msg: 'right arrow converted to white' });
-          })
-          .catch((err) => {
-            logger.warn({ scope: 'renderer/app', msg: 'failed to convert right arrow to white', err: { message: err.message } });
-          });
-      };
-      this.arrowRightImage.onerror = () => {
-        logger.warn({ scope: 'renderer/app', msg: 'failed to load right arrow' });
-        this.arrowRightImage = null;
-      };
-      this.arrowRightImage.src = './assets/arrow right.png';
-    } catch (error: any) {
-      logger.error({
+  private async loadArrowImages(): Promise<void> {
+    // Load both arrows in parallel with white conversion
+    const [leftAsset, rightAsset] = await Promise.all([
+      loadImage('./assets/arrow left.png', {
+        convertToWhite: true,
         scope: 'renderer/app',
-        msg: 'failed to load arrow images',
-        err: { message: error.message, stack: error.stack },
-      });
-      this.arrowLeftImage = null;
-      this.arrowRightImage = null;
-    }
+      }),
+      loadImage('./assets/arrow right.png', {
+        convertToWhite: true,
+        scope: 'renderer/app',
+      }),
+    ]);
+
+    this.arrowLeftImage = leftAsset?.image ?? null;
+    this.arrowRightImage = rightAsset?.image ?? null;
   }
 
   /**
    * Load background image
    */
-  private loadBackgroundImage(): void {
-    try {
-      this.backgroundImage = new Image();
-      this.backgroundImage.onload = () => {
-        logger.info({ scope: 'renderer/app', msg: 'background image loaded successfully' });
-      };
-      this.backgroundImage.onerror = () => {
-        logger.warn({ scope: 'renderer/app', msg: 'failed to load background image, using fallback color' });
-        this.backgroundImage = null;
-      };
-      this.backgroundImage.src = './assets/background.jpg';
-    } catch (error: any) {
-      logger.error({
-        scope: 'renderer/app',
-        msg: 'failed to load background image',
-        err: { message: error.message, stack: error.stack },
-      });
-      this.backgroundImage = null;
-    }
+  private async loadBackgroundImage(): Promise<void> {
+    const asset = await loadImage('./assets/background.jpg', {
+      scope: 'renderer/app',
+    });
+    this.backgroundImage = asset?.image ?? null;
   }
 
   /**
-   * Calculate scale factor based on window size
+   * Load all UI assets in parallel
    */
-  private calculateScale(): void {
-    // Base size: 1920x1080, scale down for smaller screens
-    const baseWidth = 1920;
-    const baseHeight = 1080;
-    const scaleX = window.innerWidth / baseWidth;
-    const scaleY = window.innerHeight / baseHeight;
-    this.scale = Math.min(scaleX, scaleY, 1.5); // Cap at 1.5x for very large screens
-    this.snapThreshold = 80 * this.scale;
-  }
-
-  /**
-   * Handle window resize
-   */
-  private handleResize(): void {
-    try {
-      this.gameCanvas.width = window.innerWidth;
-      this.gameCanvas.height = window.innerHeight;
-
-      // Recalculate scale factor
-      this.calculateScale();
-
-      logger.debug({
-        scope: 'renderer/app',
-        msg: 'window resized',
-        meta: {
-          width: window.innerWidth,
-          height: window.innerHeight,
-          scale: this.scale,
-        },
-      });
-
-      // Update scale for all existing cards (this also adjusts their positions proportionally)
-      this.updateAllCardsScale();
-
-      // Re-layout all cards with new scale to ensure proper positioning
-      this.layoutHand();
-      this.layoutOpponentHand();
-      this.layoutAxisCards();
-
-      // Re-position board card if it exists (center it properly)
-      if (this.boardCard) {
-        const centerX = this.gameCanvas.width / 2 - this.boardCard.width / 2;
-        const centerY = this.gameCanvas.height / 2 - this.boardCard.height / 2;
-        this.boardCard.setTargetPosition(centerX, centerY);
-      }
-
-      // Update graveyard positions if any cards exist there
-      if (this.graveyard.length > 0) {
-        const graveyardX = this.gameCanvas.width - 230 * this.scale; // Aligned with graveyard box
-        const graveyardY = 50 * this.scale;
-        this.graveyard.forEach((card) => {
-          card.setTargetPosition(graveyardX, graveyardY);
-        });
-      }
-
-      // Update snap threshold for new scale
-      this.snapThreshold = 80 * this.scale;
-    } catch (error: any) {
+  private loadAssets(): void {
+    // Fire-and-forget: assets will render when ready
+    Promise.all([
+      this.loadLogo(),
+      this.loadArrowImages(),
+      this.loadBackgroundImage(),
+    ]).catch((err) => {
       logger.error({
         scope: 'renderer/app',
-        msg: 'resize failed',
-        err: { message: error.message, stack: error.stack },
+        msg: 'failed to load assets',
+        err: { message: err.message },
       });
-    }
+    });
   }
+
+
 
   // REMOVED: loadLANGame() - Now handled by LANGameManager
 
@@ -507,7 +439,8 @@ class AxesMundiApp {
       this.shuffleDeck();
 
       // Ensure scale is calculated with correct canvas dimensions
-      this.calculateScale();
+      this.scale = calculateScale(window.innerWidth, window.innerHeight);
+      this.snapThreshold = calculateSnapThreshold(this.scale);
 
       // Get first card for board (turn-based: first card goes to center)
       const boardCardData = this.remainingCards.shift()!;
