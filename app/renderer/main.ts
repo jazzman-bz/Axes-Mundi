@@ -1,4 +1,4 @@
-import { logger } from '@/utils/logger';
+﻿import { logger } from '@/utils/logger';
 import { loadDeck, shuffleCardsInPlace } from '@/data/deckLoader';
 import { isAxisCorrectlySorted, getScore } from '@/data/scoring';
 import { GameCard } from '@/game/Card';
@@ -12,26 +12,27 @@ import { getOpponentCardCount, dealCard } from '@/utils/cardDealer';
 import { CardLayoutManager, recycleGraveyard as recycleGraveyardUtil } from '@/utils/cardLayout';
 import { InputHandler } from '@/utils/inputHandler';
 import { AIManager } from '@/utils/aiManager';
+import { GameRenderer } from '@/utils/gameRenderer';
 
 /**
  * Avatar emoji mapping
  * Maps avatar ID (1-6) to emoji
  */
 const AVATAR_EMOJIS: Record<string, string> = {
-  '1': '👨‍🚀', // Astronaut
-  '2': '🧙‍♂️', // Magier
-  '3': '🏴‍☠️', // Pirat
-  '4': '🦄', // Einhorn
-  '5': '🤖', // Roboter
-  '6': '🐉', // Drache
+  '1': 'ðŸ‘¨â€ðŸš€', // Astronaut
+  '2': 'ðŸ§™â€â™‚ï¸', // Magier
+  '3': 'ðŸ´â€â˜ ï¸', // Pirat
+  '4': 'ðŸ¦„', // Einhorn
+  '5': 'ðŸ¤–', // Roboter
+  '6': 'ðŸ‰', // Drache
 };
 
 /**
  * Get avatar emoji from avatar ID
  */
 function getAvatarEmoji(avatarId: string | number | null | undefined): string {
-  if (!avatarId) return '👤';
-  return AVATAR_EMOJIS[String(avatarId)] || '👤';
+  if (!avatarId) return 'ðŸ‘¤';
+  return AVATAR_EMOJIS[String(avatarId)] || 'ðŸ‘¤';
 }
 
 /**
@@ -98,6 +99,8 @@ class AxesMundiApp {
   private inputHandler: InputHandler | null = null; // Input handler for mouse events
 
   private aiManager: AIManager | null = null; // AI manager for opponent turns
+
+  private gameRenderer: GameRenderer | null = null; // Game renderer for all drawing operations
 
   private isGameStarted: boolean = false; // Track if first card has been placed on axis
 
@@ -360,6 +363,23 @@ class AxesMundiApp {
       },
     });
 
+    // Initialize game renderer
+    this.gameRenderer = new GameRenderer({
+      onWeiterButtonBounds: (bounds) => {
+        this.weiterButtonBounds = bounds;
+      },
+      onClearBoardButtonBounds: (bounds) => {
+        this.clearBoardButtonBounds = bounds;
+      },
+      onResetGameButtonBounds: (bounds) => {
+        this.resetGameButtonBounds = bounds;
+      },
+      onPlayerSwitchOverlayBounds: (bounds) => {
+        this.playerSwitchOverlayBounds = bounds;
+      },
+      onGetDifficultyTimer: () => this.getDifficultyTimer(),
+    });
+
     // Register resize callbacks
     this.resizeHandler.onResize(({ width, height, scale }) => {
       this.scale = scale;
@@ -432,7 +452,7 @@ class AxesMundiApp {
       this.lanOpponentName = localStorage.getItem('clientPlayerName') || 'Opponent';
       this.isLANServerClient = localStorage.getItem('isServerClient') === 'true';
 
-      console.log('🎮 LAN mode initialized:', {
+      console.log('ðŸŽ® LAN mode initialized:', {
         isLANMode: this.isLANMode,
         lanPlayerName: this.lanPlayerName,
         lanOpponentName: this.lanOpponentName,
@@ -982,7 +1002,7 @@ class AxesMundiApp {
       const currentPlayerName = this.currentPlayerIndex === 0
         ? (this.player1Data?.name || 'Player 1')
         : (this.player2Data?.name || 'Player 2');
-      this.turnText = `🎮 ${currentPlayerName}'s turn`;
+      this.turnText = `ðŸŽ® ${currentPlayerName}'s turn`;
       return;
     }
 
@@ -1964,282 +1984,73 @@ class AxesMundiApp {
    * Render game
    */
   private render(): void {
-    const ctx = this.gameContext;
-    const { width } = this.gameCanvas;
-    const { height } = this.gameCanvas;
-
-    // Validate canvas dimensions
-    if (width <= 0 || height <= 0) {
-      logger.warn({ scope: 'renderer/render', msg: 'invalid canvas dimensions', meta: { width, height } });
-      return;
-    }
-
-    // Draw background
-    if (this.backgroundImage && this.backgroundImage.complete) {
-      // Draw background image scaled to fill canvas
-      ctx.drawImage(this.backgroundImage, 0, 0, width, height);
-    } else {
-      // Fallback to solid color if image not loaded
-      ctx.fillStyle = '#2a2a2a';
-      ctx.fillRect(0, 0, width, height);
-    }
-
-    // Axis line and label removed per user request
-
-    // Draw hand position indicators (gray boxes) - BEFORE cards so cards are on top
-    this.drawHandPositionIndicators(ctx);
+    if (!this.gameRenderer) return;
 
     // Track any card being dragged (to render last for correct z-order)
     let draggingCard: GameCard | null = null;
 
-    // Draw board card (if exists)
-    if (this.boardCard) {
-      this.boardCard.render(ctx);
-    }
-
-    // Draw player hand cards
+    // Find dragging card
     if (this.isHotseatMode) {
-      // Draw current player hand (bottom) - show card fronts
-      if (this.currentPlayerIndex === 0) {
-        // Player 1 is current player - show player1Hand at bottom
-        for (const card of this.player1Hand) {
-          if (card.isDragging) {
-            draggingCard = card;
-          } else {
-            card.render(ctx);
-          }
-        }
-        // Player 2 is next player - show player2Hand at top as card backs
-        for (const card of this.player2Hand) {
-          this.drawOpponentCardBack(ctx, card);
-        }
-      } else {
-        // Player 2 is current player - show player2Hand at bottom
-        for (const card of this.player2Hand) {
-          if (card.isDragging) {
-            draggingCard = card;
-          } else {
-            card.render(ctx);
-          }
-        }
-        // Player 1 is next player - show player1Hand at top as card backs
-        for (const card of this.player1Hand) {
-          this.drawOpponentCardBack(ctx, card);
+      const currentHand = this.currentPlayerIndex === 0 ? this.player1Hand : this.player2Hand;
+      for (const card of currentHand) {
+        if (card.isDragging) {
+          draggingCard = card;
+          break;
         }
       }
-
     } else {
-      // Normal mode
       for (const card of this.playerHand) {
         if (card.isDragging) {
           draggingCard = card;
-        } else {
-          card.render(ctx);
+          break;
         }
       }
-
-      // Draw opponent hand cards (show card backs) - check for AI dragging
       for (const card of this.opponentHand) {
         if (card.isDragging) {
           draggingCard = card;
-          // Don't draw card back for dragging card - will render as front later
-        } else {
-          this.drawOpponentCardBack(ctx, card);
+          break;
         }
       }
     }
 
-    // Draw placed stacks
-    for (const card of this.placedLeft) {
-      if (card.isCorrect === false) {
-        // Add pulsing effect for incorrect cards
-        const pulseIntensity = 0.5 + 0.5 * Math.sin(Date.now() * 0.01); // Fast pulse
-        ctx.globalAlpha = pulseIntensity;
-      }
-      card.render(ctx);
-      ctx.globalAlpha = 1; // Reset alpha
-    }
-    for (const card of this.placedRight) {
-      if (card.isCorrect === false) {
-        // Add pulsing effect for incorrect cards
-        const pulseIntensity = 0.5 + 0.5 * Math.sin(Date.now() * 0.01); // Fast pulse
-        ctx.globalAlpha = pulseIntensity;
-      }
-      card.render(ctx);
-      ctx.globalAlpha = 1; // Reset alpha
-    }
+    // Build render state
+    const renderState = {
+      canvas: this.gameCanvas,
+      ctx: this.gameContext,
+      backgroundImage: this.backgroundImage,
+      logoImage: this.logoImage,
+      arrowLeftImage: this.arrowLeftImage,
+      arrowRightImage: this.arrowRightImage,
+      scale: this.scale,
+      boardCard: this.boardCard,
+      playerHand: this.playerHand,
+      opponentHand: this.opponentHand,
+      placedLeft: this.placedLeft,
+      placedRight: this.placedRight,
+      graveyard: this.graveyard,
+      draggingCard,
+      score: this.score,
+      currentTurn: this.currentTurn,
+      turnText: this.turnText,
+      turnTimer: this.turnTimer,
+      gameWon: this.gameWon,
+      gameLost: this.gameLost,
+      isLearningMode: this.isLearningMode,
+      isHotseatMode: this.isHotseatMode,
+      tooltipVisible: this.tooltipVisible,
+      tooltipCard: this.tooltipCard,
+      playerSwitchOverlayVisible: this.playerSwitchOverlayVisible,
+      remainingCards: this.remainingCards.length,
+      gameDifficulty: this.gameDifficulty,
+      player1Data: this.player1Data,
+      player2Data: this.player2Data,
+      currentPlayerIndex: this.currentPlayerIndex,
+      player1Hand: this.player1Hand,
+      player2Hand: this.player2Hand,
+    };
 
-    // Draw dragging card LAST so it appears on top of everything
-    if (draggingCard) {
-      draggingCard.render(ctx);
-    }
-
-    // Draw score and turn information (only in normal mode)
-    if (this.isHotseatMode) {
-      // Hotseat mode: show current player information with prominent background
-      const currentPlayer = this.currentPlayerIndex === 0 ? this.player1Data : this.player2Data;
-      const turnText = `🎮 ${currentPlayer?.name || 'Player'}'s turn`;
-      const fontSize = 28 * this.scale;
-      ctx.font = `bold ${fontSize}px Arial`;
-      ctx.textAlign = 'left';
-      
-      // Measure text for background box
-      const textMetrics = ctx.measureText(turnText);
-      const textWidth = textMetrics.width;
-      const padding = 14 * this.scale;
-      const boxX = 12 * this.scale;
-      const boxY = 12 * this.scale;
-      const boxHeight = fontSize + padding * 1.4;
-      
-      // Draw light gray background box with rounded corners
-      ctx.fillStyle = 'rgba(180, 180, 180, 0.9)';
-      ctx.beginPath();
-      const radius = 10 * this.scale;
-      ctx.roundRect(boxX, boxY, textWidth + padding * 2, boxHeight, radius);
-      ctx.fill();
-      
-      // Draw subtle border
-      ctx.strokeStyle = 'rgba(100, 100, 100, 0.5)';
-      ctx.lineWidth = 2 * this.scale;
-      ctx.stroke();
-      
-      // Draw text
-      ctx.fillStyle = '#1a1a1a';
-      ctx.fillText(turnText, boxX + padding, boxY + fontSize + padding * 0.2);
-    } else if (!this.isLearningMode) {
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `${18 * this.scale}px Arial`;
-      ctx.textAlign = 'left';
-      ctx.fillText(`Score: ${this.score}`, 20 * this.scale, 40 * this.scale);
-      ctx.fillText(`Turn: ${this.currentTurn}`, 20 * this.scale, 65 * this.scale);
-    } else {
-      // Learning mode: show learning mode indicator with gray box and white text
-      const learningText = '📚 Learning Mode';
-      const fontSize = 18 * this.scale;
-      const padding = 10 * this.scale;
-      const boxX = 15 * this.scale;
-      const boxY = 20 * this.scale;
-
-      ctx.font = `bold ${fontSize}px Arial`;
-      const textWidth = ctx.measureText(learningText).width;
-      const boxWidth = textWidth + padding * 2;
-      const boxHeight = fontSize + padding * 1.5;
-
-      // Draw gray background box with rounded corners
-      ctx.fillStyle = 'rgba(80, 80, 80, 0.85)';
-      ctx.beginPath();
-      const radius = 6 * this.scale;
-      ctx.moveTo(boxX + radius, boxY);
-      ctx.lineTo(boxX + boxWidth - radius, boxY);
-      ctx.quadraticCurveTo(boxX + boxWidth, boxY, boxX + boxWidth, boxY + radius);
-      ctx.lineTo(boxX + boxWidth, boxY + boxHeight - radius);
-      ctx.quadraticCurveTo(boxX + boxWidth, boxY + boxHeight, boxX + boxWidth - radius, boxY + boxHeight);
-      ctx.lineTo(boxX + radius, boxY + boxHeight);
-      ctx.quadraticCurveTo(boxX, boxY + boxHeight, boxX, boxY + boxHeight - radius);
-      ctx.lineTo(boxX, boxY + radius);
-      ctx.quadraticCurveTo(boxX, boxY, boxX + radius, boxY);
-      ctx.closePath();
-      ctx.fill();
-
-      // Draw white text
-      ctx.fillStyle = '#ffffff';
-      ctx.textAlign = 'left';
-      ctx.fillText(learningText, boxX + padding, boxY + fontSize + padding * 0.2);
-    }
-
-    // Draw turn text (only in normal mode, not hotseat)
-    if (this.turnText && !this.isLearningMode && !this.isHotseatMode) {
-      ctx.fillStyle = this.isPlayerTurn ? '#7bed9f' : '#ff9800'; // Light green for player turn
-      ctx.font = `bold ${15 * this.scale}px Arial`;
-      ctx.textAlign = 'left';
-      ctx.fillText(this.turnText, 20 * this.scale, 90 * this.scale);
-    }
-
-    // Draw timer bar (only in normal mode)
-    if (!this.isLearningMode && !this.isHotseatMode && this.turnTimer > 0) {
-      const timerBarWidth = 200 * this.scale;
-      const timerBarHeight = 8 * this.scale;
-      const timerBarX = 20 * this.scale;
-      const timerBarY = 100 * this.scale;
-
-      // Background bar
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-      ctx.fillRect(timerBarX, timerBarY, timerBarWidth, timerBarHeight);
-
-      // Progress bar
-      const progress = this.turnTimer / this.getDifficultyTimer();
-      const progressWidth = timerBarWidth * progress;
-
-      // Color based on time remaining
-      let timerColor = '#7bed9f'; // Light green
-      if (this.turnTimer <= 3) {
-        timerColor = '#ff4444'; // Red
-      } else if (this.turnTimer <= 5) {
-        timerColor = '#ff9800'; // Orange
-      }
-
-      ctx.fillStyle = timerColor;
-      ctx.fillRect(timerBarX, timerBarY, progressWidth, timerBarHeight);
-
-      // Border
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(timerBarX, timerBarY, timerBarWidth, timerBarHeight);
-    }
-
-    // Draw deck stack
-    this.drawDeckStack(ctx);
-
-    // Draw learning mode buttons (if needed)
-    if (this.isLearningMode) {
-      this.drawWeiterButton(ctx);
-      this.drawLearningModeButtons(ctx);
-    }
-
-    // Draw graveyard cards
-    for (const card of this.graveyard) {
-      card.render(ctx);
-    }
-
-    // Draw win overlay if game is won (not in learning mode)
-    if (this.gameWon && !this.isLearningMode) {
-      // Semi-transparent overlay
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-      ctx.fillRect(0, 0, this.gameCanvas.width, this.gameCanvas.height);
-
-      // Congratulations text
-      ctx.fillStyle = '#4caf50';
-      ctx.font = 'bold 48px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('🎉 Congratulations! 🎉', this.gameCanvas.width / 2, this.gameCanvas.height / 2 - 50);
-
-      // Subtitle
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '24px Arial';
-      ctx.fillText('You have successfully sorted all cards!', this.gameCanvas.width / 2, this.gameCanvas.height / 2);
-
-      // Final score
-      ctx.font = '20px Arial';
-      ctx.fillText(`Final Score: ${this.score}`, this.gameCanvas.width / 2, this.gameCanvas.height / 2 + 40);
-
-      // Instructions
-      ctx.font = '18px Arial';
-      ctx.fillStyle = '#cccccc';
-      ctx.fillText('Check the dialog for next steps...', this.gameCanvas.width / 2, this.gameCanvas.height / 2 + 80);
-    }
-
-    // Draw navigation arrows if more than 5 cards on board
-    this.drawNavigationArrows(ctx);
-
-    // Learning mode: draw tooltips for placed cards
-    if (this.isLearningMode && this.tooltipVisible && this.tooltipCard) {
-      this.drawTooltip(ctx, this.tooltipCard);
-    }
-
-    // Hotseat mode: draw player switch overlay
-    if (this.isHotseatMode && this.playerSwitchOverlayVisible) {
-      this.drawPlayerSwitchOverlay(ctx);
-    }
+    // Render using GameRenderer
+    this.gameRenderer.render(renderState);
   }
 
 
@@ -2349,682 +2160,8 @@ class AxesMundiApp {
   }
 
   /**
-    * Draw deck stack
-    */
-  private drawDeckStack(ctx: CanvasRenderingContext2D): void {
-    const deckX = 50 * this.scale;
-    const deckY = this.gameCanvas.height - 320 * this.scale; // Same height as player hand
-    const cardWidth = 200 * this.scale;
-    const cardHeight = 300 * this.scale;
-    const stackHeight = Math.min(this.remainingCards.length, 5); // Max 5 cards visible
-
-    // Draw stacked cards
-    for (let i = 0; i < stackHeight; i++) {
-      const offsetY = i * 2; // Small offset for stack effect
-
-      // Card background
-      ctx.fillStyle = '#4a90e2';
-      ctx.globalAlpha = 0.8 - (i * 0.1); // Fade effect
-      this.roundRect(ctx, deckX, deckY - offsetY, cardWidth, cardHeight, 8);
-      ctx.fill();
-
-      // Card border
-      ctx.strokeStyle = '#2a5a8a';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // Card back pattern - Axes Mundi Logo
-      this.drawAxesMundiLogoImage(ctx, deckX, deckY - offsetY, cardWidth, cardHeight);
-    }
-
-    // Reset alpha
-    ctx.globalAlpha = 1;
-
-    // Draw deck count
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `${16 * this.scale}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.fillText(`${this.remainingCards.length}`, deckX + cardWidth / 2, deckY + cardHeight + 25 * this.scale);
-  }
-
-  /**
-     * Draw hand position indicators (single gray box per hand)
-     */
-  private drawHandPositionIndicators(ctx: CanvasRenderingContext2D): void {
-    const _cardWidth = 200 * this.scale; // Reserved for future use
-    const cardHeight = 300 * this.scale;
-    const cardSpacing = 220 * this.scale;
-
-    // Calculate opponent card count for dynamic sizing
-    const opponentCardCount = getOpponentCardCount(this.gameDifficulty);
-
-    // Draw player hand area (bottom) - single large box
-    const playerTotalWidth = 5 * cardSpacing - 20 * this.scale;
-    const playerStartX = (this.gameCanvas.width - playerTotalWidth) / 2;
-    const playerY = this.gameCanvas.height - 320 * this.scale;
-
-    ctx.fillStyle = 'rgba(128, 128, 128, 0.5)'; // Semi-transparent gray
-    ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
-    ctx.lineWidth = 2;
-
-    // Single box covering entire player hand area
-    this.roundRect(
-      ctx,
-      playerStartX - 10 * this.scale,
-      playerY - 10 * this.scale,
-      playerTotalWidth + 20 * this.scale,
-      cardHeight + 20 * this.scale,
-      12,
-    );
-    ctx.fill();
-    ctx.stroke();
-
-    // Draw opponent hand area (top) - single large box (dynamic based on difficulty)
-    // In learning mode, don't draw opponent hand area
-    if (!this.isLearningMode) {
-      const opponentTotalWidth = opponentCardCount * cardSpacing - 20 * this.scale;
-      const opponentStartX = (this.gameCanvas.width - opponentTotalWidth) / 2;
-      const opponentY = 20 * this.scale;
-
-      // Single box covering entire opponent hand area
-      this.roundRect(
-        ctx,
-        opponentStartX - 10 * this.scale,
-        opponentY - 10 * this.scale,
-        opponentTotalWidth + 20 * this.scale,
-        cardHeight + 20 * this.scale,
-        12,
-      );
-      ctx.fill();
-      ctx.stroke();
-
-      // Draw avatar boxes centered above/below hand areas (square: 100x100 - half size)
-      const avatarBoxWidth = 100 * this.scale;
-      const avatarBoxHeight = 100 * this.scale;
-
-      // Use player names in hotseat mode, player name in singleplayer modes
-      if (this.isHotseatMode) {
-        const player1Name = this.player1Data?.name || 'Player 1';
-        const player2Name = this.player2Data?.name || 'Player 2';
-        const player1Avatar = getAvatarEmoji(this.player1Data?.avatar);
-        const player2Avatar = getAvatarEmoji(this.player2Data?.avatar);
-
-        // In hotseat mode: current player is at bottom, next player is at top
-        const currentPlayerName = this.currentPlayerIndex === 0 ? player1Name : player2Name;
-        const currentPlayerAvatar = this.currentPlayerIndex === 0 ? player1Avatar : player2Avatar;
-        const nextPlayerName = this.currentPlayerIndex === 0 ? player2Name : player1Name;
-        const nextPlayerAvatar = this.currentPlayerIndex === 0 ? player2Avatar : player1Avatar;
-
-        // Draw player avatar box (centered above player hand, 20px gap)
-        this.drawAvatarBox(ctx, this.gameCanvas.width / 2 - avatarBoxWidth / 2, playerY - avatarBoxHeight - 20 * this.scale, currentPlayerAvatar, currentPlayerName);
-        // Draw opponent avatar box (centered below opponent hand, 20px gap)
-        this.drawAvatarBox(ctx, this.gameCanvas.width / 2 - avatarBoxWidth / 2, opponentY + cardHeight + 20 * this.scale, nextPlayerAvatar, nextPlayerName);
-      } else if (this.player1Data?.name) {
-        // All singleplayer modes: player avatar at bottom, opponent at top
-        const playerName = this.player1Data.name;
-        const playerAvatar = getAvatarEmoji(this.player1Data?.avatar);
-        // Draw player avatar box (centered above player hand, 20px gap)
-        this.drawAvatarBox(ctx, this.gameCanvas.width / 2 - avatarBoxWidth / 2, playerY - avatarBoxHeight - 20 * this.scale, playerAvatar, playerName);
-        // Draw opponent avatar box (centered below opponent hand, 20px gap)
-        this.drawAvatarBox(ctx, this.gameCanvas.width / 2 - avatarBoxWidth / 2, opponentY + cardHeight + 20 * this.scale, '🤖', 'Opponent');
-      } else {
-        // Draw player avatar box (centered above player hand, 20px gap)
-        this.drawAvatarBox(ctx, this.gameCanvas.width / 2 - avatarBoxWidth / 2, playerY - avatarBoxHeight - 20 * this.scale, '👤', 'Player');
-        // Draw opponent avatar box (centered below opponent hand, 20px gap)
-        this.drawAvatarBox(ctx, this.gameCanvas.width / 2 - avatarBoxWidth / 2, opponentY + cardHeight + 20 * this.scale, '🤖', 'Opponent');
-      }
-    } else {
-      // Learning mode: only draw player avatar box (centered above player hand, 20px gap)
-      const avatarBoxWidth = 100 * this.scale;
-      const avatarBoxHeight = 100 * this.scale;
-      const playerName = this.player1Data?.name || 'Player';
-      const playerAvatar = getAvatarEmoji(this.player1Data?.avatar);
-      this.drawAvatarBox(ctx, this.gameCanvas.width / 2 - avatarBoxWidth / 2, playerY - avatarBoxHeight - 20 * this.scale, playerAvatar, playerName);
-    }
-
-    // Draw graveyard area indicator (top right)
-    const graveyardX = this.gameCanvas.width - 230 * this.scale; // Adjusted for wider box
-    const graveyardY = 50 * this.scale;
-    const graveyardBoxWidth = 200 * this.scale; // Same as card width
-    const graveyardBoxHeight = cardHeight;
-
-    ctx.fillStyle = 'rgba(128, 128, 128, 0.5)'; // Semi-transparent gray
-    ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
-    ctx.lineWidth = 2;
-
-    this.roundRect(
-      ctx,
-      graveyardX - 10 * this.scale,
-      graveyardY - 10 * this.scale,
-      graveyardBoxWidth + 20 * this.scale,
-      graveyardBoxHeight + 20 * this.scale,
-      12,
-    );
-    ctx.fill();
-    ctx.stroke();
-
-    // Draw graveyard label
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `${14 * this.scale}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.fillText('Graveyard', graveyardX + graveyardBoxWidth / 2, graveyardY - 20 * this.scale);
-
-    // Draw score/timer area indicator (top left) - only in normal mode, not learning mode
-    if (!this.isLearningMode && !this.isHotseatMode) {
-      const scoreBoxX = 10 * this.scale;
-      const scoreBoxY = 20 * this.scale;
-      const scoreBoxWidth = 260 * this.scale; // Extended by 40px
-      const scoreBoxHeight = 95 * this.scale;
-
-      ctx.fillStyle = 'rgba(128, 128, 128, 0.9)'; // 10% transparency (90% opaque)
-      ctx.strokeStyle = 'rgba(128, 128, 128, 0.9)';
-      ctx.lineWidth = 2;
-
-      this.roundRect(
-        ctx,
-        scoreBoxX,
-        scoreBoxY,
-        scoreBoxWidth,
-        scoreBoxHeight,
-        12,
-      );
-      ctx.fill();
-      ctx.stroke();
-
-      // Draw label
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `${12 * this.scale}px Arial`;
-      ctx.textAlign = 'left';
-      ctx.fillText('Game Info', scoreBoxX + 10 * this.scale, scoreBoxY - 5 * this.scale);
-    }
-  }
-
-  /**
-    * Draw learning mode buttons (Clear Board and Reset Game)
-    * Styled with gradients, shadows, and emojis
-    * Positioned evenly distributed above the playing field
-    */
-  private drawLearningModeButtons(ctx: CanvasRenderingContext2D): void {
-    const buttonWidth = 360 * this.scale;
-    const buttonHeight = 120 * this.scale;
-    const buttonSpacing = 80 * this.scale;
-    const borderRadius = 24 * this.scale;
-
-    // Position buttons evenly distributed above the playing field
-    const totalWidth = buttonWidth * 2 + buttonSpacing;
-    const startX = (this.gameCanvas.width - totalWidth) / 2;
-    const buttonY = 20 * this.scale;
-
-    // === Clear Board Button (left) ===
-    const clearButtonX = startX;
-
-    // Shadow
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-    ctx.shadowBlur = 20 * this.scale;
-    ctx.shadowOffsetX = 6 * this.scale;
-    ctx.shadowOffsetY = 6 * this.scale;
-
-    // Gradient background (vibrant red)
-    const clearGradient = ctx.createLinearGradient(clearButtonX, buttonY, clearButtonX, buttonY + buttonHeight);
-    clearGradient.addColorStop(0, '#e53935');
-    clearGradient.addColorStop(1, '#b71c1c');
-    ctx.fillStyle = clearGradient;
-    drawRoundedRect(ctx, clearButtonX, buttonY, buttonWidth, buttonHeight, borderRadius);
-
-    // Reset shadow for text
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-
-    // Border highlight
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.lineWidth = 4 * this.scale;
-    this.roundRect(ctx, clearButtonX, buttonY, buttonWidth, buttonHeight, borderRadius);
-    ctx.stroke();
-
-    // Button text with emoji (twice as large)
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${36 * this.scale}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🗑️ Clear Board', clearButtonX + buttonWidth / 2, buttonY + buttonHeight / 2);
-
-    // === Reset Game Button (right) ===
-    const resetButtonX = startX + buttonWidth + buttonSpacing;
-
-    // Shadow
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-    ctx.shadowBlur = 20 * this.scale;
-    ctx.shadowOffsetX = 6 * this.scale;
-    ctx.shadowOffsetY = 6 * this.scale;
-
-    // Gradient background (fresh green)
-    const resetGradient = ctx.createLinearGradient(resetButtonX, buttonY, resetButtonX, buttonY + buttonHeight);
-    resetGradient.addColorStop(0, '#43a047');
-    resetGradient.addColorStop(1, '#1b5e20');
-    ctx.fillStyle = resetGradient;
-    drawRoundedRect(ctx, resetButtonX, buttonY, buttonWidth, buttonHeight, borderRadius);
-
-    // Reset shadow for text
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-
-    // Border highlight
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.lineWidth = 4 * this.scale;
-    this.roundRect(ctx, resetButtonX, buttonY, buttonWidth, buttonHeight, borderRadius);
-    ctx.stroke();
-
-    // Button text with emoji (twice as large)
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${36 * this.scale}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🔄 Reset Game', resetButtonX + buttonWidth / 2, buttonY + buttonHeight / 2);
-
-    // Store button positions globally for click detection
-    this.clearBoardButtonBounds = {
-      x: clearButtonX, y: buttonY, width: buttonWidth, height: buttonHeight,
-    };
-    this.resetGameButtonBounds = {
-      x: resetButtonX, y: buttonY, width: buttonWidth, height: buttonHeight,
-    };
-  }
-
-  /**
-    * Draw "Weiter" button for learning mode (positioned centered below the axis/board area)
-    * Styled with gradient, shadow, and emoji - twice as big
-    */
-  private drawWeiterButton(ctx: CanvasRenderingContext2D): void {
-    // Find any incorrect card on the board to show the button
-    const incorrectCard = this.placedLeft.find((card) => card.isCorrect === false)
-                         || this.placedRight.find((card) => card.isCorrect === false)
-                         || (this.boardCard && this.boardCard.isCorrect === false ? this.boardCard : null);
-
-    // Only draw if we have an incorrect card that needs the button
-    if (!incorrectCard) return;
-
-    // Button dimensions (twice as big)
-    const buttonWidth = 300 * this.scale;
-    const buttonHeight = 110 * this.scale;
-    const borderRadius = 24 * this.scale;
-
-    // Position button centered horizontally, below the axis/board area
-    const buttonX = (this.gameCanvas.width - buttonWidth) / 2;
-    const buttonY = this.gameCanvas.height / 2 + 180 * this.scale;
-
-    // Shadow
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-    ctx.shadowBlur = 20 * this.scale;
-    ctx.shadowOffsetX = 6 * this.scale;
-    ctx.shadowOffsetY = 6 * this.scale;
-
-    // Gradient background (warm orange/gold)
-    const weiterGradient = ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
-    weiterGradient.addColorStop(0, '#ffa726');
-    weiterGradient.addColorStop(1, '#e65100');
-    ctx.fillStyle = weiterGradient;
-    drawRoundedRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, borderRadius);
-
-    // Reset shadow for text
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-
-    // Border highlight
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.lineWidth = 4 * this.scale;
-    this.roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, borderRadius);
-    ctx.stroke();
-
-    // Button text with emoji (twice as large)
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${40 * this.scale}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('➡️ Continue', buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
-
-    // Store button position globally for click detection
-    this.weiterButtonBounds = {
-      x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight,
-    };
-  }
-
-  /**
-   * Draw tooltip for learning mode
+   * Layout remaining hand cards nicely along bottom
    */
-  private drawTooltip(ctx: CanvasRenderingContext2D, card: GameCard): void {
-    if (!card.card.facts || card.card.facts.length === 0) return;
-
-    const tooltipText = card.card.facts[0];
-    const tooltipWidth = 300 * this.scale;
-    const tooltipHeight = 80 * this.scale;
-    const tooltipPadding = 10 * this.scale;
-
-    // Position tooltip above the card
-    const tooltipX = card.x + card.width / 2 - tooltipWidth / 2;
-    const tooltipY = card.y - tooltipHeight - 20 * this.scale;
-
-    // Draw tooltip background
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
-    ctx.strokeStyle = '#4caf50';
-    ctx.lineWidth = 2 * this.scale;
-
-    // Rounded rectangle for tooltip
-    drawRoundedRect(ctx, tooltipX, tooltipY, tooltipWidth, tooltipHeight, 8 * this.scale);
-    ctx.stroke();
-
-    // Draw tooltip text
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `${14 * this.scale}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    // Wrap text if needed
-    const maxWidth = tooltipWidth - tooltipPadding * 2;
-    const lines = wrapText(tooltipText, maxWidth, ctx);
-
-    const lineHeight = 18 * this.scale;
-    const startY = tooltipY + tooltipHeight / 2 - (lines.length - 1) * lineHeight / 2;
-
-    lines.forEach((line, index) => {
-      const y = startY + index * lineHeight;
-      ctx.fillText(line, tooltipX + tooltipWidth / 2, y);
-    });
-
-    // Note: "Weiter" button is now drawn separately outside the tooltip
-  }
-
-  /**
-     * Draw navigation arrows when more than 5 cards are on the board
-     */
-  private drawNavigationArrows(ctx: CanvasRenderingContext2D): void {
-    // Count total cards on board (board card + placed left + placed right)
-    const totalBoardCards = (this.boardCard ? 1 : 0) + this.placedLeft.length + this.placedRight.length;
-
-    // Only show arrows if more than 5 cards
-    if (totalBoardCards <= 5) return;
-
-    // Arrow dimensions
-    const arrowWidth = 120 * this.scale;
-    const arrowHeight = 120 * this.scale;
-    const arrowY = this.gameCanvas.height / 2 - arrowHeight / 2;
-
-    // Left arrow position
-    const leftArrowX = 20 * this.scale;
-
-    // Right arrow position
-    const rightArrowX = this.gameCanvas.width - arrowWidth - 20 * this.scale;
-
-    // Draw left arrow
-    if (this.arrowLeftImage) {
-      ctx.globalAlpha = 0.8;
-      ctx.drawImage(this.arrowLeftImage, leftArrowX, arrowY, arrowWidth, arrowHeight);
-      ctx.globalAlpha = 1;
-    } else {
-      // Fallback: draw a simple left arrow
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-      ctx.beginPath();
-      ctx.moveTo(leftArrowX + arrowWidth, arrowY);
-      ctx.lineTo(leftArrowX, arrowY + arrowHeight / 2);
-      ctx.lineTo(leftArrowX + arrowWidth, arrowY + arrowHeight);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    // Draw right arrow
-    if (this.arrowRightImage) {
-      ctx.globalAlpha = 0.8;
-      ctx.drawImage(this.arrowRightImage, rightArrowX, arrowY, arrowWidth, arrowHeight);
-      ctx.globalAlpha = 1;
-    } else {
-      // Fallback: draw a simple right arrow
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-      ctx.beginPath();
-      ctx.moveTo(rightArrowX, arrowY);
-      ctx.lineTo(rightArrowX + arrowWidth, arrowY + arrowHeight / 2);
-      ctx.lineTo(rightArrowX, arrowY + arrowHeight);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    logger.debug({
-      scope: 'renderer/game',
-      msg: 'navigation arrows drawn',
-      meta: {
-        totalBoardCards,
-        boardCard: this.boardCard ? 1 : 0,
-        placedLeft: this.placedLeft.length,
-        placedRight: this.placedRight.length,
-      },
-    });
-  }
-
-  /**
-    * Draw Axes Mundi Logo using the actual image
-    */
-  private drawAxesMundiLogoImage(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number): void {
-    if (!this.logoImage) {
-      // Fallback to drawn logo if image not loaded
-      this.drawAxesMundiLogo(ctx, x, y, width, height);
-      return;
-    }
-
-    // Save context
-    ctx.save();
-    ctx.globalAlpha = 1.0;
-
-    // Fill white background with rounded corners
-    ctx.fillStyle = '#ffffff';
-    drawRoundedRect(ctx, x, y, width, height, 6);
-
-    // Draw black border (1px) around card back
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 1;
-    drawRoundedRect(ctx, x, y, width, height, 6);
-    ctx.stroke();
-
-    // Calculate logo dimensions to fit nicely on the card
-    const logoSize = Math.min(width, height) * 0.8;
-    const logoX = x + (width - logoSize) / 2;
-    const logoY = y + (height - logoSize) / 2;
-
-    // Draw the logo image
-    ctx.drawImage(this.logoImage, logoX, logoY, logoSize, logoSize);
-
-    // Restore context
-    ctx.restore();
-  }
-
-  /**
-   * Draw opponent card back (Axes Mundi logo)
-   */
-  private drawOpponentCardBack(ctx: CanvasRenderingContext2D, card: GameCard): void {
-    // Save context
-    ctx.save();
-
-    // Set position and size
-    const { x } = card;
-    const { y } = card;
-    const { width } = card;
-    const { height } = card;
-
-    // Draw card back with Axes Mundi logo (same as deck)
-    this.drawAxesMundiLogoImage(ctx, x, y, width, height);
-
-    // Restore context
-    ctx.restore();
-  }
-
-  /**
-   * Draw Axes Mundi Logo (fallback drawn version)
-   */
-  private drawAxesMundiLogo(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number): void {
-    const logoColor = '#D4AF37'; // Metallic gold color
-    const centerX = x + width / 2;
-    const centerY = y + height / 2;
-
-    // Save context
-    ctx.save();
-    ctx.globalAlpha = 1.0;
-
-    // Fill white background with rounded corners
-    ctx.fillStyle = '#ffffff';
-    drawRoundedRect(ctx, x, y, width, height, 6);
-
-    // Draw black border (1px) around card back
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 1;
-    drawRoundedRect(ctx, x, y, width, height, 6);
-    ctx.stroke();
-
-    // Calculate logo dimensions to fill most of the card
-    const logoSize = Math.min(width, height) * 0.9;
-    const symbolSize = logoSize * 0.7;
-    const textSize = logoSize * 0.3;
-
-    // Draw symbol (compass rose)
-    const symbolX = centerX;
-    const symbolY = centerY - textSize * 0.4;
-
-    // Main circle
-    ctx.strokeStyle = logoColor;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(symbolX, symbolY, symbolSize * 0.4, 0, 2 * Math.PI);
-    ctx.stroke();
-
-    // Center dot
-    ctx.fillStyle = logoColor;
-    ctx.beginPath();
-    ctx.arc(symbolX, symbolY, symbolSize * 0.08, 0, 2 * Math.PI);
-    ctx.fill();
-
-    // Cross lines
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = logoColor;
-    ctx.beginPath();
-    // Vertical line
-    ctx.moveTo(symbolX, symbolY - symbolSize * 0.5);
-    ctx.lineTo(symbolX, symbolY + symbolSize * 0.5);
-    // Horizontal line
-    ctx.moveTo(symbolX - symbolSize * 0.5, symbolY);
-    ctx.lineTo(symbolX + symbolSize * 0.5, symbolY);
-    ctx.stroke();
-
-    // Arrowheads
-    const arrowSize = symbolSize * 0.15;
-    // Top arrow
-    ctx.beginPath();
-    ctx.moveTo(symbolX, symbolY - symbolSize * 0.5);
-    ctx.lineTo(symbolX - arrowSize, symbolY - symbolSize * 0.5 + arrowSize);
-    ctx.lineTo(symbolX + arrowSize, symbolY - symbolSize * 0.5 + arrowSize);
-    ctx.closePath();
-    ctx.fill();
-
-    // Bottom arrow
-    ctx.beginPath();
-    ctx.moveTo(symbolX, symbolY + symbolSize * 0.5);
-    ctx.lineTo(symbolX - arrowSize, symbolY + symbolSize * 0.5 - arrowSize);
-    ctx.lineTo(symbolX + arrowSize, symbolY + symbolSize * 0.5 - arrowSize);
-    ctx.closePath();
-    ctx.fill();
-
-    // Left arrow
-    ctx.beginPath();
-    ctx.moveTo(symbolX - symbolSize * 0.5, symbolY);
-    ctx.lineTo(symbolX - symbolSize * 0.5 + arrowSize, symbolY - arrowSize);
-    ctx.lineTo(symbolX - symbolSize * 0.5 + arrowSize, symbolY + arrowSize);
-    ctx.closePath();
-    ctx.fill();
-
-    // Right arrow
-    ctx.beginPath();
-    ctx.moveTo(symbolX + symbolSize * 0.5, symbolY);
-    ctx.lineTo(symbolX + symbolSize * 0.5 - arrowSize, symbolY - arrowSize);
-    ctx.lineTo(symbolX + symbolSize * 0.5 - arrowSize, symbolY + arrowSize);
-    ctx.closePath();
-    ctx.fill();
-
-    // Latitude lines (curved)
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(symbolX, symbolY, symbolSize * 0.3, 0, Math.PI);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(symbolX, symbolY, symbolSize * 0.2, 0, Math.PI);
-    ctx.stroke();
-
-    // Draw text "AXES MUNDI"
-    ctx.fillStyle = logoColor;
-    ctx.font = `bold ${textSize * 0.4}px serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText('AXES', centerX, centerY + textSize * 0.3);
-    ctx.fillText('MUNDI', centerX, centerY + textSize * 0.7);
-
-    // Restore context
-    ctx.restore();
-  }
-
-  /**
-    * Draw rounded rectangle helper
-    */
-  private roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number): void {
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + width - radius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    ctx.lineTo(x + width, y + height - radius);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    ctx.lineTo(x + radius, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.closePath();
-  }
-
-  /**
-    * Draw avatar box (styled like landing page avatar selection)
-    * Shows avatar emoji centered with player name below
-    * Square box (100x100 - half size)
-    */
-  private drawAvatarBox(ctx: CanvasRenderingContext2D, x: number, y: number, avatar: string, name: string): void {
-    const boxWidth = 100 * this.scale;
-    const boxHeight = 100 * this.scale;
-    const borderRadius = 8 * this.scale;
-
-    // Draw background box (10% transparency / 90% opaque gray)
-    ctx.fillStyle = 'rgba(128, 128, 128, 0.9)';
-    ctx.strokeStyle = 'rgba(128, 128, 128, 0.9)';
-    ctx.lineWidth = 2;
-
-    this.roundRect(ctx, x, y, boxWidth, boxHeight, borderRadius);
-    ctx.fill();
-    ctx.stroke();
-
-    // Draw avatar emoji (centered in upper portion)
-    ctx.fillStyle = '#000000';
-    ctx.font = `${48 * this.scale}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(avatar, x + boxWidth / 2, y + boxHeight / 2 - 12 * this.scale);
-
-    // Draw player name (below avatar, black)
-    ctx.font = `bold ${13 * this.scale}px Arial`;
-    ctx.textBaseline = 'top';
-    ctx.fillText(name, x + boxWidth / 2, y + boxHeight / 2 + 18 * this.scale);
-
-    // Reset text baseline
-    ctx.textBaseline = 'alphabetic';
-  }
-
-  /**
-    * Layout remaining hand cards nicely along bottom
-    */
   private layoutHand(): void {
     if (this.layoutManager) {
       this.layoutManager.layoutHand(this.playerHand, 'bottom');
@@ -3158,6 +2295,93 @@ class AxesMundiApp {
         this.showLoseDialog();
       }, 4000);
     }
+  }
+
+  /**
+   * Update scale for all existing cards
+   */
+  private updateAllCardsScale(): void {
+    if (!this.layoutManager) return;
+
+    // Collect all cards
+    const allCards: GameCard[] = [
+      ...(this.boardCard ? [this.boardCard] : []),
+      ...this.playerHand,
+      ...this.opponentHand,
+      ...this.placedLeft,
+      ...this.placedRight,
+      ...this.graveyard,
+    ];
+
+    // Update scale for all cards
+    this.layoutManager.updateScale(allCards);
+  }
+
+  /**
+   * Show player switch overlay for hotseat mode
+   */
+  private showPlayerSwitchOverlay(): void {
+    this.playerSwitchOverlayVisible = true;
+    // Disable player turn while overlay is visible
+    this.isPlayerTurn = false;
+    this.updateInputHandlerConfig();
+    logger.info({
+      scope: 'renderer/hotseat',
+      msg: 'player switch overlay shown',
+      meta: { currentPlayerIndex: this.currentPlayerIndex },
+    });
+  }
+
+  /**
+   * Switch players in hotseat mode
+   */
+  private switchPlayer(): void {
+    // Switch player index
+    this.currentPlayerIndex = this.currentPlayerIndex === 0 ? 1 : 0;
+
+    // Update current and next player hands based on new index
+    this.currentPlayerHand = this.currentPlayerIndex === 0 ? this.player1Hand : this.player2Hand;
+    this.nextPlayerHand = this.currentPlayerIndex === 0 ? this.player2Hand : this.player1Hand;
+
+    // Layout hands (card backs are handled in render method)
+    this.layoutHotseatHands();
+
+    // Update turn text to show new current player
+    this.updateTurnText();
+
+    // Hide overlay and re-enable player turn
+    this.playerSwitchOverlayVisible = false;
+    this.updateInputHandlerConfig();
+    this.playerSwitchOverlayBounds = null;
+    this.isPlayerTurn = true;
+
+    logger.info({
+      scope: 'renderer/hotseat',
+      msg: 'player switched',
+      meta: {
+        newPlayerIndex: this.currentPlayerIndex,
+        currentPlayerCards: this.currentPlayerHand.length,
+        nextPlayerCards: this.nextPlayerHand.length,
+      },
+    });
+  }
+
+  /**
+   * Animate card to graveyard position
+   */
+  private animateCardToGraveyard(card: GameCard): void {
+    // Calculate graveyard position (top right corner)
+    const graveyardX = this.gameCanvas.width - 230 * this.scale; // Aligned with graveyard box
+    const graveyardY = 50 * this.scale; // 50px from top
+
+    // Set target position for smooth animation
+    card.setTargetPosition(graveyardX, graveyardY);
+
+    logger.info({
+      scope: 'renderer/game',
+      msg: 'card animated to graveyard',
+      meta: { cardTitle: card.card.title, graveyardX, graveyardY },
+    });
   }
 
   /**
@@ -3391,8 +2615,8 @@ class AxesMundiApp {
   }
 
   /**
-    * Restart the game
-    */
+   * Restart the game
+   */
   private restartGame(): void {
     logger.info({
       scope: 'renderer/game',
@@ -3428,147 +2652,6 @@ class AxesMundiApp {
 
     // Reload the game
     this.loadGame();
-  }
-
-  /**
-   * Animate card to graveyard position
-   */
-  private animateCardToGraveyard(card: GameCard): void {
-    // Calculate graveyard position (top right corner)
-    const graveyardX = this.gameCanvas.width - 230 * this.scale; // Aligned with graveyard box
-    const graveyardY = 50 * this.scale; // 50px from top
-
-    // Set target position for smooth animation
-    card.setTargetPosition(graveyardX, graveyardY);
-
-    logger.info({
-      scope: 'renderer/game',
-      msg: 'card animated to graveyard',
-      meta: { cardTitle: card.card.title, graveyardX, graveyardY },
-    });
-  }
-
-  /**
-   * Update scale for all existing cards
-   */
-  private updateAllCardsScale(): void {
-    if (!this.layoutManager) return;
-
-    // Collect all cards
-    const allCards: GameCard[] = [
-      ...(this.boardCard ? [this.boardCard] : []),
-      ...this.playerHand,
-      ...this.opponentHand,
-      ...this.placedLeft,
-      ...this.placedRight,
-      ...this.graveyard,
-    ];
-
-    // Update scale for all cards
-    this.layoutManager.updateScale(allCards);
-  }
-
-  /**
-   * Show player switch overlay for hotseat mode
-   */
-  private showPlayerSwitchOverlay(): void {
-    this.playerSwitchOverlayVisible = true;
-    // Disable player turn while overlay is visible
-    this.isPlayerTurn = false;
-    this.updateInputHandlerConfig();
-    logger.info({
-      scope: 'renderer/hotseat',
-      msg: 'player switch overlay shown',
-      meta: { currentPlayerIndex: this.currentPlayerIndex },
-    });
-  }
-
-  /**
-   * Switch players in hotseat mode
-   */
-  private switchPlayer(): void {
-    // Switch player index
-    this.currentPlayerIndex = this.currentPlayerIndex === 0 ? 1 : 0;
-
-    // Update current and next player hands based on new index
-    this.currentPlayerHand = this.currentPlayerIndex === 0 ? this.player1Hand : this.player2Hand;
-    this.nextPlayerHand = this.currentPlayerIndex === 0 ? this.player2Hand : this.player1Hand;
-
-    // Layout hands (card backs are handled in render method)
-    this.layoutHotseatHands();
-
-    // Update turn text to show new current player
-    this.updateTurnText();
-
-    // Hide overlay and re-enable player turn
-    this.playerSwitchOverlayVisible = false;
-    this.updateInputHandlerConfig();
-    this.playerSwitchOverlayBounds = null;
-    this.isPlayerTurn = true;
-
-    logger.info({
-      scope: 'renderer/hotseat',
-      msg: 'player switched',
-      meta: {
-        newPlayerIndex: this.currentPlayerIndex,
-        currentPlayerCards: this.currentPlayerHand.length,
-        nextPlayerCards: this.nextPlayerHand.length,
-      },
-    });
-  }
-
-  /**
-   * Draw player switch overlay for hotseat mode
-   */
-  private drawPlayerSwitchOverlay(ctx: CanvasRenderingContext2D): void {
-    // Darken the background
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(0, 0, this.gameCanvas.width, this.gameCanvas.height);
-
-    // Draw overlay box
-    const overlayWidth = 400 * this.scale;
-    const overlayHeight = 200 * this.scale;
-    const overlayX = (this.gameCanvas.width - overlayWidth) / 2;
-    const overlayY = (this.gameCanvas.height - overlayHeight) / 2;
-
-    // Store bounds for click detection
-    this.playerSwitchOverlayBounds = {
-      x: overlayX,
-      y: overlayY,
-      width: overlayWidth,
-      height: overlayHeight,
-    };
-
-    // Draw overlay background
-    ctx.fillStyle = '#2c3e50';
-    drawRoundedRect(ctx, overlayX, overlayY, overlayWidth, overlayHeight, 10 * this.scale);
-
-    // Draw border
-    ctx.strokeStyle = '#3498db';
-    ctx.lineWidth = 3 * this.scale;
-    ctx.strokeRect(overlayX, overlayY, overlayWidth, overlayHeight);
-
-    // Draw text
-    const nextPlayerIndex = this.currentPlayerIndex === 0 ? 1 : 0;
-    const nextPlayer = nextPlayerIndex === 0 ? this.player1Data : this.player2Data;
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${24 * this.scale}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(
-      `Now it's ${nextPlayer?.name || 'Player'}'s turn!`,
-      overlayX + overlayWidth / 2,
-      overlayY + overlayHeight / 2 - 30 * this.scale,
-    );
-
-    ctx.font = `${18 * this.scale}px Arial`;
-    ctx.fillStyle = '#bdc3c7';
-    ctx.fillText(
-      'Klicke um fortzufahren',
-      overlayX + overlayWidth / 2,
-      overlayY + overlayHeight / 2 + 20 * this.scale,
-    );
   }
 
   /**
