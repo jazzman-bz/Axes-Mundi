@@ -92,17 +92,17 @@
   - [x] Create unit tests for CardDealerManager (26 tests, all passing)
   - [x] Update main.ts to use CardDealerManager
 
-### **Step 12: Extract Game Initialization Logic**
-- [ ] **Create GameInitializer module** - Extract game loading and initialization
-  - [ ] `loadGame()` - Main game loading logic
-  - [ ] `loadAssets()` - Load UI assets (logo, arrows, background)
-  - [ ] `loadLogo()` - Load logo image
-  - [ ] `loadArrowImages()` - Load navigation arrows
-  - [ ] `loadBackgroundImage()` - Load background image
-  - [ ] `initCanvas()` - Canvas initialization
-  - [ ] `setupEventListeners()` - Event listener setup
-  - [ ] Create unit tests for GameInitializer
-  - [ ] Update main.ts to use GameInitializer
+### **Step 12: Extract Game Initialization Logic** ✅
+- [x] **Create GameInitializer module** - Extract game loading and initialization
+  - [x] `loadGame()` - Main game loading logic
+  - [x] `loadAssets()` - Load UI assets (logo, arrows, background)
+  - [x] `loadLogo()` - Load logo image
+  - [x] `loadArrowImages()` - Load navigation arrows
+  - [x] `loadBackgroundImage()` - Load background image
+  - [x] `initCanvas()` - Canvas initialization
+  - [x] `setupEventListeners()` - Event listener setup
+  - [x] Create unit tests for GameInitializer (29 tests, all passing)
+  - [x] Update main.ts to use GameInitializer
 
 ### **Step 13: Extract Turn Timer Management**
 - [ ] **Create TurnTimerManager module** - Extract turn timer logic
@@ -173,13 +173,13 @@
 - ✅ Core game features: **Complete**
 - ✅ Landing page & navigation: **Complete**
 - ✅ All game modes: **Complete** (Single Player, Hotseat, LAN, Learning)
-- ✅ Architecture refactoring: **Steps 1-10 Complete** (Steps 11-16 pending)
-- ✅ Unit tests: **Core modules covered**
+- ✅ Architecture refactoring: **Steps 1-12 Complete** (Steps 13-16 pending)
+- ✅ Unit tests: **Core modules covered** (55 tests passing)
 - ⏳ Polish & UX: **In Progress**
 - ⏳ E2E tests: **Pending**
 
 ### **Next Priorities**
-1. Complete refactoring steps 11-16
+1. Complete refactoring steps 13-16
 2. Add E2E tests with Playwright
 3. Performance optimization and monitoring
 4. Polish UX (animations, responsive design, accessibility)

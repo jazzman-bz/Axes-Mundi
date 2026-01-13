@@ -1,10 +1,10 @@
 ﻿import { logger } from '@/utils/logger';
-import { loadDeck, shuffleCardsInPlace } from '@/data/deckLoader';
+// REMOVED: loadDeck, shuffleCardsInPlace - Now used in GameInitializer
 import { GameCard } from '@/game/Card';
 import { Card as CardData } from '@/data/types';
 import { soundManager, SoundType } from '@/utils/soundManager';
 import { drawRoundedRect, wrapText } from '@/utils/canvasUtils';
-import { loadImage } from '@/utils/assetLoader';
+// REMOVED: loadImage - Now used in GameInitializer
 import { calculateScale, calculateSnapThreshold } from '@/utils/scaleUtils';
 import { ResizeHandler } from '@/utils/resizeHandler';
 // REMOVED: getOpponentCardCount, dealCard - Now used in CardDealerManager
@@ -15,6 +15,7 @@ import { GameRenderer } from '@/utils/gameRenderer';
 import { GameStateManager } from '@/utils/gameStateManager';
 import { CardPlacementHandler } from '@/utils/cardPlacementHandler';
 import { CardDealerManager } from '@/utils/cardDealerManager';
+import { GameInitializer } from '@/utils/gameInitializer';
 
 /**
  * Avatar emoji mapping
@@ -109,6 +110,8 @@ class AxesMundiApp {
   private cardPlacementHandler: CardPlacementHandler | null = null; // Card placement handler for placement logic
 
   private cardDealerManager: CardDealerManager | null = null; // Card dealer manager for card dealing logic
+
+  private gameInitializer: GameInitializer | null = null; // Game initializer for initialization logic
 
   private isGameStarted: boolean = false; // Track if first card has been placed on axis
 
@@ -762,15 +765,183 @@ class AxesMundiApp {
       },
     });
 
-    this.initCanvas();
-    this.setupEventListeners();
+    // Initialize game initializer
+    this.gameInitializer = new GameInitializer({
+      canvas: this.gameCanvas,
+      callbacks: {
+        onGetGameState: () => ({
+          isLearningMode: this.isLearningMode,
+          isHotseatMode: this.isHotseatMode,
+          currentPlayerIndex: this.currentPlayerIndex,
+          gameDifficulty: this.gameDifficulty,
+        }),
+        onGetRemainingCards: () => this.remainingCards,
+        onGetHands: () => ({
+          player1Hand: this.player1Hand,
+          player2Hand: this.player2Hand,
+        }),
+        onSetDeck: (deck) => {
+          this.deck = deck;
+        },
+        onSetRemainingCards: (cards) => {
+          this.remainingCards = cards;
+        },
+        onSetBoardCard: (card) => {
+          this.boardCard = card;
+        },
+        onSetScale: (scale) => {
+          this.scale = scale;
+        },
+        onSetSnapThreshold: (threshold) => {
+          this.snapThreshold = threshold;
+        },
+        onSetLogoImage: (image) => {
+          this.logoImage = image;
+        },
+        onSetArrowLeftImage: (image) => {
+          this.arrowLeftImage = image;
+        },
+        onSetArrowRightImage: (image) => {
+          this.arrowRightImage = image;
+        },
+        onSetBackgroundImage: (image) => {
+          this.backgroundImage = image;
+        },
+        onSetCurrentPlayerHand: (hand) => {
+          this.currentPlayerHand = hand;
+        },
+        onSetNextPlayerHand: (hand) => {
+          this.nextPlayerHand = hand;
+        },
+        onUpdateGameStateManager: (deck) => {
+          if (this.gameStateManager) {
+            this.gameStateManager.updateConfig({ deck });
+          }
+        },
+        onInitializeCardDealerManager: () => {
+          if (this.deck) {
+            this.cardDealerManager = new CardDealerManager({
+              canvas: this.gameCanvas,
+              scale: this.scale,
+              deck: this.deck,
+              callbacks: {
+                onGetRemainingCards: () => this.remainingCards,
+                onGetGraveyard: () => this.graveyard,
+                onGetHands: () => ({
+                  playerHand: this.playerHand,
+                  opponentHand: this.opponentHand,
+                  player1Hand: this.player1Hand,
+                  player2Hand: this.player2Hand,
+                }),
+                onGetGameState: () => ({
+                  gameDifficulty: this.gameDifficulty,
+                  isLearningMode: this.isLearningMode,
+                  isHotseatMode: this.isHotseatMode,
+                  currentPlayerIndex: this.currentPlayerIndex,
+                  boardCard: this.boardCard,
+                  currentTurn: this.currentTurn,
+                }),
+                onAddCardToPlayerHand: (card) => {
+                  this.playerHand.push(card);
+                },
+                onAddCardToOpponentHand: (card) => {
+                  this.opponentHand.push(card);
+                },
+                onAddCardToPlayer1Hand: (card) => {
+                  this.player1Hand.push(card);
+                },
+                onAddCardToPlayer2Hand: (card) => {
+                  this.player2Hand.push(card);
+                },
+                onSetBoardCard: (card) => {
+                  this.boardCard = card;
+                },
+                onSetIsPlayerTurn: (isPlayerTurn) => {
+                  this.isPlayerTurn = isPlayerTurn;
+                },
+                onSetIsGameStarted: (started) => {
+                  this.isGameStarted = started;
+                },
+                onSetCurrentTurn: (turn) => {
+                  this.currentTurn = turn;
+                },
+                onLayoutHand: () => {
+                  this.layoutHand();
+                },
+                onLayoutOpponentHand: () => {
+                  this.layoutOpponentHand();
+                },
+                onLayoutHotseatHands: () => {
+                  this.layoutHotseatHands();
+                },
+                onLayoutPlayer1Hand: () => {
+                  this.layoutPlayer1Hand();
+                },
+                onLayoutPlayer2Hand: () => {
+                  this.layoutPlayer2Hand();
+                },
+                onRecycleGraveyard: () => {
+                  if (this.gameStateManager) {
+                    this.gameStateManager.recycleGraveyard();
+                  }
+                },
+                onUpdateInputHandlerConfig: () => {
+                  this.updateInputHandlerConfig();
+                },
+                onStartTurnTimer: () => {
+                  this.startTurnTimer();
+                },
+                onUpdateTurnText: () => {
+                  this.updateTurnText();
+                },
+                onPlaySound: (soundType) => {
+                  soundManager.play(soundType);
+                },
+              },
+            });
+          }
+        },
+        onAnimateFirstCardToCenter: (card) => {
+          if (this.cardDealerManager) {
+            this.cardDealerManager.animateFirstCardToCenter(card);
+          }
+        },
+        onStartDealingCards: (mode) => {
+          if (this.cardDealerManager) {
+            if (mode === 'learning') {
+              this.cardDealerManager.dealCardsToPlayersLearningMode();
+            } else if (mode === 'hotseat') {
+              this.cardDealerManager.dealCardsToPlayersHotseat();
+              // Set current player hand based on starting player immediately
+              this.currentPlayerHand = this.currentPlayerIndex === 0 ? this.player1Hand : this.player2Hand;
+              this.nextPlayerHand = this.currentPlayerIndex === 0 ? this.player2Hand : this.player1Hand;
+            } else {
+              this.cardDealerManager.dealCardsToPlayers();
+            }
+          }
+        },
+      },
+    });
+
+    // Initialize canvas
+    if (this.gameInitializer) {
+      this.gameInitializer.initCanvas();
+    }
+
+    // Setup event listeners
+    if (this.gameInitializer) {
+      this.gameInitializer.setupEventListeners(this.resizeHandler, this.inputHandler);
+    }
+
     this.hideLoadingScreen();
     // Calculate initial scale
     this.scale = calculateScale(window.innerWidth, window.innerHeight);
     this.snapThreshold = calculateSnapThreshold(this.scale);
 
     // Load all UI assets in parallel (fire-and-forget, they'll render when ready)
-    this.loadAssets();
+    if (this.gameInitializer) {
+      this.gameInitializer.loadAssets();
+    }
 
     // Check if this is LAN mode - if so, don't start normal game
     const isLANMode = localStorage.getItem('selectedGameType') === 'lan';
@@ -782,275 +953,25 @@ class AxesMundiApp {
       });
       this.startGameLoop(); // Start game loop for basic UI only
     } else {
-      this.loadGame();
+      if (this.gameInitializer) {
+        // Load game asynchronously (don't await - start game loop immediately)
+        this.gameInitializer.loadGame().catch((error) => {
+          logger.error({
+            scope: 'renderer/app',
+            msg: 'failed to load game',
+            err: { message: error.message },
+          });
+        });
+      }
       this.startGameLoop();
     }
   }
 
-  /**
-   * Initialize canvas
-   */
-  private initCanvas(): void {
-    try {
-      this.gameCanvas.width = window.innerWidth;
-      this.gameCanvas.height = window.innerHeight;
-
-      logger.info({ scope: 'renderer/app', msg: 'canvas initialized' });
-    } catch (error: any) {
-      logger.error({
-        scope: 'renderer/app',
-        msg: 'failed to initialize canvas',
-        err: { message: error.message, stack: error.stack },
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * Set up event listeners
-   */
-  private setupEventListeners(): void {
-    // Window resize (handled by ResizeHandler)
-    if (this.resizeHandler) {
-      this.resizeHandler.attach();
-    }
-
-    // Input handling (handled by InputHandler)
-    if (this.inputHandler) {
-      this.inputHandler.attach();
-    }
-
-    logger.debug({ scope: 'renderer/app', msg: 'event listeners set up' });
-  }
-
-  /**
-   * Load the Axes Mundi logo image
-   */
-  private async loadLogo(): Promise<void> {
-    const asset = await loadImage('./assets/axes-mundi logo.png', {
-      scope: 'renderer/app',
-    });
-    this.logoImage = asset?.image ?? null;
-  }
-
-  /**
-   * Load arrow images for board navigation
-   */
-  private async loadArrowImages(): Promise<void> {
-    // Load both arrows in parallel with white conversion
-    const [leftAsset, rightAsset] = await Promise.all([
-      loadImage('./assets/arrow left.png', {
-        convertToWhite: true,
-        scope: 'renderer/app',
-      }),
-      loadImage('./assets/arrow right.png', {
-        convertToWhite: true,
-        scope: 'renderer/app',
-      }),
-    ]);
-
-    this.arrowLeftImage = leftAsset?.image ?? null;
-    this.arrowRightImage = rightAsset?.image ?? null;
-  }
-
-  /**
-   * Load background image
-   */
-  private async loadBackgroundImage(): Promise<void> {
-    const asset = await loadImage('./assets/background.jpg', {
-      scope: 'renderer/app',
-    });
-    this.backgroundImage = asset?.image ?? null;
-  }
-
-  /**
-   * Load all UI assets in parallel
-   */
-  private loadAssets(): void {
-    // Fire-and-forget: assets will render when ready
-    Promise.all([
-      this.loadLogo(),
-      this.loadArrowImages(),
-      this.loadBackgroundImage(),
-    ]).catch((err) => {
-      logger.error({
-        scope: 'renderer/app',
-        msg: 'failed to load assets',
-        err: { message: err.message },
-      });
-    });
-  }
+  // REMOVED: Initialization methods - Now handled by GameInitializer
 
 
 
-  // REMOVED: loadLANGame() - Now handled by LANGameManager
-
-  /**
-   * Load game data
-   */
-  private async loadGame(): Promise<void> {
-    try {
-      // Load deck from localStorage
-      const selectedDeck = localStorage.getItem('selectedDeck') || 'buildings-height-en';
-
-      logger.info({
-        scope: 'renderer/game',
-        msg: 'loading deck for game',
-        meta: {
-          selectedDeck,
-        },
-      });
-
-      this.deck = await loadDeck(selectedDeck);
-      
-      // Update game state manager with deck
-      if (this.gameStateManager) {
-        this.gameStateManager.updateConfig({ deck: this.deck });
-      }
-
-      // Initialize card dealer manager
-      this.cardDealerManager = new CardDealerManager({
-        canvas: this.gameCanvas,
-        scale: this.scale,
-        deck: this.deck,
-        callbacks: {
-          onGetRemainingCards: () => this.remainingCards,
-          onGetGraveyard: () => this.graveyard,
-          onGetHands: () => ({
-            playerHand: this.playerHand,
-            opponentHand: this.opponentHand,
-            player1Hand: this.player1Hand,
-            player2Hand: this.player2Hand,
-          }),
-          onGetGameState: () => ({
-            gameDifficulty: this.gameDifficulty,
-            isLearningMode: this.isLearningMode,
-            isHotseatMode: this.isHotseatMode,
-            currentPlayerIndex: this.currentPlayerIndex,
-            boardCard: this.boardCard,
-            currentTurn: this.currentTurn,
-          }),
-          onAddCardToPlayerHand: (card) => {
-            this.playerHand.push(card);
-          },
-          onAddCardToOpponentHand: (card) => {
-            this.opponentHand.push(card);
-          },
-          onAddCardToPlayer1Hand: (card) => {
-            this.player1Hand.push(card);
-          },
-          onAddCardToPlayer2Hand: (card) => {
-            this.player2Hand.push(card);
-          },
-          onSetBoardCard: (card) => {
-            this.boardCard = card;
-          },
-          onSetIsPlayerTurn: (isPlayerTurn) => {
-            this.isPlayerTurn = isPlayerTurn;
-          },
-          onSetIsGameStarted: (started) => {
-            this.isGameStarted = started;
-          },
-          onSetCurrentTurn: (turn) => {
-            this.currentTurn = turn;
-          },
-          onLayoutHand: () => {
-            this.layoutHand();
-          },
-          onLayoutOpponentHand: () => {
-            this.layoutOpponentHand();
-          },
-          onLayoutHotseatHands: () => {
-            this.layoutHotseatHands();
-          },
-          onLayoutPlayer1Hand: () => {
-            this.layoutPlayer1Hand();
-          },
-          onLayoutPlayer2Hand: () => {
-            this.layoutPlayer2Hand();
-          },
-          onRecycleGraveyard: () => {
-            if (this.gameStateManager) {
-              this.gameStateManager.recycleGraveyard();
-            }
-          },
-          onUpdateInputHandlerConfig: () => {
-            this.updateInputHandlerConfig();
-          },
-          onStartTurnTimer: () => {
-            this.startTurnTimer();
-          },
-          onUpdateTurnText: () => {
-            this.updateTurnText();
-          },
-          onPlaySound: (soundType) => {
-            soundManager.play(soundType);
-          },
-        },
-      });
-
-      // Initialize remaining cards from deck and shuffle them
-      this.remainingCards = [...this.deck.cards];
-      shuffleCardsInPlace(this.remainingCards);
-
-      // Ensure scale is calculated with correct canvas dimensions
-      this.scale = calculateScale(window.innerWidth, window.innerHeight);
-      this.snapThreshold = calculateSnapThreshold(this.scale);
-
-      // Get first card for board (turn-based: first card goes to center)
-      const boardCardData = this.remainingCards.shift()!;
-      this.boardCard = new GameCard(
-        boardCardData,
-        this.deck,
-        50 * this.scale, // Start at deck position
-        this.gameCanvas.height - 320 * this.scale, // Deck Y position (same as player hand)
-        this.scale,
-      );
-      this.boardCard.isInHand = false; // Board card is on axis, not in hand
-
-      // Animate first card from deck to center of axis
-      if (this.cardDealerManager) {
-        this.cardDealerManager.animateFirstCardToCenter(this.boardCard);
-      }
-
-      // Start dealing cards immediately (don't wait for animation)
-      logger.info({
-        scope: 'renderer/game',
-        msg: 'starting dealCardsToPlayers immediately',
-        meta: { remainingCards: this.remainingCards.length },
-      });
-
-      // Deal cards based on game mode
-      if (this.cardDealerManager) {
-        if (this.isLearningMode) {
-          this.cardDealerManager.dealCardsToPlayersLearningMode();
-        } else if (this.isHotseatMode) {
-          this.cardDealerManager.dealCardsToPlayersHotseat();
-          // Set current player hand based on starting player immediately
-          this.currentPlayerHand = this.currentPlayerIndex === 0 ? this.player1Hand : this.player2Hand;
-          this.nextPlayerHand = this.currentPlayerIndex === 0 ? this.player2Hand : this.player1Hand;
-        } else {
-          this.cardDealerManager.dealCardsToPlayers();
-        }
-      }
-
-      logger.info({
-        scope: 'renderer/game',
-        msg: 'game loaded successfully',
-        meta: {
-          boardCard: boardCardData.title,
-          remainingCards: this.remainingCards.length,
-          isLearningMode: this.isLearningMode,
-        },
-      });
-    } catch (error: any) {
-      logger.error({
-        scope: 'renderer/game',
-        msg: 'failed to load game',
-        err: { message: error.message, stack: error.stack },
-      });
-    }
-  }
+  // REMOVED: loadGame() - Now handled by GameInitializer
 
   // REMOVED: Card dealing methods - Now handled by CardDealerManager
 
@@ -1479,7 +1400,15 @@ class AxesMundiApp {
     this.updateInputHandlerConfig();
 
     // Reload the game
-    this.loadGame();
+    if (this.gameInitializer) {
+      this.gameInitializer.loadGame().catch((error) => {
+        logger.error({
+          scope: 'renderer/learning',
+          msg: 'failed to reload game',
+          err: { message: error.message },
+        });
+      });
+    }
   }
 
   /**
@@ -2173,7 +2102,15 @@ class AxesMundiApp {
     this.playerSwitchOverlayBounds = null;
 
     // Reload the game
-    this.loadGame();
+    if (this.gameInitializer) {
+      this.gameInitializer.loadGame().catch((error) => {
+        logger.error({
+          scope: 'renderer/game',
+          msg: 'failed to reload game',
+          err: { message: error.message },
+        });
+      });
+    }
   }
 
   /**

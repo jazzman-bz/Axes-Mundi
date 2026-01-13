@@ -1,7 +1,7 @@
 # Axes-Mundi Architecture Documentation
 
 **Last Updated:** 2025-01-12  
-**Status:** Steps 1-10 completed, Steps 11-16 planned
+**Status:** Steps 1-12 completed, Steps 13-16 planned
 
 ## Overview
 
@@ -79,15 +79,19 @@ The Axes-Mundi application has been refactored from a monolithic `main.ts` file 
 - **Dependencies**: Game state (via callbacks)
 - **Callbacks**: `onGetBoardCards`, `onGetGameState`, `onSetScore`, `onCheckWin`, `onAITurn`, etc.
 
-### Planned Modules (Steps 11-16)
-
-#### 11. **CardDealerManager** (Planned)
+#### 11. **CardDealerManager** (`app/renderer/utils/cardDealerManager.ts`)
 - **Purpose**: Card dealing logic for all game modes
-- **Methods**: `dealCardsToPlayers()`, `dealCardToPlayer()`, `dealCardToOpponent()`, etc.
+- **Key Methods**: `dealCardsToPlayers()`, `dealCardToPlayer()`, `dealCardToOpponent()`, `dealCardsToPlayersLearningMode()`, `dealCardsToPlayersHotseat()`, `animateFirstCardToCenter()`, etc.
+- **Dependencies**: Game state (via callbacks)
+- **Callbacks**: `onGetRemainingCards`, `onGetGraveyard`, `onGetHands`, `onGetGameState`, `onAddCardToPlayerHand`, etc.
 
-#### 12. **GameInitializer** (Planned)
+#### 12. **GameInitializer** (`app/renderer/utils/gameInitializer.ts`)
 - **Purpose**: Game loading and initialization
-- **Methods**: `loadGame()`, `loadAssets()`, `initCanvas()`, etc.
+- **Key Methods**: `loadGame()`, `loadAssets()`, `loadLogo()`, `loadArrowImages()`, `loadBackgroundImage()`, `initCanvas()`, `setupEventListeners()`
+- **Dependencies**: Asset loading, deck loading (via callbacks)
+- **Callbacks**: `onGetGameState`, `onSetDeck`, `onSetRemainingCards`, `onSetBoardCard`, `onInitializeCardDealerManager`, etc.
+
+### Planned Modules (Steps 13-16)
 
 #### 13. **TurnTimerManager** (Planned)
 - **Purpose**: Turn timer management
@@ -113,7 +117,7 @@ The `AxesMundiApp` class now serves as the orchestrator that:
 - Manages the game loop
 - Coordinates module interactions
 
-**Current Size**: ~2,500 lines (reduced from ~4,400 lines)
+**Current Size**: ~2,100 lines (reduced from ~4,400 lines)
 
 ## Callback Pattern
 
@@ -143,6 +147,8 @@ class Module {
 
 ```
 AxesMundiApp (Orchestrator)
+    ├── GameInitializer (Game initialization)
+    │   └── CardDealerManager (Card dealing)
     ├── ResizeHandler (Window events)
     ├── InputHandler (Mouse events)
     │   └── CardPlacementHandler (Placement logic)
@@ -159,7 +165,7 @@ AxesMundiApp (Orchestrator)
 
 ```
 app/renderer/
-  ├── main.ts                    # Main orchestrator (~2,500 lines)
+  ├── main.ts                    # Main orchestrator (~2,100 lines)
   ├── utils/
   │   ├── resizeHandler.ts       # ✅ Step 1
   │   ├── scaleUtils.ts          # ✅ Step 2
@@ -172,8 +178,8 @@ app/renderer/
   │   ├── gameRenderer.ts        # ✅ Step 9
   │   ├── gameStateManager.ts     # ✅ Step 10
   │   ├── cardPlacementHandler.ts # ✅ Step 10.5
-  │   ├── cardDealerManager.ts    # ⏳ Step 11 (Planned)
-  │   ├── gameInitializer.ts     # ⏳ Step 12 (Planned)
+  │   ├── cardDealerManager.ts    # ✅ Step 11
+  │   ├── gameInitializer.ts     # ✅ Step 12
   │   ├── turnTimerManager.ts    # ⏳ Step 13 (Planned)
   │   ├── uiDialogManager.ts     # ⏳ Step 14 (Planned)
   │   ├── learningModeManager.ts # ⏳ Step 15 (Planned)
@@ -195,11 +201,13 @@ Each module has corresponding unit tests in `tests/unit/`:
 - ✅ `gameRenderer.test.ts`
 - ✅ `gameStateManager.test.ts`
 - ✅ `cardPlacementHandler.test.ts`
+- ✅ `cardDealerManager.test.ts`
+- ✅ `gameInitializer.test.ts`
 
 ## Migration Progress
 
-- **Steps 1-10**: ✅ Completed
-- **Steps 11-16**: ⏳ Planned (see TODO.md)
+- **Steps 1-12**: ✅ Completed
+- **Steps 13-16**: ⏳ Planned (see TODO.md)
 
 ## Key Design Decisions
 
