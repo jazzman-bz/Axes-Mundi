@@ -16,6 +16,7 @@ import { GameStateManager } from '@/utils/gameStateManager';
 import { CardPlacementHandler } from '@/utils/cardPlacementHandler';
 import { CardDealerManager } from '@/utils/cardDealerManager';
 import { GameInitializer } from '@/utils/gameInitializer';
+import { TurnTimerManager } from '@/utils/turnTimerManager';
 
 /**
  * Avatar emoji mapping
@@ -113,6 +114,8 @@ class AxesMundiApp {
 
   private gameInitializer: GameInitializer | null = null; // Game initializer for initialization logic
 
+  private turnTimerManager: TurnTimerManager | null = null; // Turn timer manager for timer logic
+
   private isGameStarted: boolean = false; // Track if first card has been placed on axis
 
   private currentTurn: number = 0; // Track current turn
@@ -125,7 +128,7 @@ class AxesMundiApp {
 
   private gameDifficulty: 'easy' | 'medium' | 'hard'; // Current game difficulty
 
-  private turnTimerInterval: number | null = null; // Timer interval ID
+  // REMOVED: turnTimerInterval - Now in TurnTimerManager
 
   private isAITurnInProgress: boolean = false; // Prevent multiple AI turns
 
@@ -352,7 +355,9 @@ class AxesMundiApp {
           this.isPlayerTurn = true;
           this.currentTurn++;
           this.isAITurnInProgress = false;
-          this.startTurnTimer();
+          if (this.turnTimerManager) {
+            this.turnTimerManager.startTurnTimer();
+          }
           this.updateInputHandlerConfig();
         },
         onCheckWin: () => {
@@ -361,7 +366,9 @@ class AxesMundiApp {
           }
         },
         onStartTurnTimer: () => {
-          this.startTurnTimer();
+          if (this.turnTimerManager) {
+            this.turnTimerManager.startTurnTimer();
+          }
         },
         onShowPreview: (x) => {
           if (this.inputHandler) {
@@ -393,7 +400,12 @@ class AxesMundiApp {
       onPlayerSwitchOverlayBounds: (bounds) => {
         this.playerSwitchOverlayBounds = bounds;
       },
-      onGetDifficultyTimer: () => this.getDifficultyTimer(),
+      onGetDifficultyTimer: () => {
+        if (this.turnTimerManager) {
+          return this.turnTimerManager.getDifficultyTimer(this.gameDifficulty);
+        }
+        return 10; // Default
+      },
     });
 
     // Initialize game state manager (will be fully configured after deck is loaded)
@@ -494,14 +506,20 @@ class AxesMundiApp {
           this.isPlayerTurn = true;
           this.currentTurn++;
           this.isAITurnInProgress = false;
-          this.startTurnTimer();
+          if (this.turnTimerManager) {
+            this.turnTimerManager.startTurnTimer();
+          }
           this.updateInputHandlerConfig();
         },
         onStartTurnTimer: () => {
-          this.startTurnTimer();
+          if (this.turnTimerManager) {
+            this.turnTimerManager.startTurnTimer();
+          }
         },
         onStopTurnTimer: () => {
-          this.stopTurnTimer();
+          if (this.turnTimerManager) {
+            this.turnTimerManager.stopTurnTimer();
+          }
         },
         onUpdateInputHandlerConfig: () => {
           this.updateInputHandlerConfig();
@@ -575,8 +593,16 @@ class AxesMundiApp {
         onLayoutHand: () => this.layoutHand(),
         onLayoutHotseatHands: () => this.layoutHotseatHands(),
         onPlaySound: (soundType) => soundManager.play(soundType),
-        onStopTurnTimer: () => this.stopTurnTimer(),
-        onStartTurnTimer: () => this.startTurnTimer(),
+        onStopTurnTimer: () => {
+          if (this.turnTimerManager) {
+            this.turnTimerManager.stopTurnTimer();
+          }
+        },
+        onStartTurnTimer: () => {
+          if (this.turnTimerManager) {
+            this.turnTimerManager.startTurnTimer();
+          }
+        },
         onCheckWin: () => {
           if (this.gameStateManager) {
             this.gameStateManager.checkForWin();
@@ -602,6 +628,52 @@ class AxesMundiApp {
           }
         },
         onLog: (level, scope, msg, meta) => logger[level]({ scope, msg, meta }),
+      },
+    });
+
+    // Initialize turn timer manager
+    this.turnTimerManager = new TurnTimerManager({
+      callbacks: {
+        onGetGameState: () => ({
+          gameDifficulty: this.gameDifficulty,
+          isLearningMode: this.isLearningMode,
+          isHotseatMode: this.isHotseatMode,
+          isPlayerTurn: this.isPlayerTurn,
+          currentTurn: this.currentTurn,
+        }),
+        onGetHands: () => ({
+          playerHand: this.playerHand,
+          opponentHand: this.opponentHand,
+        }),
+        onGetPlayerData: () => ({
+          player1Data: this.player1Data,
+          player2Data: this.player2Data,
+          currentPlayerIndex: this.currentPlayerIndex,
+        }),
+        onGetTurnTimer: () => this.turnTimer,
+        onSetTurnTimer: (timer) => {
+          this.turnTimer = timer;
+        },
+        onSetTurnText: (text) => {
+          this.turnText = text;
+        },
+        onSetIsPlayerTurn: (isPlayerTurn) => {
+          this.isPlayerTurn = isPlayerTurn;
+          this.updateInputHandlerConfig();
+        },
+        onSetCurrentTurn: (turn) => {
+          this.currentTurn = turn;
+        },
+        onUpdateInputHandlerConfig: () => {
+          this.updateInputHandlerConfig();
+        },
+        onAITurn: (opponentHand) => {
+          if (this.aiManager && !this.isAITurnInProgress) {
+            setTimeout(() => {
+              this.isAITurnInProgress = this.aiManager!.playTurn(opponentHand, this.isAITurnInProgress);
+            }, 500);
+          }
+        },
       },
     });
 
@@ -760,7 +832,7 @@ class AxesMundiApp {
       msg: 'game initialized',
       meta: {
         difficulty: this.gameDifficulty,
-        timer: this.getDifficultyTimer(),
+        timer: this.turnTimerManager ? this.turnTimerManager.getDifficultyTimer(this.gameDifficulty) : 10,
         isLearningMode: this.isLearningMode,
       },
     });
@@ -889,10 +961,14 @@ class AxesMundiApp {
                   this.updateInputHandlerConfig();
                 },
                 onStartTurnTimer: () => {
-                  this.startTurnTimer();
+                  if (this.turnTimerManager) {
+            this.turnTimerManager.startTurnTimer();
+          }
                 },
                 onUpdateTurnText: () => {
-                  this.updateTurnText();
+                  if (this.turnTimerManager) {
+            this.turnTimerManager.updateTurnText();
+          }
                 },
                 onPlaySound: (soundType) => {
                   soundManager.play(soundType);
@@ -1012,33 +1088,7 @@ class AxesMundiApp {
     });
   }
 
-  /**
-   * Update turn text display
-   */
-  private updateTurnText(): void {
-    // In learning mode, don't show turn text
-    if (this.isLearningMode) {
-      this.turnText = '';
-      return;
-    }
-
-    // LAN mode is now handled by LANGameManager - skip here
-
-    // In hotseat mode, show current player name
-    if (this.isHotseatMode) {
-      const currentPlayerName = this.currentPlayerIndex === 0
-        ? (this.player1Data?.name || 'Player 1')
-        : (this.player2Data?.name || 'Player 2');
-      this.turnText = `ðŸŽ® ${currentPlayerName}'s turn`;
-      return;
-    }
-
-    if (this.isPlayerTurn) {
-      this.turnText = `Your Turn (${this.playerHand.length} cards) - ${this.turnTimer}s`;
-    } else {
-      this.turnText = `Opponent's Turn (${this.opponentHand.length} cards) - ${this.turnTimer}s`;
-    }
-  }
+  // REMOVED: updateTurnText() - Now handled by TurnTimerManager
 
   // REMOVED: Learning mode and hotseat card dealing methods - Now handled by CardDealerManager
 
@@ -1078,102 +1128,7 @@ class AxesMundiApp {
     });
   }
 
-  /**
-   * Get difficulty-based timer duration
-   */
-  private getDifficultyTimer(): number {
-    switch (this.gameDifficulty) {
-      case 'easy':
-        return 30;
-      case 'medium':
-        return 20;
-      case 'hard':
-        return 10;
-      default:
-        return 10;
-    }
-  }
-
-  /**
-   * Start turn timer
-   */
-  private startTurnTimer(): void {
-    // In learning mode or hotseat mode, no timer
-    if (this.isLearningMode || this.isHotseatMode) {
-      return;
-    }
-
-    this.turnTimer = this.getDifficultyTimer();
-    this.updateTurnText();
-
-    this.turnTimerInterval = window.setInterval(() => {
-      this.turnTimer--;
-      this.updateTurnText();
-
-      if (this.turnTimer <= 0) {
-        this.endTurn();
-      }
-    }, 1000);
-  }
-
-  /**
-   * Stop turn timer
-   */
-  private stopTurnTimer(): void {
-    if (this.turnTimerInterval) {
-      clearInterval(this.turnTimerInterval);
-      this.turnTimerInterval = null;
-    }
-  }
-
-  /**
-   * End current turn (time ran out)
-   */
-  private endTurn(): void {
-    this.stopTurnTimer();
-
-    // In learning mode, don't end turns
-    if (this.isLearningMode) {
-      logger.info({
-        scope: 'renderer/timer',
-        msg: 'turn end skipped in learning mode',
-        meta: { isLearningMode: true },
-      });
-      return;
-    }
-
-    if (this.isPlayerTurn) {
-      // Player's time ran out - switch to AI turn
-      logger.info({
-        scope: 'renderer/timer',
-        msg: 'player turn timed out, switching to AI',
-        meta: { turn: this.currentTurn },
-      });
-
-      this.isPlayerTurn = false;
-      this.updateInputHandlerConfig();
-      this.currentTurn++;
-      this.updateTurnText();
-
-      // Let AI play immediately (only if not already in progress)
-      if (this.opponentHand.length > 0 && !this.isAITurnInProgress && this.aiManager) {
-        setTimeout(() => {
-          this.isAITurnInProgress = this.aiManager!.playTurn(this.opponentHand, this.isAITurnInProgress);
-        }, 500);
-      }
-    } else {
-      // AI's time ran out - switch back to player
-      logger.info({
-        scope: 'renderer/timer',
-        msg: 'AI turn timed out, switching to player',
-        meta: { turn: this.currentTurn },
-      });
-
-      this.isPlayerTurn = true;
-      this.updateInputHandlerConfig();
-      this.updateTurnText();
-    }
-  }
+  // REMOVED: Timer methods - Now handled by TurnTimerManager
 
 
   /**
@@ -1369,7 +1324,9 @@ class AxesMundiApp {
     });
 
     // Stop any running timer
-    this.stopTurnTimer();
+    if (this.turnTimerManager) {
+      this.turnTimerManager.stopTurnTimer();
+    }
 
     // Clear all button bounds
     this.weiterButtonBounds = null;
@@ -1798,7 +1755,9 @@ class AxesMundiApp {
     this.layoutHotseatHands();
 
     // Update turn text to show new current player
-    this.updateTurnText();
+    if (this.turnTimerManager) {
+      this.turnTimerManager.updateTurnText();
+    }
 
     // Hide overlay and re-enable player turn
     this.playerSwitchOverlayVisible = false;
@@ -2075,7 +2034,9 @@ class AxesMundiApp {
     });
 
     // Stop any running timer
-    this.stopTurnTimer();
+    if (this.turnTimerManager) {
+      this.turnTimerManager.stopTurnTimer();
+    }
 
     // Reset game state
     this.gameWon = false;

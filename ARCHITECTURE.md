@@ -1,7 +1,7 @@
 # Axes-Mundi Architecture Documentation
 
 **Last Updated:** 2025-01-12  
-**Status:** Steps 1-12 completed, Steps 13-16 planned
+**Status:** Steps 1-13 completed, Steps 14-16 planned
 
 ## Overview
 
@@ -91,9 +91,16 @@ The Axes-Mundi application has been refactored from a monolithic `main.ts` file 
 - **Dependencies**: Asset loading, deck loading (via callbacks)
 - **Callbacks**: `onGetGameState`, `onSetDeck`, `onSetRemainingCards`, `onSetBoardCard`, `onInitializeCardDealerManager`, etc.
 
-### Planned Modules (Steps 13-16)
+#### 13. **TurnTimerManager** (`app/renderer/utils/turnTimerManager.ts`)
+- **Purpose**: Turn timer management for single-player (AI) mode only
+- **Key Methods**: `startTurnTimer()`, `stopTurnTimer()`, `endTurn()`, `getDifficultyTimer()`, `updateTurnText()`
+- **Dependencies**: Game state (via callbacks)
+- **Callbacks**: `onGetGameState`, `onGetHands`, `onGetPlayerData`, `onGetTurnTimer`, `onSetTurnTimer`, `onSetTurnText`, `onSetIsPlayerTurn`, `onAITurn`, etc.
+- **Note**: Timer only works in single-player mode; skipped in learning/hotseat/LAN modes
 
-#### 13. **TurnTimerManager** (Planned)
+### Planned Modules (Steps 14-16)
+
+#### 14. **UIDialogManager** (Planned)
 - **Purpose**: Turn timer management
 - **Methods**: `startTurnTimer()`, `stopTurnTimer()`, `endTurn()`, etc.
 
@@ -117,7 +124,7 @@ The `AxesMundiApp` class now serves as the orchestrator that:
 - Manages the game loop
 - Coordinates module interactions
 
-**Current Size**: ~2,100 lines (reduced from ~4,400 lines)
+**Current Size**: ~2,000 lines (reduced from ~4,400 lines)
 
 ## Callback Pattern
 
@@ -180,7 +187,7 @@ app/renderer/
   │   ├── cardPlacementHandler.ts # ✅ Step 10.5
   │   ├── cardDealerManager.ts    # ✅ Step 11
   │   ├── gameInitializer.ts     # ✅ Step 12
-  │   ├── turnTimerManager.ts    # ⏳ Step 13 (Planned)
+  │   ├── turnTimerManager.ts    # ✅ Step 13
   │   ├── uiDialogManager.ts     # ⏳ Step 14 (Planned)
   │   ├── learningModeManager.ts # ⏳ Step 15 (Planned)
   │   └── boardNavigationManager.ts # ⏳ Step 16 (Planned)
@@ -203,11 +210,12 @@ Each module has corresponding unit tests in `tests/unit/`:
 - ✅ `cardPlacementHandler.test.ts`
 - ✅ `cardDealerManager.test.ts`
 - ✅ `gameInitializer.test.ts`
+- ✅ `turnTimerManager.test.ts`
 
 ## Migration Progress
 
-- **Steps 1-12**: ✅ Completed
-- **Steps 13-16**: ⏳ Planned (see TODO.md)
+- **Steps 1-13**: ✅ Completed
+- **Steps 14-16**: ⏳ Planned (see TODO.md)
 
 ## Key Design Decisions
 

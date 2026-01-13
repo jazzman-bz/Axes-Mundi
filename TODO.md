@@ -104,15 +104,15 @@
   - [x] Create unit tests for GameInitializer (29 tests, all passing)
   - [x] Update main.ts to use GameInitializer
 
-### **Step 13: Extract Turn Timer Management**
-- [ ] **Create TurnTimerManager module** - Extract turn timer logic
-  - [ ] `startTurnTimer()` - Start player turn timer
-  - [ ] `stopTurnTimer()` - Stop turn timer
-  - [ ] `endTurn()` - Handle turn timeout (switch to AI)
-  - [ ] `getDifficultyTimer()` - Get timer duration based on difficulty
-  - [ ] `updateTurnText()` - Update turn display text
-  - [ ] Create unit tests for TurnTimerManager
-  - [ ] Update main.ts to use TurnTimerManager
+### **Step 13: Extract Turn Timer Management** ✅
+- [x] **Create TurnTimerManager module** - Extract turn timer logic
+  - [x] `startTurnTimer()` - Start player turn timer (single-player mode only)
+  - [x] `stopTurnTimer()` - Stop turn timer
+  - [x] `endTurn()` - Handle turn timeout (switch to AI)
+  - [x] `getDifficultyTimer()` - Get timer duration based on difficulty
+  - [x] `updateTurnText()` - Update turn display text (all modes)
+  - [x] Create unit tests for TurnTimerManager (31 tests, all passing)
+  - [x] Update main.ts to use TurnTimerManager
 
 ### **Step 14: Extract UI Dialogs and Overlays**
 - [ ] **Create UIDialogManager module** - Extract dialog and overlay management
@@ -173,13 +173,13 @@
 - ✅ Core game features: **Complete**
 - ✅ Landing page & navigation: **Complete**
 - ✅ All game modes: **Complete** (Single Player, Hotseat, LAN, Learning)
-- ✅ Architecture refactoring: **Steps 1-12 Complete** (Steps 13-16 pending)
-- ✅ Unit tests: **Core modules covered** (55 tests passing)
+- ✅ Architecture refactoring: **Steps 1-13 Complete** (Steps 14-16 pending)
+- ✅ Unit tests: **Core modules covered** (86 tests passing)
 - ⏳ Polish & UX: **In Progress**
 - ⏳ E2E tests: **Pending**
 
 ### **Next Priorities**
-1. Complete refactoring steps 13-16
+1. Complete refactoring steps 14-16
 2. Add E2E tests with Playwright
 3. Performance optimization and monitoring
 4. Polish UX (animations, responsive design, accessibility)
