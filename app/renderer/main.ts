@@ -7,13 +7,14 @@ import { drawRoundedRect, wrapText } from '@/utils/canvasUtils';
 import { loadImage } from '@/utils/assetLoader';
 import { calculateScale, calculateSnapThreshold } from '@/utils/scaleUtils';
 import { ResizeHandler } from '@/utils/resizeHandler';
-import { getOpponentCardCount, dealCard } from '@/utils/cardDealer';
+// REMOVED: getOpponentCardCount, dealCard - Now used in CardDealerManager
 import { CardLayoutManager } from '@/utils/cardLayout';
 import { InputHandler } from '@/utils/inputHandler';
 import { AIManager } from '@/utils/aiManager';
 import { GameRenderer } from '@/utils/gameRenderer';
 import { GameStateManager } from '@/utils/gameStateManager';
 import { CardPlacementHandler } from '@/utils/cardPlacementHandler';
+import { CardDealerManager } from '@/utils/cardDealerManager';
 
 /**
  * Avatar emoji mapping
@@ -106,6 +107,8 @@ class AxesMundiApp {
   private gameStateManager: GameStateManager | null = null; // Game state manager for state logic
 
   private cardPlacementHandler: CardPlacementHandler | null = null; // Card placement handler for placement logic
+
+  private cardDealerManager: CardDealerManager | null = null; // Card dealer manager for card dealing logic
 
   private isGameStarted: boolean = false; // Track if first card has been placed on axis
 
@@ -477,7 +480,9 @@ class AxesMundiApp {
           this.animateCardToGraveyard(card);
         },
         onAnimateCardToHand: (card) => {
-          this.animateCardToHand(card);
+          if (this.cardDealerManager) {
+            this.cardDealerManager.animateCardToHand(card);
+          }
         },
         onPlaySound: (soundType) => {
           soundManager.play(soundType);
@@ -633,6 +638,14 @@ class AxesMundiApp {
           scale,
           canvas: this.gameCanvas,
           isLearningMode: this.isLearningMode,
+        });
+      }
+
+      // Update card dealer manager config
+      if (this.cardDealerManager) {
+        this.cardDealerManager.updateConfig({
+          scale,
+          canvas: this.gameCanvas,
         });
       }
 
@@ -895,6 +908,87 @@ class AxesMundiApp {
         this.gameStateManager.updateConfig({ deck: this.deck });
       }
 
+      // Initialize card dealer manager
+      this.cardDealerManager = new CardDealerManager({
+        canvas: this.gameCanvas,
+        scale: this.scale,
+        deck: this.deck,
+        callbacks: {
+          onGetRemainingCards: () => this.remainingCards,
+          onGetGraveyard: () => this.graveyard,
+          onGetHands: () => ({
+            playerHand: this.playerHand,
+            opponentHand: this.opponentHand,
+            player1Hand: this.player1Hand,
+            player2Hand: this.player2Hand,
+          }),
+          onGetGameState: () => ({
+            gameDifficulty: this.gameDifficulty,
+            isLearningMode: this.isLearningMode,
+            isHotseatMode: this.isHotseatMode,
+            currentPlayerIndex: this.currentPlayerIndex,
+            boardCard: this.boardCard,
+            currentTurn: this.currentTurn,
+          }),
+          onAddCardToPlayerHand: (card) => {
+            this.playerHand.push(card);
+          },
+          onAddCardToOpponentHand: (card) => {
+            this.opponentHand.push(card);
+          },
+          onAddCardToPlayer1Hand: (card) => {
+            this.player1Hand.push(card);
+          },
+          onAddCardToPlayer2Hand: (card) => {
+            this.player2Hand.push(card);
+          },
+          onSetBoardCard: (card) => {
+            this.boardCard = card;
+          },
+          onSetIsPlayerTurn: (isPlayerTurn) => {
+            this.isPlayerTurn = isPlayerTurn;
+          },
+          onSetIsGameStarted: (started) => {
+            this.isGameStarted = started;
+          },
+          onSetCurrentTurn: (turn) => {
+            this.currentTurn = turn;
+          },
+          onLayoutHand: () => {
+            this.layoutHand();
+          },
+          onLayoutOpponentHand: () => {
+            this.layoutOpponentHand();
+          },
+          onLayoutHotseatHands: () => {
+            this.layoutHotseatHands();
+          },
+          onLayoutPlayer1Hand: () => {
+            this.layoutPlayer1Hand();
+          },
+          onLayoutPlayer2Hand: () => {
+            this.layoutPlayer2Hand();
+          },
+          onRecycleGraveyard: () => {
+            if (this.gameStateManager) {
+              this.gameStateManager.recycleGraveyard();
+            }
+          },
+          onUpdateInputHandlerConfig: () => {
+            this.updateInputHandlerConfig();
+          },
+          onStartTurnTimer: () => {
+            this.startTurnTimer();
+          },
+          onUpdateTurnText: () => {
+            this.updateTurnText();
+          },
+          onPlaySound: (soundType) => {
+            soundManager.play(soundType);
+          },
+        },
+      });
+
       // Initialize remaining cards from deck and shuffle them
       this.remainingCards = [...this.deck.cards];
       shuffleCardsInPlace(this.remainingCards);
@@ -915,7 +1009,9 @@ class AxesMundiApp {
       this.boardCard.isInHand = false; // Board card is on axis, not in hand
 
       // Animate first card from deck to center of axis
-      this.animateFirstCardToCenter();
+      if (this.cardDealerManager) {
+        this.cardDealerManager.animateFirstCardToCenter(this.boardCard);
+      }
 
       // Start dealing cards immediately (don't wait for animation)
       logger.info({
@@ -925,12 +1021,17 @@ class AxesMundiApp {
       });
 
       // Deal cards based on game mode
-      if (this.isLearningMode) {
-        this.dealCardsToPlayersLearningMode();
-      } else if (this.isHotseatMode) {
-        this.dealCardsToPlayersHotseat();
-      } else {
-        this.dealCardsToPlayers();
+      if (this.cardDealerManager) {
+        if (this.isLearningMode) {
+          this.cardDealerManager.dealCardsToPlayersLearningMode();
+        } else if (this.isHotseatMode) {
+          this.cardDealerManager.dealCardsToPlayersHotseat();
+          // Set current player hand based on starting player immediately
+          this.currentPlayerHand = this.currentPlayerIndex === 0 ? this.player1Hand : this.player2Hand;
+          this.nextPlayerHand = this.currentPlayerIndex === 0 ? this.player2Hand : this.player1Hand;
+        } else {
+          this.cardDealerManager.dealCardsToPlayers();
+        }
       }
 
       logger.info({
@@ -951,169 +1052,7 @@ class AxesMundiApp {
     }
   }
 
-  /**
-   * Animate cards from deck to hand one by one with 1-second intervals
-   */
-  private animateCardsToHand(handCards: GameCard[]): void {
-    handCards.forEach((card, index) => {
-      setTimeout(() => {
-        this.playerHand.push(card);
-        this.layoutHand(); // Center the hand after each card
-      }, index * 2000); // 2 second interval (slower)
-    });
-  }
-
-  /**
-   * Animate first card from deck to center of axis
-   */
-  private animateFirstCardToCenter(): void {
-    logger.info({
-      scope: 'renderer/game',
-      msg: 'animateFirstCardToCenter called',
-      meta: { hasBoardCard: !!this.boardCard },
-    });
-
-    if (!this.boardCard) return;
-
-    // Calculate center position
-    const centerX = this.gameCanvas.width / 2 - this.boardCard.width / 2;
-    const centerY = this.gameCanvas.height / 2 - this.boardCard.height / 2;
-
-    // Animate to center with smooth transition
-    this.boardCard.setTargetPosition(centerX, centerY);
-
-    // Mark game as started after animation
-    setTimeout(() => {
-      this.isGameStarted = true;
-      this.currentTurn = 1;
-
-      logger.info({
-        scope: 'renderer/game',
-        msg: 'first card placed on axis, game started',
-        meta: { cardTitle: this.boardCard!.card.title, turn: this.currentTurn },
-      });
-    }, 2000); // Wait for animation to complete (slower)
-
-    logger.info({
-      scope: 'renderer/game',
-      msg: 'animating first card to center',
-      meta: { cardTitle: this.boardCard.card.title },
-    });
-  }
-
-
-  /**
-   * Animate a single card from deck to hand
-   */
-  private animateCardToHand(card: GameCard): void {
-    // Add to hand first
-    this.playerHand.push(card);
-
-    // Animate to hand position
-    this.layoutHand();
-
-    logger.info({
-      scope: 'renderer/game',
-      msg: 'card animated to hand',
-      meta: { cardTitle: card.card.title },
-    });
-  }
-
-
-  /**
-   * Deal cards to both players based on difficulty
-   */
-  private dealCardsToPlayers(): void {
-    const opponentCardCount = getOpponentCardCount(this.gameDifficulty);
-
-    logger.info({
-      scope: 'renderer/game',
-      msg: 'dealCardsToPlayers called',
-      meta: {
-        remainingCards: this.remainingCards.length,
-        difficulty: this.gameDifficulty,
-        opponentCardCount,
-      },
-    });
-
-    // LAN mode is now handled by LANGameManager - skip here
-
-    // In LAN mode, client waits for card distribution from server
-    // LAN mode is now handled by LANGameManager - skip here
-
-    // Normal AI mode logic (with animations and synchronized sounds)
-    // Deal 5 cards to player with small delay
-    for (let i = 0; i < 5; i++) {
-      setTimeout(() => {
-        soundManager.play(SoundType.CARD_SHUFFLE); // Play sound exactly when card appears
-        this.dealCardToPlayer();
-      }, i * 200); // 200ms delay between each card (slower)
-    }
-
-    // Deal cards to opponent based on difficulty
-    for (let i = 0; i < opponentCardCount; i++) {
-      setTimeout(() => {
-        soundManager.play(SoundType.CARD_SHUFFLE); // Play sound exactly when card appears
-        this.dealCardToOpponent();
-      }, 1200 + i * 200); // Start after player cards, 200ms delay between each (slower)
-    }
-
-    // Set player turn after all cards are dealt
-    const totalDealTime = 1200 + 5 * 200 + opponentCardCount * 200; // Player cards + opponent cards
-    setTimeout(() => {
-      this.isPlayerTurn = true;
-      this.updateInputHandlerConfig();
-
-      this.startTurnTimer(); // Start timer for first turn
-
-      logger.info({
-        scope: 'renderer/game',
-        msg: 'game started, player turn',
-        meta: {
-          turn: this.currentTurn,
-          playerHandSize: this.playerHand.length,
-          opponentHandSize: this.opponentHand.length,
-          remainingCards: this.remainingCards.length,
-          difficulty: this.gameDifficulty,
-          opponentCardCount,
-        },
-      });
-    }, totalDealTime); // After all cards are dealt (dynamic based on difficulty)
-  }
-
-  /**
-   * Deal a card to the player
-   */
-  private dealCardToPlayer(): void {
-    // Recycle graveyard if deck is empty
-    // In learning mode, this is allowed when we need to draw a card
-    if (this.remainingCards.length === 0 && this.graveyard.length > 0) {
-      if (this.gameStateManager) {
-        this.gameStateManager.recycleGraveyard();
-      }
-    }
-
-    const cardData = dealCard(this.remainingCards);
-    if (cardData) {
-      const card = new GameCard(
-        cardData,
-        this.deck,
-        50 * this.scale, // Start at deck position
-        this.gameCanvas.height - 320 * this.scale, // Deck Y position (same as player hand)
-        this.scale,
-      );
-
-      // Add to hand and animate to position
-      this.playerHand.push(card);
-      this.layoutHand();
-
-      logger.info({
-        scope: 'renderer/game',
-        msg: 'card dealt to player',
-        meta: { cardTitle: cardData.title, handSize: this.playerHand.length },
-      });
-    }
-  }
+  // REMOVED: Card dealing methods - Now handled by CardDealerManager
 
   // REMOVED: handleCardDistributionFromServer() - Now handled by LANGameManager
 
@@ -1132,76 +1071,7 @@ class AxesMundiApp {
 
   // REMOVED: sendCardDistributionToClient() - Now handled by LANGameManager
 
-  /**
-   * Deal a card to the opponent
-   */
-  private dealCardToOpponent(): void {
-    logger.info({
-      scope: 'renderer/game',
-      msg: 'dealCardToOpponent called',
-      meta: { remainingCards: this.remainingCards.length, opponentHandSize: this.opponentHand.length },
-    });
-
-    // Recycle graveyard if deck is empty
-    // In learning mode, this is allowed when we need to draw a card
-    if (this.remainingCards.length === 0 && this.graveyard.length > 0) {
-      if (this.gameStateManager) {
-        this.gameStateManager.recycleGraveyard();
-      }
-    }
-
-    const cardData = dealCard(this.remainingCards);
-    if (cardData) {
-      const card = new GameCard(
-        cardData,
-        this.deck,
-        50 * this.scale, // Start at deck position
-        this.gameCanvas.height - 320 * this.scale, // Deck Y position (same as player hand)
-        this.scale,
-      );
-
-      // Animate from deck to hand position (card will be added to hand in animateOpponentCardFromDeck)
-      this.animateOpponentCardFromDeck(card);
-
-      logger.info({
-        scope: 'renderer/game',
-        msg: 'opponent card positioned immediately',
-        meta: {
-          cardTitle: cardData.title,
-          handSize: this.opponentHand.length,
-        },
-      });
-
-      logger.info({
-        scope: 'renderer/game',
-        msg: 'card dealt to opponent',
-        meta: { cardTitle: cardData.title, handSize: this.opponentHand.length, remainingCards: this.remainingCards.length },
-      });
-    } else {
-      logger.warn({
-        scope: 'renderer/game',
-        msg: 'no cards remaining for opponent',
-        meta: { remainingCards: this.remainingCards.length },
-      });
-    }
-  }
-
-  /**
-   * Animate a card from deck to opponent hand (same logic as player hand)
-   */
-  private animateOpponentCardFromDeck(card: GameCard): void {
-    // Add to hand first (same as animateCardToHand)
-    this.opponentHand.push(card);
-
-    // Layout the entire hand to get correct positions for all cards (same as layoutHand)
-    this.layoutOpponentHand();
-
-    logger.info({
-      scope: 'renderer/game',
-      msg: 'opponent card animated to hand',
-      meta: { cardTitle: card.card.title },
-    });
-  }
+  // REMOVED: Opponent card dealing methods - Now handled by CardDealerManager
 
   /**
    * Layout opponent hand cards at top of screen (same logic as player hand)
@@ -1249,182 +1119,7 @@ class AxesMundiApp {
     }
   }
 
-  /**
-   * Deal cards to player only (learning mode)
-   */
-  private dealCardsToPlayersLearningMode(): void {
-    try {
-      // Deal 5 cards to player (more cards for learning)
-      const playerCards = this.remainingCards.splice(0, 5);
-      this.playerHand = playerCards.map((card, index) => {
-        // Play sound for each card as it's created
-        setTimeout(() => {
-          soundManager.play(SoundType.CARD_SHUFFLE);
-        }, index * 50); // Small delay between sounds for better feel
-        return new GameCard(card, this.deck, 50 + index * 120, 500, this.scale);
-      });
-
-      // No opponent cards in learning mode
-      this.opponentHand = [];
-
-      // Layout only player hand
-      this.layoutHand();
-
-      // Set player turn immediately (no timer in learning mode)
-      this.isPlayerTurn = true;
-      this.updateInputHandlerConfig();
-
-      logger.info({
-        scope: 'renderer/game',
-        msg: 'cards dealt to player (learning mode)',
-        meta: {
-          playerCards: this.playerHand.length,
-          opponentCards: 0,
-          remainingCards: this.remainingCards.length,
-          isLearningMode: true,
-        },
-      });
-    } catch (error: any) {
-      logger.error({
-        scope: 'renderer/game',
-        msg: 'failed to deal cards to player (learning mode)',
-        err: { message: (error as Error).message, stack: (error as Error).stack },
-      });
-    }
-  }
-
-  /**
-   * Deal cards to players (hotseat mode)
-   */
-  private dealCardsToPlayersHotseat(): void {
-    try {
-      logger.info({
-        scope: 'renderer/game',
-        msg: 'dealCardsToPlayersHotseat called',
-        meta: {
-          remainingCards: this.remainingCards.length,
-          currentPlayerIndex: this.currentPlayerIndex,
-        },
-      });
-
-      // Deal 5 cards to player 1 with delay (like AI mode)
-      for (let i = 0; i < 5; i++) {
-        setTimeout(() => {
-          soundManager.play(SoundType.CARD_SHUFFLE); // Play sound exactly when card appears
-          this.dealCardToPlayer1();
-        }, i * 200); // 200ms delay between each card
-      }
-
-      // Deal 5 cards to player 2 with delay, starting after player 1
-      for (let i = 0; i < 5; i++) {
-        setTimeout(() => {
-          soundManager.play(SoundType.CARD_SHUFFLE); // Play sound exactly when card appears
-          this.dealCardToPlayer2();
-        }, 1200 + i * 200); // Start after player 1 cards
-      }
-
-      // Set current player hand based on starting player immediately
-      this.currentPlayerHand = this.currentPlayerIndex === 0 ? this.player1Hand : this.player2Hand;
-      this.nextPlayerHand = this.currentPlayerIndex === 0 ? this.player2Hand : this.player1Hand;
-
-      // Layout hands immediately to ensure correct positioning
-      this.layoutHotseatHands();
-
-      // Set player turn after all cards are dealt (like AI mode)
-      const totalDealTime = 1200 + 5 * 200 + 5 * 200; // Player 1 cards + player 2 cards
-      setTimeout(() => {
-        this.isPlayerTurn = true;
-        this.updateInputHandlerConfig();
-        this.updateTurnText();
-
-        logger.info({
-          scope: 'renderer/game',
-          msg: 'hotseat game started, player turn',
-          meta: {
-            currentPlayerIndex: this.currentPlayerIndex,
-            player1Cards: this.player1Hand.length,
-            player2Cards: this.player2Hand.length,
-            remainingCards: this.remainingCards.length,
-            isHotseatMode: true,
-          },
-        });
-      }, totalDealTime);
-    } catch (error: any) {
-      logger.error({
-        scope: 'renderer/game',
-        msg: 'failed to deal cards to players (hotseat mode)',
-        err: { message: (error as Error).message, stack: (error as Error).stack },
-      });
-    }
-  }
-
-  /**
-   * Deal a card to player 1 (hotseat mode)
-   */
-  private dealCardToPlayer1(): void {
-    // Recycle graveyard if deck is empty
-    // In learning mode, this is allowed when we need to draw a card
-    if (this.remainingCards.length === 0 && this.graveyard.length > 0) {
-      if (this.gameStateManager) {
-        this.gameStateManager.recycleGraveyard();
-      }
-    }
-
-    if (this.remainingCards.length > 0) {
-      const cardData = this.remainingCards.shift()!;
-      const card = new GameCard(
-        cardData,
-        this.deck,
-        50 * this.scale, // Start at deck position (bottom left)
-        this.gameCanvas.height - 320 * this.scale, // Start at bottom left
-        this.scale,
-      );
-
-      // Add to hand and animate to position
-      this.player1Hand.push(card);
-      this.layoutPlayer1Hand();
-
-      logger.info({
-        scope: 'renderer/game',
-        msg: 'card dealt to player 1',
-        meta: { cardTitle: cardData.title, handSize: this.player1Hand.length },
-      });
-    }
-  }
-
-  /**
-   * Deal a card to player 2 (hotseat mode)
-   */
-  private dealCardToPlayer2(): void {
-    // Recycle graveyard if deck is empty
-    // In learning mode, this is allowed when we need to draw a card
-    if (this.remainingCards.length === 0 && this.graveyard.length > 0) {
-      if (this.gameStateManager) {
-        this.gameStateManager.recycleGraveyard();
-      }
-    }
-
-    if (this.remainingCards.length > 0) {
-      const cardData = this.remainingCards.shift()!;
-      const card = new GameCard(
-        cardData,
-        this.deck,
-        50 * this.scale, // Start at deck position (bottom left)
-        this.gameCanvas.height - 320 * this.scale, // Start at bottom left (same as player 1)
-        this.scale,
-      );
-
-      // Add to hand and animate to position
-      this.player2Hand.push(card);
-      this.layoutPlayer2Hand();
-
-      logger.info({
-        scope: 'renderer/game',
-        msg: 'card dealt to player 2',
-        meta: { cardTitle: cardData.title, handSize: this.player2Hand.length },
-      });
-    }
-  }
+  // REMOVED: Learning mode and hotseat card dealing methods - Now handled by CardDealerManager
 
   /**
    * Layout player 1 hand (position depends on current player)
