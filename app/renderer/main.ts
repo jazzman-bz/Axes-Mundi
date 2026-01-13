@@ -19,6 +19,7 @@ import { GameInitializer } from '@/utils/gameInitializer';
 import { TurnTimerManager } from '@/utils/turnTimerManager';
 import { UIDialogManager } from '@/utils/uiDialogManager';
 import { LearningModeManager } from '@/utils/learningModeManager';
+import { BoardNavigationManager } from '@/utils/boardNavigationManager';
 
 /**
  * Avatar emoji mapping
@@ -121,6 +122,8 @@ class AxesMundiApp {
   private uiDialogManager: UIDialogManager | null = null; // UI dialog manager for dialogs and overlays
 
   private learningModeManager: LearningModeManager | null = null; // Learning mode manager for learning mode logic
+
+  private boardNavigationManager: BoardNavigationManager | null = null; // Board navigation manager for board navigation logic
 
   private isGameStarted: boolean = false; // Track if first card has been placed on axis
 
@@ -260,10 +263,12 @@ class AxesMundiApp {
           }
         },
         onNavigationArrowClick: (direction) => {
-          if (direction === 'left') {
-            this.moveBoardCardsLeft();
-          } else {
-            this.moveBoardCardsRight();
+          if (this.boardNavigationManager) {
+            if (direction === 'left') {
+              this.boardNavigationManager.moveBoardCardsLeft();
+            } else {
+              this.boardNavigationManager.moveBoardCardsRight();
+            }
           }
         },
         onPlayerSwitchOverlayClick: () => {
@@ -857,6 +862,18 @@ class AxesMundiApp {
       },
     });
 
+    // Initialize board navigation manager
+    this.boardNavigationManager = new BoardNavigationManager({
+      callbacks: {
+        onGetBoardCards: () => ({
+          boardCard: this.boardCard,
+          placedLeft: this.placedLeft,
+          placedRight: this.placedRight,
+        }),
+        onGetScale: () => this.scale,
+      },
+    });
+
     // Register resize callbacks
     this.resizeHandler.onResize(({ width, height, scale }) => {
       this.scale = scale;
@@ -1353,81 +1370,8 @@ class AxesMundiApp {
   // REMOVED: Learning mode methods - Now handled by LearningModeManager
   // clearBoard, resetLearningGame, removeCardFromBoard
 
-  /**
-   * Move all board cards one card width to the left
-   */
-  private moveBoardCardsLeft(): void {
-    const cardWidth = 200 * this.scale;
-    const spacing = 5 * this.scale;
-    const moveDistance = cardWidth + spacing;
-
-    // Move board card
-    if (this.boardCard) {
-      const newX = this.boardCard.x + moveDistance;
-      this.boardCard.setTargetPosition(newX, this.boardCard.y);
-    }
-
-    // Move placed left cards
-    for (const card of this.placedLeft) {
-      const newX = card.x + moveDistance;
-      card.setTargetPosition(newX, card.y);
-    }
-
-    // Move placed right cards
-    for (const card of this.placedRight) {
-      const newX = card.x + moveDistance;
-      card.setTargetPosition(newX, card.y);
-    }
-
-    logger.info({
-      scope: 'renderer/navigation',
-      msg: 'board cards moved left',
-      meta: {
-        moveDistance,
-        totalCards: (this.boardCard ? 1 : 0) + this.placedLeft.length + this.placedRight.length,
-      },
-    });
-  }
-
-  /**
-   * Move a card to graveyard (for normal mode incorrect cards)
-   */
-
-  /**
-   * Move all board cards one card width to the right
-   */
-  private moveBoardCardsRight(): void {
-    const cardWidth = 200 * this.scale;
-    const spacing = 5 * this.scale;
-    const moveDistance = cardWidth + spacing;
-
-    // Move board card
-    if (this.boardCard) {
-      const newX = this.boardCard.x - moveDistance;
-      this.boardCard.setTargetPosition(newX, this.boardCard.y);
-    }
-
-    // Move placed left cards
-    for (const card of this.placedLeft) {
-      const newX = card.x - moveDistance;
-      card.setTargetPosition(newX, card.y);
-    }
-
-    // Move placed right cards
-    for (const card of this.placedRight) {
-      const newX = card.x - moveDistance;
-      card.setTargetPosition(newX, card.y);
-    }
-
-    logger.info({
-      scope: 'renderer/navigation',
-      msg: 'board cards moved right',
-      meta: {
-        moveDistance,
-        totalCards: (this.boardCard ? 1 : 0) + this.placedLeft.length + this.placedRight.length,
-      },
-    });
-  }
+  // REMOVED: Board navigation methods - Now handled by BoardNavigationManager
+  // moveBoardCardsLeft, moveBoardCardsRight
 
   // REMOVED: handleCardPlacement() - Now handled by CardPlacementHandler
 

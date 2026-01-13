@@ -135,14 +135,14 @@
   - [x] Create unit tests for LearningModeManager (48 tests, all passing)
   - [x] Update main.ts to use LearningModeManager
 
-### **Step 16: Extract Board Navigation Logic**
-- [ ] **Create BoardNavigationManager module** - Extract board navigation and card movement
-  - [ ] `moveBoardCardsLeft()` - Move all cards left for navigation
-  - [ ] `moveBoardCardsRight()` - Move all cards right for navigation
-  - [ ] Navigation arrow rendering and click handling
-  - [ ] Board bounds calculation and scrolling logic
-  - [ ] Create unit tests for BoardNavigationManager
-  - [ ] Update main.ts to use BoardNavigationManager
+### **Step 16: Extract Board Navigation Logic** ✅
+- [x] **Create BoardNavigationManager module** - Extract board navigation and card movement
+  - [x] `moveBoardCardsLeft()` - Move all cards left for navigation
+  - [x] `moveBoardCardsRight()` - Move all cards right for navigation
+  - [x] Navigation arrow rendering and click handling (already in GameRenderer and InputHandler)
+  - [x] Board bounds calculation and scrolling logic
+  - [x] Create unit tests for BoardNavigationManager (30 tests, all passing)
+  - [x] Update main.ts to use BoardNavigationManager
 
 ---
 
@@ -173,13 +173,13 @@
 - ✅ Core game features: **Complete**
 - ✅ Landing page & navigation: **Complete**
 - ✅ All game modes: **Complete** (Single Player, Hotseat, LAN, Learning)
-- ✅ Architecture refactoring: **Steps 1-15 Complete** (Step 16 pending)
-- ✅ Unit tests: **Core modules covered** (171 tests passing)
+- ✅ Architecture refactoring: **Steps 1-16 Complete** (All refactoring steps done!)
+- ✅ Unit tests: **Core modules covered** (442 tests passing)
 - ⏳ Polish & UX: **In Progress**
 - ⏳ E2E tests: **Pending**
 
 ### **Next Priorities**
-1. Complete refactoring step 16
+1. ✅ All refactoring steps (1-16) complete!
 2. Add E2E tests with Playwright
 3. Performance optimization and monitoring
 4. Polish UX (animations, responsive design, accessibility)

@@ -1,11 +1,11 @@
 # Axes-Mundi Architecture Documentation
 
 **Last Updated:** 2025-01-12  
-**Status:** Steps 1-15 completed, Step 16 planned
+**Status:** Steps 1-16 completed (All refactoring steps done!)
 
 ## Overview
 
-The Axes-Mundi application has been refactored from a monolithic `main.ts` file (~4,400 lines) into a modular architecture with focused, testable components. The architecture follows a callback-based pattern for loose coupling between modules. Current `main.ts` size: ~1,600 lines.
+The Axes-Mundi application has been refactored from a monolithic `main.ts` file (~4,400 lines) into a modular architecture with focused, testable components. The architecture follows a callback-based pattern for loose coupling between modules. Current `main.ts` size: ~1,550 lines.
 
 ## Architecture Principles
 
@@ -112,11 +112,12 @@ The Axes-Mundi application has been refactored from a monolithic `main.ts` file 
 - **Callbacks**: `onGetBoardCards`, `onGetGraveyard`, `onGetPlayerHand`, `onGetRemainingCards`, `onGetGameState`, `onSetBoardCard`, `onSetPlacedLeft`, `onSetPlacedRight`, `onSetGraveyard`, `onAnimateCardToGraveyard`, `onLayoutAxisCards`, `onGiveNewCard`, `onLoadGame`, `onStopTurnTimer`, etc.
 - **Note**: Handles learning mode specific features like clearing board, resetting game, removing incorrect cards, and showing tooltips
 
-### Planned Modules (Step 16)
-
-#### 16. **BoardNavigationManager** (Planned)
+#### 16. **BoardNavigationManager** (`app/renderer/utils/boardNavigationManager.ts`)
 - **Purpose**: Board navigation and card movement
-- **Methods**: `moveBoardCardsLeft()`, `moveBoardCardsRight()`, etc.
+- **Key Methods**: `moveBoardCardsLeft()`, `moveBoardCardsRight()`
+- **Dependencies**: Game state (via callbacks)
+- **Callbacks**: `onGetBoardCards`, `onGetScale`
+- **Note**: Handles moving all board cards left or right when navigation arrows are clicked. Navigation arrow rendering is in GameRenderer, click detection is in InputHandler.
 
 ## Main Application (`app/renderer/main.ts`)
 
@@ -192,7 +193,7 @@ app/renderer/
   │   ├── turnTimerManager.ts    # ✅ Step 13
     │   ├── uiDialogManager.ts     # ✅ Step 14
     │   ├── learningModeManager.ts # ✅ Step 15
-  │   └── boardNavigationManager.ts # ⏳ Step 16 (Planned)
+    │   └── boardNavigationManager.ts # ✅ Step 16
   └── ...
 ```
 
@@ -215,11 +216,11 @@ Each module has corresponding unit tests in `tests/unit/`:
 - ✅ `turnTimerManager.test.ts`
 - ✅ `uiDialogManager.test.ts`
 - ✅ `learningModeManager.test.ts`
+- ✅ `boardNavigationManager.test.ts`
 
 ## Migration Progress
 
-- **Steps 1-15**: ✅ Completed
-- **Step 16**: ⏳ Planned (see TODO.md)
+- **Steps 1-16**: ✅ Completed (All refactoring steps done!)
 
 ## Key Design Decisions
 
