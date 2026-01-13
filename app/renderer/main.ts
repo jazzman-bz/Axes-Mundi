@@ -18,6 +18,7 @@ import { CardDealerManager } from '@/utils/cardDealerManager';
 import { GameInitializer } from '@/utils/gameInitializer';
 import { TurnTimerManager } from '@/utils/turnTimerManager';
 import { UIDialogManager } from '@/utils/uiDialogManager';
+import { LearningModeManager } from '@/utils/learningModeManager';
 
 /**
  * Avatar emoji mapping
@@ -118,6 +119,8 @@ class AxesMundiApp {
   private turnTimerManager: TurnTimerManager | null = null; // Turn timer manager for timer logic
 
   private uiDialogManager: UIDialogManager | null = null; // UI dialog manager for dialogs and overlays
+
+  private learningModeManager: LearningModeManager | null = null; // Learning mode manager for learning mode logic
 
   private isGameStarted: boolean = false; // Track if first card has been placed on axis
 
@@ -242,26 +245,19 @@ class AxesMundiApp {
           });
         },
         onWeiterButtonClick: () => {
-          const incorrectCard = this.placedLeft.find((card) => card.isCorrect === false)
-                                || this.placedRight.find((card) => card.isCorrect === false)
-                                || (this.boardCard && this.boardCard.isCorrect === false ? this.boardCard : null);
-          if (incorrectCard) {
-            this.removeCardFromBoard(incorrectCard);
-            logger.info({
-              scope: 'renderer/learning',
-              msg: 'incorrect card removed by weiter button click',
-              meta: {
-                cardTitle: incorrectCard.card.title,
-                isLearningMode: this.isLearningMode,
-              },
-            });
+          if (this.learningModeManager) {
+            this.learningModeManager.handleWeiterButtonClick();
           }
         },
         onClearBoardButtonClick: () => {
-          this.clearBoard();
+          if (this.learningModeManager) {
+            this.learningModeManager.clearBoard();
+          }
         },
         onResetGameButtonClick: () => {
-          this.resetLearningGame();
+          if (this.learningModeManager) {
+            this.learningModeManager.resetLearningGame();
+          }
         },
         onNavigationArrowClick: (direction) => {
           if (direction === 'left') {
@@ -276,7 +272,9 @@ class AxesMundiApp {
           }
         },
         onCardRemoved: (card) => {
-          this.removeCardFromBoard(card);
+          if (this.learningModeManager) {
+            this.learningModeManager.removeCardFromBoard(card);
+          }
         },
         onTooltipHover: (card) => {
           const hasIncorrectCard = this.placedLeft.find((c) => c.isCorrect === false)
@@ -633,7 +631,11 @@ class AxesMundiApp {
             this.uiDialogManager.showPlayerSwitchOverlay();
           }
         },
-        onShowTooltip: (card) => this.showTooltipForIncorrectCard(card),
+        onShowTooltip: (card) => {
+          if (this.learningModeManager) {
+            this.learningModeManager.showTooltipForIncorrectCard(card);
+          }
+        },
         onMoveCardToGraveyard: (card) => {
           if (this.gameStateManager) {
             this.gameStateManager.moveCardToGraveyard(card, this.isLearningMode);
@@ -757,6 +759,101 @@ class AxesMundiApp {
             this.turnTimerManager.updateTurnText();
           }
         },
+      },
+    });
+
+    // Initialize learning mode manager
+    this.learningModeManager = new LearningModeManager({
+      callbacks: {
+        onGetBoardCards: () => ({
+          boardCard: this.boardCard,
+          placedLeft: this.placedLeft,
+          placedRight: this.placedRight,
+        }),
+        onGetGraveyard: () => this.graveyard,
+        onGetPlayerHand: () => this.playerHand,
+        onGetRemainingCards: () => this.remainingCards,
+        onGetGameState: () => ({
+          score: this.score,
+          currentTurn: this.currentTurn,
+          isLearningMode: this.isLearningMode,
+        }),
+        onSetBoardCard: (card) => {
+          this.boardCard = card;
+        },
+        onSetPlacedLeft: (cards) => {
+          this.placedLeft = cards;
+        },
+        onSetPlacedRight: (cards) => {
+          this.placedRight = cards;
+        },
+        onSetGraveyard: (cards) => {
+          this.graveyard = cards;
+        },
+        onSetPlayerHand: (cards) => {
+          this.playerHand = cards;
+        },
+        onSetScore: (score) => {
+          this.score = score;
+        },
+        onSetCurrentTurn: (turn) => {
+          this.currentTurn = turn;
+        },
+        onSetIsGameStarted: (started) => {
+          this.isGameStarted = started;
+        },
+        onSetIsPlayerTurn: (isPlayerTurn) => {
+          this.isPlayerTurn = isPlayerTurn;
+        },
+        onSetTurnText: (text) => {
+          this.turnText = text;
+        },
+        onSetTurnTimer: (timer) => {
+          this.turnTimer = timer;
+        },
+        onSetTooltipVisible: (visible) => {
+          this.tooltipVisible = visible;
+        },
+        onSetTooltipCard: (card) => {
+          this.tooltipCard = card;
+        },
+        onSetHoveredCard: (card) => {
+          this.hoveredCard = card;
+        },
+        onSetWeiterButtonBounds: (bounds) => {
+          this.weiterButtonBounds = bounds;
+        },
+        onSetClearBoardButtonBounds: (bounds) => {
+          this.clearBoardButtonBounds = bounds;
+        },
+        onSetResetGameButtonBounds: (bounds) => {
+          this.resetGameButtonBounds = bounds;
+        },
+        onAnimateCardToGraveyard: (card) => {
+          this.animateCardToGraveyard(card);
+        },
+        onLayoutAxisCards: () => {
+          this.layoutAxisCards();
+        },
+        onGiveNewCard: (skipGraveyardRecycle) => {
+          if (this.gameStateManager) {
+            this.gameStateManager.giveNewCard(skipGraveyardRecycle);
+          }
+        },
+        onUpdateInputHandlerConfig: () => {
+          this.updateInputHandlerConfig();
+        },
+        onLoadGame: async () => {
+          if (this.gameInitializer) {
+            await this.gameInitializer.loadGame();
+          }
+        },
+        onStopTurnTimer: () => {
+          if (this.turnTimerManager) {
+            this.turnTimerManager.stopTurnTimer();
+          }
+        },
+        onGetTooltipCard: () => this.tooltipCard,
       },
     });
 
@@ -1217,20 +1314,7 @@ class AxesMundiApp {
   /**
    * Show tooltip for incorrect card automatically
    */
-  private showTooltipForIncorrectCard(card: GameCard): void {
-    this.hoveredCard = card;
-    this.tooltipCard = card;
-    this.tooltipVisible = true;
-
-    logger.debug({
-      scope: 'renderer/tooltip',
-      msg: 'tooltip shown automatically for incorrect card',
-      meta: {
-        cardTitle: card.card.title,
-        isLearningMode: this.isLearningMode,
-      },
-    });
-  }
+  // REMOVED: showTooltipForIncorrectCard() - Now handled by LearningModeManager
 
   /**
    * Hide axis preview (delegates to InputHandler)
@@ -1266,236 +1350,8 @@ class AxesMundiApp {
     }
   }
 
-  /**
-    * Clear all cards from board and move them to graveyard
-    */
-  private clearBoard(): void {
-    logger.info({
-      scope: 'renderer/learning',
-      msg: 'clearing board - moving all cards to graveyard',
-      meta: {
-        boardCards: (this.boardCard ? 1 : 0) + this.placedLeft.length + this.placedRight.length,
-        isLearningMode: this.isLearningMode,
-      },
-    });
-
-    // Collect all cards to move to graveyard
-    const cardsToGraveyard: GameCard[] = [];
-    
-    // Move board card to graveyard if it exists
-    if (this.boardCard) {
-      cardsToGraveyard.push(this.boardCard);
-      this.animateCardToGraveyard(this.boardCard);
-      this.boardCard = null;
-    }
-
-    // Move all placed left cards to graveyard
-    for (const card of this.placedLeft) {
-      cardsToGraveyard.push(card);
-      this.animateCardToGraveyard(card);
-    }
-    this.placedLeft = [];
-
-    // Move all placed right cards to graveyard
-    for (const card of this.placedRight) {
-      cardsToGraveyard.push(card);
-      this.animateCardToGraveyard(card);
-    }
-    this.placedRight = [];
-
-    // Update graveyard state - IMPORTANT: Do this BEFORE calling giveNewCard
-    // to ensure GameStateManager sees the updated graveyard
-    if (cardsToGraveyard.length > 0) {
-      this.graveyard = [...this.graveyard, ...cardsToGraveyard];
-      logger.info({
-        scope: 'renderer/learning',
-        msg: 'cards moved to graveyard in clearBoard',
-        meta: {
-          cardsMoved: cardsToGraveyard.length,
-          graveyardSize: this.graveyard.length,
-          remainingCards: this.remainingCards.length,
-        },
-      });
-    }
-
-    // Clear all button bounds
-    this.weiterButtonBounds = null;
-    this.clearBoardButtonBounds = null;
-    this.resetGameButtonBounds = null;
-
-    // Hide tooltip
-    this.tooltipVisible = false;
-    this.tooltipCard = null;
-    this.hoveredCard = null;
-
-    // Give player new cards if hand is empty
-    // In learning mode, don't recycle graveyard when clearing board - those cards should stay in graveyard
-    // Only give cards from the remaining deck, not from graveyard
-    // IMPORTANT: Check remainingCards.length BEFORE the loop, as it may change during the loop
-    const initialRemainingCards = this.remainingCards.length;
-    const initialGraveyardSize = this.graveyard.length;
-    
-    if (this.playerHand.length === 0 && initialRemainingCards > 0) {
-      const cardsToGive = Math.min(5, initialRemainingCards);
-      logger.info({
-        scope: 'renderer/learning',
-        msg: 'about to give new cards after clearing board',
-        meta: {
-          cardsToGive,
-          remainingCardsBefore: initialRemainingCards,
-          graveyardSizeBefore: initialGraveyardSize,
-        },
-      });
-
-      for (let i = 0; i < cardsToGive; i++) {
-        // Check if we still have cards before each iteration
-        if (this.remainingCards.length === 0) {
-          logger.info({
-            scope: 'renderer/learning',
-            msg: 'deck became empty during card giving loop, stopping',
-            meta: {
-              cardsGivenSoFar: i,
-              graveyardSize: this.graveyard.length,
-            },
-          });
-          break; // Stop if deck becomes empty
-        }
-
-        if (this.gameStateManager) {
-          // Skip graveyard recycle when clearing board - cards moved to graveyard should stay there
-          this.gameStateManager.giveNewCard(true);
-        }
-      }
-
-      logger.info({
-        scope: 'renderer/learning',
-        msg: 'gave new cards after clearing board',
-        meta: {
-          cardsToGive,
-          remainingCardsAfter: this.remainingCards.length,
-          graveyardSizeAfter: this.graveyard.length,
-          graveyardShouldBeSame: this.graveyard.length === initialGraveyardSize,
-        },
-      });
-    } else if (this.playerHand.length === 0 && initialRemainingCards === 0) {
-      // Deck is empty and hand is empty - don't recycle graveyard when clearing board
-      // The cards in graveyard should stay there (they were incorrectly placed)
-      logger.info({
-        scope: 'renderer/learning',
-        msg: 'no cards to give after clearing board - deck empty, graveyard not recycled',
-        meta: {
-          remainingCards: 0,
-          graveyardSize: this.graveyard.length,
-        },
-      });
-    }
-
-    // Re-center the board after clearing (important for next card placement)
-    this.layoutAxisCards();
-  }
-
-  /**
-    * Reset the learning game with the same deck
-    */
-  private resetLearningGame(): void {
-    logger.info({
-      scope: 'renderer/learning',
-      msg: 'resetting learning game',
-      meta: {
-        isLearningMode: this.isLearningMode,
-      },
-    });
-
-    // Stop any running timer
-    if (this.turnTimerManager) {
-      this.turnTimerManager.stopTurnTimer();
-    }
-
-    // Clear all button bounds
-    this.weiterButtonBounds = null;
-    this.clearBoardButtonBounds = null;
-    this.resetGameButtonBounds = null;
-
-    // Hide tooltip
-    this.tooltipVisible = false;
-    this.tooltipCard = null;
-    this.hoveredCard = null;
-
-    // Reset game state
-    this.gameWon = false;
-    this.gameLost = false;
-    this.score = 0;
-    this.playerHand = [];
-    this.opponentHand = [];
-    this.placedLeft = [];
-    this.placedRight = [];
-    this.graveyard = [];
-    this.selectedCard = null;
-    this.isDragging = false;
-    this.isGameStarted = false;
-    this.currentTurn = 0;
-    this.isPlayerTurn = true;
-    this.turnText = '';
-    this.turnTimer = 30;
-    this.updateInputHandlerConfig();
-
-    // Reload the game
-    if (this.gameInitializer) {
-      this.gameInitializer.loadGame().catch((error) => {
-        logger.error({
-          scope: 'renderer/learning',
-          msg: 'failed to reload game',
-          err: { message: error.message },
-        });
-      });
-    }
-  }
-
-  /**
-    * Remove card from board and move to graveyard
-    */
-  private removeCardFromBoard(card: GameCard): void {
-    // Remove from appropriate side
-    this.placedLeft = this.placedLeft.filter((c) => c !== card);
-    this.placedRight = this.placedRight.filter((c) => c !== card);
-
-    // If it's the board card, clear it
-    if (this.boardCard === card) {
-      this.boardCard = null;
-    }
-
-    // Clear global weiter button bounds
-    this.weiterButtonBounds = null;
-
-    // Add to graveyard and animate
-    logger.info({
-      scope: 'renderer/game',
-      msg: 'adding card to graveyard',
-      meta: {
-        cardTitle: card.card.title,
-        isCorrect: card.isCorrect,
-        isLearningMode: this.isLearningMode,
-        graveyardSizeBefore: this.graveyard.length,
-      },
-    });
-    this.graveyard.push(card);
-    this.animateCardToGraveyard(card);
-
-    // Re-center remaining cards
-    this.layoutAxisCards();
-
-    // Hide tooltip if this card was showing it
-    if (this.tooltipCard === card) {
-      this.tooltipVisible = false;
-      this.tooltipCard = null;
-    }
-
-    // Give player a new card (only when removing via "Weiter" button)
-    // In learning mode, don't recycle graveyard - cards should stay in graveyard
-    if (this.gameStateManager) {
-      this.gameStateManager.giveNewCard(this.isLearningMode);
-    }
-  }
+  // REMOVED: Learning mode methods - Now handled by LearningModeManager
+  // clearBoard, resetLearningGame, removeCardFromBoard
 
   /**
    * Move all board cards one card width to the left

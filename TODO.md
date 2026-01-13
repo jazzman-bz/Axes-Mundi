@@ -125,15 +125,15 @@
   - [x] Create unit tests for UIDialogManager (37 tests, all passing)
   - [x] Update main.ts to use UIDialogManager
 
-### **Step 15: Extract Learning Mode Logic**
-- [ ] **Create LearningModeManager module** - Extract learning mode specific functionality
-  - [ ] `clearBoard()` - Clear board and move cards to graveyard
-  - [ ] `resetLearningGame()` - Reset learning game with same deck
-  - [ ] `removeCardFromBoard()` - Remove incorrect card from board
-  - [ ] `showTooltipForIncorrectCard()` - Show tooltip for incorrect placement
-  - [ ] Learning mode specific button handling (Weiter, Clear Board, Reset)
-  - [ ] Create unit tests for LearningModeManager
-  - [ ] Update main.ts to use LearningModeManager
+### **Step 15: Extract Learning Mode Logic** ✅
+- [x] **Create LearningModeManager module** - Extract learning mode specific functionality
+  - [x] `clearBoard()` - Clear board and move cards to graveyard
+  - [x] `resetLearningGame()` - Reset learning game with same deck
+  - [x] `removeCardFromBoard()` - Remove incorrect card from board
+  - [x] `showTooltipForIncorrectCard()` - Show tooltip for incorrect placement
+  - [x] `handleWeiterButtonClick()` - Handle Weiter button click
+  - [x] Create unit tests for LearningModeManager (48 tests, all passing)
+  - [x] Update main.ts to use LearningModeManager
 
 ### **Step 16: Extract Board Navigation Logic**
 - [ ] **Create BoardNavigationManager module** - Extract board navigation and card movement
@@ -173,13 +173,13 @@
 - ✅ Core game features: **Complete**
 - ✅ Landing page & navigation: **Complete**
 - ✅ All game modes: **Complete** (Single Player, Hotseat, LAN, Learning)
-- ✅ Architecture refactoring: **Steps 1-14 Complete** (Steps 15-16 pending)
-- ✅ Unit tests: **Core modules covered** (123 tests passing)
+- ✅ Architecture refactoring: **Steps 1-15 Complete** (Step 16 pending)
+- ✅ Unit tests: **Core modules covered** (171 tests passing)
 - ⏳ Polish & UX: **In Progress**
 - ⏳ E2E tests: **Pending**
 
 ### **Next Priorities**
-1. Complete refactoring steps 15-16
+1. Complete refactoring step 16
 2. Add E2E tests with Playwright
 3. Performance optimization and monitoring
 4. Polish UX (animations, responsive design, accessibility)

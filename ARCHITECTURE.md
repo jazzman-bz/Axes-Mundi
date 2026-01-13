@@ -1,11 +1,11 @@
 # Axes-Mundi Architecture Documentation
 
 **Last Updated:** 2025-01-12  
-**Status:** Steps 1-14 completed, Steps 15-16 planned
+**Status:** Steps 1-15 completed, Step 16 planned
 
 ## Overview
 
-The Axes-Mundi application has been refactored from a monolithic `main.ts` file (~4,400 lines) into a modular architecture with focused, testable components. The architecture follows a callback-based pattern for loose coupling between modules.
+The Axes-Mundi application has been refactored from a monolithic `main.ts` file (~4,400 lines) into a modular architecture with focused, testable components. The architecture follows a callback-based pattern for loose coupling between modules. Current `main.ts` size: ~1,600 lines.
 
 ## Architecture Principles
 
@@ -105,19 +105,14 @@ The Axes-Mundi application has been refactored from a monolithic `main.ts` file 
 - **Callbacks**: `onGetGameState`, `onGetPlayerData`, `onGetHands`, `onSetPlayerSwitchOverlayVisible`, `onSetIsPlayerTurn`, `onRestartGame`, `onGoToMainMenu`, etc.
 - **Note**: Handles all dialog creation (DOM manipulation) and player switching logic for hotseat mode
 
-### Planned Modules (Steps 15-16)
-
-#### 15. **LearningModeManager** (Planned)
-- **Purpose**: Turn timer management
-- **Methods**: `startTurnTimer()`, `stopTurnTimer()`, `endTurn()`, etc.
-
-#### 14. **UIDialogManager** (Planned)
-- **Purpose**: UI dialogs and overlays
-- **Methods**: `showWinDialog()`, `showLoseDialog()`, `showPlayerSwitchOverlay()`, etc.
-
-#### 15. **LearningModeManager** (Planned)
+#### 15. **LearningModeManager** (`app/renderer/utils/learningModeManager.ts`)
 - **Purpose**: Learning mode specific functionality
-- **Methods**: `clearBoard()`, `resetLearningGame()`, `removeCardFromBoard()`, etc.
+- **Key Methods**: `clearBoard()`, `resetLearningGame()`, `removeCardFromBoard()`, `showTooltipForIncorrectCard()`, `handleWeiterButtonClick()`
+- **Dependencies**: Game state (via callbacks)
+- **Callbacks**: `onGetBoardCards`, `onGetGraveyard`, `onGetPlayerHand`, `onGetRemainingCards`, `onGetGameState`, `onSetBoardCard`, `onSetPlacedLeft`, `onSetPlacedRight`, `onSetGraveyard`, `onAnimateCardToGraveyard`, `onLayoutAxisCards`, `onGiveNewCard`, `onLoadGame`, `onStopTurnTimer`, etc.
+- **Note**: Handles learning mode specific features like clearing board, resetting game, removing incorrect cards, and showing tooltips
+
+### Planned Modules (Step 16)
 
 #### 16. **BoardNavigationManager** (Planned)
 - **Purpose**: Board navigation and card movement
@@ -179,7 +174,7 @@ AxesMundiApp (Orchestrator)
 
 ```
 app/renderer/
-  ├── main.ts                    # Main orchestrator (~2,100 lines)
+  ├── main.ts                    # Main orchestrator (~1,600 lines)
   ├── utils/
   │   ├── resizeHandler.ts       # ✅ Step 1
   │   ├── scaleUtils.ts          # ✅ Step 2
@@ -195,8 +190,8 @@ app/renderer/
   │   ├── cardDealerManager.ts    # ✅ Step 11
   │   ├── gameInitializer.ts     # ✅ Step 12
   │   ├── turnTimerManager.ts    # ✅ Step 13
-  │   ├── uiDialogManager.ts     # ✅ Step 14
-  │   ├── learningModeManager.ts # ⏳ Step 15 (Planned)
+    │   ├── uiDialogManager.ts     # ✅ Step 14
+    │   ├── learningModeManager.ts # ✅ Step 15
   │   └── boardNavigationManager.ts # ⏳ Step 16 (Planned)
   └── ...
 ```
@@ -219,11 +214,12 @@ Each module has corresponding unit tests in `tests/unit/`:
 - ✅ `gameInitializer.test.ts`
 - ✅ `turnTimerManager.test.ts`
 - ✅ `uiDialogManager.test.ts`
+- ✅ `learningModeManager.test.ts`
 
 ## Migration Progress
 
-- **Steps 1-14**: ✅ Completed
-- **Steps 15-16**: ⏳ Planned (see TODO.md)
+- **Steps 1-15**: ✅ Completed
+- **Step 16**: ⏳ Planned (see TODO.md)
 
 ## Key Design Decisions
 
