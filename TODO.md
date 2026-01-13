@@ -114,16 +114,16 @@
   - [x] Create unit tests for TurnTimerManager (31 tests, all passing)
   - [x] Update main.ts to use TurnTimerManager
 
-### **Step 14: Extract UI Dialogs and Overlays**
-- [ ] **Create UIDialogManager module** - Extract dialog and overlay management
-  - [ ] `showWinDialog()` - Show win dialog
-  - [ ] `showLoseDialog()` - Show lose dialog
-  - [ ] `showHotseatWinDialog()` - Show hotseat win dialog
-  - [ ] `showPlayerSwitchOverlay()` - Show player switch overlay (hotseat)
-  - [ ] `switchPlayers()` - Switch players in hotseat mode
-  - [ ] Dialog rendering and button handling
-  - [ ] Create unit tests for UIDialogManager
-  - [ ] Update main.ts to use UIDialogManager
+### **Step 14: Extract UI Dialogs and Overlays** ✅
+- [x] **Create UIDialogManager module** - Extract dialog and overlay management
+  - [x] `showWinDialog()` - Show win dialog
+  - [x] `showLoseDialog()` - Show lose dialog
+  - [x] `showHotseatWinDialog()` - Show hotseat win dialog
+  - [x] `showPlayerSwitchOverlay()` - Show player switch overlay (hotseat)
+  - [x] `switchPlayers()` - Switch players in hotseat mode
+  - [x] Dialog rendering and button handling
+  - [x] Create unit tests for UIDialogManager (37 tests, all passing)
+  - [x] Update main.ts to use UIDialogManager
 
 ### **Step 15: Extract Learning Mode Logic**
 - [ ] **Create LearningModeManager module** - Extract learning mode specific functionality
@@ -173,13 +173,13 @@
 - ✅ Core game features: **Complete**
 - ✅ Landing page & navigation: **Complete**
 - ✅ All game modes: **Complete** (Single Player, Hotseat, LAN, Learning)
-- ✅ Architecture refactoring: **Steps 1-13 Complete** (Steps 14-16 pending)
-- ✅ Unit tests: **Core modules covered** (86 tests passing)
+- ✅ Architecture refactoring: **Steps 1-14 Complete** (Steps 15-16 pending)
+- ✅ Unit tests: **Core modules covered** (123 tests passing)
 - ⏳ Polish & UX: **In Progress**
 - ⏳ E2E tests: **Pending**
 
 ### **Next Priorities**
-1. Complete refactoring steps 14-16
+1. Complete refactoring steps 15-16
 2. Add E2E tests with Playwright
 3. Performance optimization and monitoring
 4. Polish UX (animations, responsive design, accessibility)

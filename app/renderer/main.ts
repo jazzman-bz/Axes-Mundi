@@ -17,6 +17,7 @@ import { CardPlacementHandler } from '@/utils/cardPlacementHandler';
 import { CardDealerManager } from '@/utils/cardDealerManager';
 import { GameInitializer } from '@/utils/gameInitializer';
 import { TurnTimerManager } from '@/utils/turnTimerManager';
+import { UIDialogManager } from '@/utils/uiDialogManager';
 
 /**
  * Avatar emoji mapping
@@ -115,6 +116,8 @@ class AxesMundiApp {
   private gameInitializer: GameInitializer | null = null; // Game initializer for initialization logic
 
   private turnTimerManager: TurnTimerManager | null = null; // Turn timer manager for timer logic
+
+  private uiDialogManager: UIDialogManager | null = null; // UI dialog manager for dialogs and overlays
 
   private isGameStarted: boolean = false; // Track if first card has been placed on axis
 
@@ -268,7 +271,9 @@ class AxesMundiApp {
           }
         },
         onPlayerSwitchOverlayClick: () => {
-          this.switchPlayer();
+          if (this.uiDialogManager) {
+            this.uiDialogManager.switchPlayers();
+          }
         },
         onCardRemoved: (card) => {
           this.removeCardFromBoard(card);
@@ -535,16 +540,24 @@ class AxesMundiApp {
           this.isAITurnInProgress = inProgress;
         },
         onShowPlayerSwitchOverlay: () => {
-          this.showPlayerSwitchOverlay();
+          if (this.uiDialogManager) {
+            this.uiDialogManager.showPlayerSwitchOverlay();
+          }
         },
         onShowHotseatWinDialog: (winnerName) => {
-          this.showHotseatWinDialog(winnerName);
+          if (this.uiDialogManager) {
+            this.uiDialogManager.showHotseatWinDialog(winnerName);
+          }
         },
         onShowWinDialog: () => {
-          this.showWinDialog();
+          if (this.uiDialogManager) {
+            this.uiDialogManager.showWinDialog();
+          }
         },
         onShowLoseDialog: () => {
-          this.showLoseDialog();
+          if (this.uiDialogManager) {
+            this.uiDialogManager.showLoseDialog();
+          }
         },
       },
     });
@@ -615,7 +628,11 @@ class AxesMundiApp {
             this.isAITurnInProgress = this.aiManager.playTurn(opponentHand, false);
           }
         },
-        onShowPlayerSwitchOverlay: () => this.showPlayerSwitchOverlay(),
+        onShowPlayerSwitchOverlay: () => {
+          if (this.uiDialogManager) {
+            this.uiDialogManager.showPlayerSwitchOverlay();
+          }
+        },
         onShowTooltip: (card) => this.showTooltipForIncorrectCard(card),
         onMoveCardToGraveyard: (card) => {
           if (this.gameStateManager) {
@@ -672,6 +689,72 @@ class AxesMundiApp {
             setTimeout(() => {
               this.isAITurnInProgress = this.aiManager!.playTurn(opponentHand, this.isAITurnInProgress);
             }, 500);
+          }
+        },
+      },
+    });
+
+    // Initialize UI dialog manager
+    this.uiDialogManager = new UIDialogManager({
+      callbacks: {
+        onGetGameState: () => ({
+          score: this.score,
+          currentTurn: this.currentTurn,
+          currentPlayerIndex: this.currentPlayerIndex,
+        }),
+        onGetPlayerData: () => ({
+          player1Data: this.player1Data,
+          player2Data: this.player2Data,
+        }),
+        onGetHands: () => ({
+          player1Hand: this.player1Hand,
+          player2Hand: this.player2Hand,
+        }),
+        onSetPlayerSwitchOverlayVisible: (visible) => {
+          this.playerSwitchOverlayVisible = visible;
+        },
+        onSetPlayerSwitchOverlayBounds: (bounds) => {
+          this.playerSwitchOverlayBounds = bounds;
+        },
+        onSetIsPlayerTurn: (isPlayerTurn) => {
+          this.isPlayerTurn = isPlayerTurn;
+        },
+        onSetCurrentPlayerIndex: (index) => {
+          this.currentPlayerIndex = index;
+        },
+        onSetCurrentPlayerHand: (hand) => {
+          this.currentPlayerHand = hand;
+        },
+        onSetNextPlayerHand: (hand) => {
+          this.nextPlayerHand = hand;
+        },
+        onRestartGame: () => {
+          this.restartGame();
+        },
+        onGoToMainMenu: () => {
+          try {
+            logger.info({
+              scope: 'renderer/game',
+              msg: 'navigating to main menu',
+            });
+            window.location.href = './index.html';
+          } catch (error: any) {
+            logger.error({
+              scope: 'renderer/game',
+              msg: 'failed to navigate to main menu',
+              err: { message: (error as Error).message },
+            });
+          }
+        },
+        onUpdateInputHandlerConfig: () => {
+          this.updateInputHandlerConfig();
+        },
+        onLayoutHotseatHands: () => {
+          this.layoutHotseatHands();
+        },
+        onUpdateTurnText: () => {
+          if (this.turnTimerManager) {
+            this.turnTimerManager.updateTurnText();
           }
         },
       },
@@ -1728,53 +1811,7 @@ class AxesMundiApp {
   /**
    * Show player switch overlay for hotseat mode
    */
-  private showPlayerSwitchOverlay(): void {
-    this.playerSwitchOverlayVisible = true;
-    // Disable player turn while overlay is visible
-    this.isPlayerTurn = false;
-    this.updateInputHandlerConfig();
-    logger.info({
-      scope: 'renderer/hotseat',
-      msg: 'player switch overlay shown',
-      meta: { currentPlayerIndex: this.currentPlayerIndex },
-    });
-  }
-
-  /**
-   * Switch players in hotseat mode
-   */
-  private switchPlayer(): void {
-    // Switch player index
-    this.currentPlayerIndex = this.currentPlayerIndex === 0 ? 1 : 0;
-
-    // Update current and next player hands based on new index
-    this.currentPlayerHand = this.currentPlayerIndex === 0 ? this.player1Hand : this.player2Hand;
-    this.nextPlayerHand = this.currentPlayerIndex === 0 ? this.player2Hand : this.player1Hand;
-
-    // Layout hands (card backs are handled in render method)
-    this.layoutHotseatHands();
-
-    // Update turn text to show new current player
-    if (this.turnTimerManager) {
-      this.turnTimerManager.updateTurnText();
-    }
-
-    // Hide overlay and re-enable player turn
-    this.playerSwitchOverlayVisible = false;
-    this.playerSwitchOverlayBounds = null;
-    this.isPlayerTurn = true;
-    this.updateInputHandlerConfig();
-
-    logger.info({
-      scope: 'renderer/hotseat',
-      msg: 'player switched',
-      meta: {
-        newPlayerIndex: this.currentPlayerIndex,
-        currentPlayerCards: this.currentPlayerHand.length,
-        nextPlayerCards: this.nextPlayerHand.length,
-      },
-    });
-  }
+  // REMOVED: showPlayerSwitchOverlay() and switchPlayer() - Now handled by UIDialogManager
 
   /**
    * Animate card to graveyard position
@@ -1794,235 +1831,8 @@ class AxesMundiApp {
     });
   }
 
-  /**
-   * Show hotseat win dialog
-   */
-  private showHotseatWinDialog(winnerName: string): void {
-    const title = '🎉 Congratulations! 🎉';
-    const message = `${winnerName} hat das Spiel gewonnen!\n\nAlle Karten wurden erfolgreich sortiert!`;
-    
-    this.showCustomWinDialog(title, message);
-  }
-
-  /**
-   * Show win dialog
-   */
-  private showWinDialog(): void {
-    const title = '🎉 Congratulations! 🎉';
-    const message = `You successfully sorted all the cards!\n\nFinal score: ${this.score}\nNumber of turns: ${this.currentTurn}`;
-    
-    this.showCustomWinDialog(title, message);
-  }
-
-  /**
-   * Show lose dialog
-   */
-  private showLoseDialog(): void {
-    const title = '😔 Verloren! 😔';
-    const message = `Your opponent sorted all cards first!\n\nFinal score: ${this.score}\nNumber of turns: ${this.currentTurn}`;
-    
-    this.showCustomWinDialog(title, message);
-  }
-
-  /**
-   * Show custom win dialog with two buttons
-   */
-  private showCustomWinDialog(title: string, message: string): void {
-    try {
-      // Create dialog overlay
-      const overlay = document.createElement('div');
-      overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.8);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10000;
-        font-family: Arial, sans-serif;
-      `;
-
-      // Create dialog box
-      const dialog = document.createElement('div');
-      dialog.style.cssText = `
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 20px;
-        padding: 40px;
-        max-width: 500px;
-        width: 90%;
-        text-align: center;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        color: white;
-        border: 2px solid rgba(255, 255, 255, 0.2);
-      `;
-
-      // Create title
-      const titleElement = document.createElement('h2');
-      titleElement.textContent = title;
-      titleElement.style.cssText = `
-        margin: 0 0 20px 0;
-        font-size: 28px;
-        font-weight: bold;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-      `;
-
-      // Create message
-      const messageElement = document.createElement('p');
-      messageElement.textContent = message;
-      messageElement.style.cssText = `
-        margin: 0 0 30px 0;
-        font-size: 16px;
-        line-height: 1.5;
-        white-space: pre-line;
-      `;
-
-      // Create button container
-      const buttonContainer = document.createElement('div');
-      buttonContainer.style.cssText = `
-        display: flex;
-        gap: 15px;
-        justify-content: center;
-        flex-wrap: wrap;
-      `;
-
-      // Create "Nochmal spielen" button
-      const playAgainButton = document.createElement('button');
-      playAgainButton.textContent = 'Nochmal spielen';
-      playAgainButton.style.cssText = `
-        background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-        color: white;
-        border: none;
-        padding: 15px 30px;
-        border-radius: 25px;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
-        min-width: 150px;
-      `;
-
-      // Create "Main Menu" button
-      const mainMenuButton = document.createElement('button');
-      mainMenuButton.textContent = 'Main Menu';
-      mainMenuButton.style.cssText = `
-        background: linear-gradient(135deg, #FF6B6B 0%, #ee5a52 100%);
-        color: white;
-        border: none;
-        padding: 15px 30px;
-        border-radius: 25px;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
-        min-width: 150px;
-      `;
-
-      // Add hover effects
-      playAgainButton.addEventListener('mouseenter', () => {
-        playAgainButton.style.transform = 'translateY(-2px)';
-        playAgainButton.style.boxShadow = '0 6px 20px rgba(76, 175, 80, 0.4)';
-      });
-      playAgainButton.addEventListener('mouseleave', () => {
-        playAgainButton.style.transform = 'translateY(0)';
-        playAgainButton.style.boxShadow = '0 4px 15px rgba(76, 175, 80, 0.3)';
-      });
-
-      mainMenuButton.addEventListener('mouseenter', () => {
-        mainMenuButton.style.transform = 'translateY(-2px)';
-        mainMenuButton.style.boxShadow = '0 6px 20px rgba(255, 107, 107, 0.4)';
-      });
-      mainMenuButton.addEventListener('mouseleave', () => {
-        mainMenuButton.style.transform = 'translateY(0)';
-        mainMenuButton.style.boxShadow = '0 4px 15px rgba(255, 107, 107, 0.3)';
-      });
-
-      // Add click handlers with debouncing
-      let isButtonClicked = false;
-      
-      playAgainButton.addEventListener('click', () => {
-        if (isButtonClicked) return;
-        isButtonClicked = true;
-        
-        soundManager.play(SoundType.BUTTON_CLICK);
-        playAgainButton.style.opacity = '0.6';
-        
-        // Small delay to allow sound to play before removing overlay
-        setTimeout(() => {
-          document.body.removeChild(overlay);
-          this.restartGame();
-        }, 100);
-      });
-
-      mainMenuButton.addEventListener('click', () => {
-        if (isButtonClicked) return;
-        isButtonClicked = true;
-        
-        soundManager.play(SoundType.BUTTON_CLICK);
-        mainMenuButton.style.opacity = '0.6';
-        
-        // Small delay to allow sound to play before navigation
-        setTimeout(() => {
-          document.body.removeChild(overlay);
-          this.goToMainMenu();
-        }, 100);
-      });
-
-      // Assemble dialog
-      buttonContainer.appendChild(playAgainButton);
-      buttonContainer.appendChild(mainMenuButton);
-      dialog.appendChild(titleElement);
-      dialog.appendChild(messageElement);
-      dialog.appendChild(buttonContainer);
-      overlay.appendChild(dialog);
-
-      // Add to page
-      document.body.appendChild(overlay);
-
-      logger.info({
-        scope: 'renderer/game',
-        msg: 'custom win dialog displayed',
-      });
-
-    } catch (error: any) {
-      logger.error({
-        scope: 'renderer/game',
-        msg: 'failed to show custom win dialog',
-        err: { message: (error as Error).message },
-      });
-      
-      // Fallback to simple confirm
-      const playAgain = confirm(`${title}\n\n${message}\n\nNochmal spielen?`);
-      if (playAgain) {
-        this.restartGame();
-      } else {
-        this.goToMainMenu();
-      }
-    }
-  }
-
-  /**
-   * Navigate to main menu
-   */
-  private goToMainMenu(): void {
-    try {
-      logger.info({
-        scope: 'renderer/game',
-        msg: 'navigating to main menu',
-      });
-      window.location.href = './index.html';
-    } catch (error: any) {
-      logger.error({
-        scope: 'renderer/game',
-        msg: 'failed to navigate to main menu',
-        err: { message: (error as Error).message },
-      });
-    }
-  }
+  // REMOVED: Dialog methods - Now handled by UIDialogManager
+  // showHotseatWinDialog, showWinDialog, showLoseDialog, showCustomWinDialog, goToMainMenu
 
   /**
    * Restart the game

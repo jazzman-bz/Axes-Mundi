@@ -1,7 +1,7 @@
 # Axes-Mundi Architecture Documentation
 
 **Last Updated:** 2025-01-12  
-**Status:** Steps 1-13 completed, Steps 14-16 planned
+**Status:** Steps 1-14 completed, Steps 15-16 planned
 
 ## Overview
 
@@ -98,9 +98,16 @@ The Axes-Mundi application has been refactored from a monolithic `main.ts` file 
 - **Callbacks**: `onGetGameState`, `onGetHands`, `onGetPlayerData`, `onGetTurnTimer`, `onSetTurnTimer`, `onSetTurnText`, `onSetIsPlayerTurn`, `onAITurn`, etc.
 - **Note**: Timer only works in single-player mode; skipped in learning/hotseat/LAN modes
 
-### Planned Modules (Steps 14-16)
+#### 14. **UIDialogManager** (`app/renderer/utils/uiDialogManager.ts`)
+- **Purpose**: UI dialogs and overlays management
+- **Key Methods**: `showWinDialog()`, `showLoseDialog()`, `showHotseatWinDialog()`, `showPlayerSwitchOverlay()`, `switchPlayers()`
+- **Dependencies**: Game state (via callbacks), DOM manipulation
+- **Callbacks**: `onGetGameState`, `onGetPlayerData`, `onGetHands`, `onSetPlayerSwitchOverlayVisible`, `onSetIsPlayerTurn`, `onRestartGame`, `onGoToMainMenu`, etc.
+- **Note**: Handles all dialog creation (DOM manipulation) and player switching logic for hotseat mode
 
-#### 14. **UIDialogManager** (Planned)
+### Planned Modules (Steps 15-16)
+
+#### 15. **LearningModeManager** (Planned)
 - **Purpose**: Turn timer management
 - **Methods**: `startTurnTimer()`, `stopTurnTimer()`, `endTurn()`, etc.
 
@@ -124,7 +131,7 @@ The `AxesMundiApp` class now serves as the orchestrator that:
 - Manages the game loop
 - Coordinates module interactions
 
-**Current Size**: ~2,000 lines (reduced from ~4,400 lines)
+**Current Size**: ~1,900 lines (reduced from ~4,400 lines)
 
 ## Callback Pattern
 
@@ -188,7 +195,7 @@ app/renderer/
   │   ├── cardDealerManager.ts    # ✅ Step 11
   │   ├── gameInitializer.ts     # ✅ Step 12
   │   ├── turnTimerManager.ts    # ✅ Step 13
-  │   ├── uiDialogManager.ts     # ⏳ Step 14 (Planned)
+  │   ├── uiDialogManager.ts     # ✅ Step 14
   │   ├── learningModeManager.ts # ⏳ Step 15 (Planned)
   │   └── boardNavigationManager.ts # ⏳ Step 16 (Planned)
   └── ...
@@ -211,11 +218,12 @@ Each module has corresponding unit tests in `tests/unit/`:
 - ✅ `cardDealerManager.test.ts`
 - ✅ `gameInitializer.test.ts`
 - ✅ `turnTimerManager.test.ts`
+- ✅ `uiDialogManager.test.ts`
 
 ## Migration Progress
 
-- **Steps 1-13**: ✅ Completed
-- **Steps 14-16**: ⏳ Planned (see TODO.md)
+- **Steps 1-14**: ✅ Completed
+- **Steps 15-16**: ⏳ Planned (see TODO.md)
 
 ## Key Design Decisions
 
