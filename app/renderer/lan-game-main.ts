@@ -71,7 +71,7 @@ class LANGameApp {
   private isValidationInProgress: boolean = false; // Block interaction during card validation
 
   constructor() {
-    console.log('🎮 LANGameApp constructor called');
+    logger.info({ scope: 'renderer/lan-game', msg: 'LANGameApp constructor called' });
     this.init();
 
     // Set up mouse event handlers for hover effects
@@ -83,7 +83,7 @@ class LANGameApp {
    */
   async init(): Promise<void> {
     try {
-      console.log('🎮 Initializing LAN game application...');
+      logger.info({ scope: 'renderer/lan-game', msg: 'initializing LAN game application' });
 
       // IMPORTANT: Set up WebSocket event listeners FIRST to catch early events
       this.setupWebSocketEventListeners();
@@ -92,10 +92,17 @@ class LANGameApp {
       const isLANMode = localStorage.getItem('selectedGameType') === 'lan';
       const isServerClient = localStorage.getItem('isServerClient') === 'true';
 
-      console.log('🎮 LAN mode check:', { isLANMode, isServerClient });
+      logger.debug({
+        scope: 'renderer/lan-game',
+        msg: 'LAN mode check complete',
+        meta: { isLANMode, isServerClient },
+      });
 
       if (!isLANMode) {
-        console.error('🎮 Not in LAN mode, redirecting to landing page');
+        logger.error({
+          scope: 'renderer/lan-game',
+          msg: 'not in LAN mode, redirecting to landing page',
+        });
         window.location.href = './index.html';
         return;
       }
@@ -139,9 +146,13 @@ class LANGameApp {
 
       // WebSocket event listeners already set up at the start of init()
 
-      console.log('🎮 LAN game application initialized successfully');
-    } catch (error) {
-      console.error('🎮 Failed to initialize LAN game application:', error);
+      logger.info({ scope: 'renderer/lan-game', msg: 'LAN game application initialized successfully' });
+    } catch (error: any) {
+      logger.error({
+        scope: 'renderer/lan-game',
+        msg: 'failed to initialize LAN game application',
+        err: { message: error.message, stack: error.stack },
+      });
       this.showError('Error initializing LAN game.');
     }
   }
@@ -151,7 +162,7 @@ class LANGameApp {
    */
   private initCanvas(): void {
     try {
-      console.log('🎮 Initializing canvas...');
+      logger.debug({ scope: 'renderer/lan-game', msg: 'initializing canvas' });
 
       this.canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
       if (!this.canvas) {
@@ -162,9 +173,17 @@ class LANGameApp {
       this.canvas.width = window.innerWidth;
       this.canvas.height = window.innerHeight;
 
-      console.log('🎮 Canvas initialized successfully');
-    } catch (error) {
-      console.error('🎮 Failed to initialize canvas:', error);
+      logger.info({
+        scope: 'renderer/lan-game',
+        msg: 'canvas initialized successfully',
+        meta: { width: this.canvas.width, height: this.canvas.height },
+      });
+    } catch (error: any) {
+      logger.error({
+        scope: 'renderer/lan-game',
+        msg: 'failed to initialize canvas',
+        err: { message: error.message, stack: error.stack },
+      });
       throw error;
     }
   }
@@ -174,7 +193,7 @@ class LANGameApp {
    */
   private initCanvasContext(): void {
     try {
-      console.log('🎮 Initializing Canvas context...');
+      logger.debug({ scope: 'renderer/lan-game', msg: 'initializing canvas context' });
 
       if (!this.canvas) {
         throw new Error('Canvas not initialized');
@@ -193,9 +212,13 @@ class LANGameApp {
       // Apply initial scale to HTML UI elements
       this.updateUIElementsScale();
 
-      console.log('🎮 Canvas context initialized successfully');
-    } catch (error) {
-      console.error('🎮 Failed to initialize Canvas context:', error);
+      logger.info({ scope: 'renderer/lan-game', msg: 'canvas context initialized successfully' });
+    } catch (error: any) {
+      logger.error({
+        scope: 'renderer/lan-game',
+        msg: 'failed to initialize canvas context',
+        err: { message: error.message, stack: error.stack },
+      });
       throw error;
     }
   }
@@ -214,7 +237,11 @@ class LANGameApp {
     // Update snap threshold for new scale
     this.snapThreshold = 80 * this.scale;
 
-    console.log('🎮 Scale calculated:', this.scale);
+    logger.debug({
+      scope: 'renderer/lan-game',
+      msg: 'scale calculated',
+      meta: { scale: this.scale },
+    });
   }
 
   /**
@@ -224,15 +251,19 @@ class LANGameApp {
     try {
       this.logoImage = new Image();
       this.logoImage.onload = () => {
-        console.log('🎮 Logo image loaded successfully');
+        logger.info({ scope: 'renderer/lan-game', msg: 'logo image loaded successfully' });
       };
       this.logoImage.onerror = () => {
-        console.warn('🎮 Failed to load logo image, using fallback');
+        logger.warn({ scope: 'renderer/lan-game', msg: 'failed to load logo image, using fallback' });
         this.logoImage = null;
       };
       this.logoImage.src = './assets/axes-mundi logo.png';
-    } catch (error) {
-      console.error('🎮 Error loading logo image:', error);
+    } catch (error: any) {
+      logger.error({
+        scope: 'renderer/lan-game',
+        msg: 'error loading logo image',
+        err: { message: error.message, stack: error.stack },
+      });
       this.logoImage = null;
     }
   }
@@ -244,21 +275,18 @@ class LANGameApp {
     try {
       this.backgroundImage = new Image();
       this.backgroundImage.onload = () => {
-        console.log('🎮 Background image loaded successfully');
         logger.info({ scope: 'renderer/lan-game', msg: 'background image loaded successfully' });
       };
       this.backgroundImage.onerror = () => {
-        console.warn('🎮 Failed to load background image, using fallback color');
         logger.warn({ scope: 'renderer/lan-game', msg: 'failed to load background image, using fallback color' });
         this.backgroundImage = null;
       };
       this.backgroundImage.src = './assets/background.jpg';
-    } catch (error) {
-      console.error('🎮 Error loading background image:', error);
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/lan-game',
         msg: 'failed to load background image',
-        err: { message: (error as Error).message, stack: (error as Error).stack },
+        err: { message: error.message, stack: error.stack },
       });
       this.backgroundImage = null;
     }
@@ -269,7 +297,7 @@ class LANGameApp {
    */
   private async initLANGame(): Promise<void> {
     try {
-      console.log('🎮 Initializing LANGameServer...');
+      logger.info({ scope: 'renderer/lan-game', msg: 'initializing LANGameManager' });
 
       this.lanGame = new LANGameManager();
 
@@ -283,10 +311,11 @@ class LANGameApp {
       if (serverPlayerName) {
         // Set server player name immediately
         this.lanGame.setPlayerNames(serverPlayerName, 'Waiting for client...');
-        console.log('🎮 Server player name set:', serverPlayerName);
-
-        // Server starts in waiting mode - no current player set yet
-        console.log('🎮 Server starts in waiting mode - no current player set yet');
+        logger.info({
+          scope: 'renderer/lan-game',
+          msg: 'server player name loaded',
+          meta: { serverPlayerName },
+        });
 
         // Update overlay to show server name and waiting for client
         this.updateLANInfo();
@@ -294,12 +323,13 @@ class LANGameApp {
         // Initialize current player display
         this.updateCurrentPlayerDisplay();
       } else {
-        console.warn('🎮 No server player name found in localStorage, using default');
+        logger.warn({
+          scope: 'renderer/lan-game',
+          msg: 'no server player name found in localStorage, using default',
+        });
         const defaultServerName = 'Server';
         this.lanGame.setPlayerNames(defaultServerName, 'Waiting for client...');
         localStorage.setItem('serverPlayerName', defaultServerName);
-        // Default server starts in waiting mode - no current player set yet
-        console.log('🎮 Default server starts in waiting mode - no current player set yet');
         this.updateLANInfo();
         
         // Initialize current player display
@@ -308,7 +338,10 @@ class LANGameApp {
 
       // For Client: Start in waiting mode - no current player loaded
       if (!isServerClient) {
-        console.log('🎮 Client: Starting in waiting mode - no current player loaded yet');
+        logger.info({
+          scope: 'renderer/lan-game',
+          msg: 'client starts in waiting mode until current player is received',
+        });
       }
 
       // Note: Client player name will be set when received via WebSocket
@@ -319,27 +352,39 @@ class LANGameApp {
 
       // For Browser-Client: Ensure WebSocket client is initialized and set up message handling
       if (!isServerClient) {
-        console.log('🎮 Browser-Client: Ensuring WebSocket client is initialized');
         // The LANGameManager should have already initialized the WebSocket client
         // But let's verify it's working
         if (this.lanGame.lanClient) {
-          console.log('🎮 Browser-Client: WebSocket client is available');
-          console.log('🎮 Browser-Client: WebSocket connection state:', this.lanGame.lanClient.isConnected());
+          logger.info({
+            scope: 'renderer/lan-game',
+            msg: 'browser client WebSocket is available',
+            meta: { isConnected: this.lanGame.lanClient.isConnected() },
+          });
 
           // Set up message callback to receive WebSocket messages
           this.lanGame.onMessage((message: any) => {
-            console.log('🎮 Browser-Client: Received message from LANGameManager:', message.type);
+            logger.debug({
+              scope: 'renderer/lan-game',
+              msg: 'received message from LANGameManager',
+              meta: { type: message.type },
+            });
             this.handleWebSocketMessageFromLANGame(message);
           });
-          console.log('🎮 Browser-Client: Message callback set up successfully');
         } else {
-          console.warn('🎮 Browser-Client: WebSocket client is not available');
+          logger.warn({
+            scope: 'renderer/lan-game',
+            msg: 'browser client WebSocket is not available',
+          });
         }
       }
 
-      console.log('🎮 LANGameServer initialized successfully');
-    } catch (error) {
-      console.error('🎮 Failed to initialize LANGameServer:', error);
+      logger.info({ scope: 'renderer/lan-game', msg: 'LANGameManager initialized successfully' });
+    } catch (error: any) {
+      logger.error({
+        scope: 'renderer/lan-game',
+        msg: 'failed to initialize LANGameManager',
+        err: { message: error.message, stack: error.stack },
+      });
       throw error;
     }
   }
@@ -349,13 +394,17 @@ class LANGameApp {
    */
   private async handleServerClientFlow(): Promise<void> {
     try {
-      console.log('🎮 Handling server-client flow...');
+      logger.info({ scope: 'renderer/lan-game', msg: 'handling server-client flow' });
 
       // Get card distribution from LANGameManager
       if (this.lanGame) {
         const distribution = this.lanGame.getCardDistribution();
         if (distribution) {
-          console.log('🎮 Distributing cards on canvas...');
+          logger.info({
+            scope: 'renderer/lan-game',
+            msg: 'distributing cards on canvas',
+            meta: { deckId: distribution.deckId },
+          });
           this.updateLANStatus('Karten werden verteilt...');
 
           // Create GameCard objects and distribute them (like Single-Player)

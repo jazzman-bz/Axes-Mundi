@@ -33,8 +33,9 @@
   - doppelte `isConnected()`-Implementierung in [`lan-client.ts`](/Users/jazzman/Code/Axes-Mundi/app/renderer/lan-client.ts#L530) entfernt
   - fehlende `disconnect()`-API fuer [`lan-game-main.ts`](/Users/jazzman/Code/Axes-Mundi/app/renderer/lan-game-main.ts) nachgezogen
 - [ ] Debug-Logging im LAN-Pfad reduzieren
-  - rohe `console.log`/`console.error`-Ausgaben durch den strukturierten Logger ersetzen
-  - nur gezielte Diagnosepunkte behalten
+  - [x] Startup-/Connection-Lifecycle in `lan-game.ts`, `lan-game-main.ts` und `lan-client.ts` auf strukturierten Logger umstellen
+  - [ ] verbleibende Gameplay-/Sync-Diagnosepunkte in `lan-game-main.ts` und `websocket-server.ts` gezielt abbauen
+  - [ ] nur gezielte Diagnosepunkte behalten
 - [ ] LAN-Flows durch Integrations- oder E2E-Tests absichern
   - Join
   - Deck-Verteilung

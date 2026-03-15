@@ -399,12 +399,13 @@ export class LANGameClient {
         meta: { type: message.type },
       });
     } else {
-      console.warn('🎮 LAN Client: Cannot send message - not connected');
-      console.warn('🎮 LAN Client: WebSocket state:', this.ws?.readyState);
-
       logger.warn({
         scope: 'lan/client',
         msg: 'Cannot send message - not connected',
+        meta: {
+          readyState: this.ws?.readyState ?? null,
+          messageType: message.type,
+        },
       });
     }
   }

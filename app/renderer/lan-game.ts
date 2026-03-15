@@ -45,40 +45,41 @@ export class LANGameManager {
   }
 
   constructor() {
-    console.log('🎮 LANGameManager constructor called');
-    console.log('🎮 localStorage.getItem("isServerClient"):', localStorage.getItem('isServerClient'));
-
     this.isServerClient = localStorage.getItem('isServerClient') === 'true';
     this.serverPlayerName = localStorage.getItem('serverPlayerName') || 'Server';
     this.clientPlayerName = localStorage.getItem('clientPlayerName') || 'Waiting for client...';
     // currentPlayer is randomly set at game start
 
-    console.log('🎮 LANGameManager constructor - isServerClient set to:', this.isServerClient);
-    console.log('🎮 LANGameManager constructor - serverPlayerName:', this.serverPlayerName);
-    console.log('🎮 LANGameManager constructor - clientPlayerName:', this.clientPlayerName);
+    logger.info({
+      scope: 'renderer/lan',
+      msg: 'LANGameManager initialized',
+      meta: {
+        isServerClient: this.isServerClient,
+        serverPlayerName: this.serverPlayerName,
+        clientPlayerName: this.clientPlayerName,
+      },
+    });
   }
 
   /**
    * Set current player randomly at game start
    */
   setCurrentPlayerRandomly(): void {
-    console.log('🎮 Setting current player randomly...');
-    console.log('🎮 Server player name:', this.serverPlayerName);
-    console.log('🎮 Client player name:', this.clientPlayerName);
-
     const serverStarts = Math.random() < 0.5;
     this.currentPlayer = serverStarts ? this.serverPlayerName : this.clientPlayerName;
 
     // Store current player in localStorage for consistency
     localStorage.setItem('currentPlayer', this.currentPlayer);
 
-    console.log('🎮 Current player set to:', this.currentPlayer);
-    console.log('🎮 Server starts:', serverStarts);
-
     logger.info({
       scope: 'renderer/lan',
       msg: 'current player set randomly',
-      meta: { currentPlayer: this.currentPlayer, serverStarts }
+      meta: {
+        currentPlayer: this.currentPlayer,
+        serverStarts,
+        serverPlayerName: this.serverPlayerName,
+        clientPlayerName: this.clientPlayerName,
+      },
     });
   }
 
@@ -86,8 +87,7 @@ export class LANGameManager {
    * Update current player after turn
    */
   updateCurrentPlayer(): void {
-    console.log('🎮 Updating current player after turn...');
-    console.log('🎮 Current player before switch:', this.currentPlayer);
+    const previousPlayer = this.currentPlayer;
 
     if (this.currentPlayer === this.serverPlayerName) {
       this.currentPlayer = this.clientPlayerName;
@@ -98,12 +98,13 @@ export class LANGameManager {
     // Store updated current player
     localStorage.setItem('currentPlayer', this.currentPlayer);
 
-    console.log('🎮 Current player after switch:', this.currentPlayer);
-
     logger.info({
       scope: 'renderer/lan',
       msg: 'current player updated',
-      meta: { currentPlayer: this.currentPlayer }
+      meta: {
+        previousPlayer,
+        currentPlayer: this.currentPlayer,
+      },
     });
   }
 
@@ -188,10 +189,6 @@ export class LANGameManager {
     // DISABLED: currentPlayer logic before card distribution
     // localStorage.setItem('currentPlayer', serverPlayerName);
 
-    console.log('🎮 LANGameServer: Player names set:', this.serverPlayerName, this.clientPlayerName);
-    console.log('🎮 LANGameServer: Player names stored in localStorage');
-    console.log('🎮 LANGameServer: DISABLED - would set current player to:', serverPlayerName);
-
     logger.info({
       scope: 'renderer/lan/server',
       msg: 'player names set and stored in localStorage',
@@ -208,11 +205,7 @@ export class LANGameManager {
    */
   async initializeLANGame(): Promise<void> {
     try {
-      console.log('🎮 LANGameManager.initializeLANGame() called');
-      console.log('🎮 isServerClient:', this.isServerClient);
-
       if (!this.isServerClient) {
-        console.log('🎮 Not server client, initializing as LAN client');
         logger.info({
           scope: 'renderer/lan',
           msg: 'LAN client - initializing WebSocket connection',
@@ -223,11 +216,8 @@ export class LANGameManager {
         return;
       }
 
-      console.log('🎮 Server client detected, proceeding with initialization');
-
       // Load deck from localStorage
       let selectedDeck = localStorage.getItem('selectedDeck') || 'buildings-height-en';
-      console.log('🎮 Selected deck from localStorage:', selectedDeck);
 
       logger.info({
         scope: 'renderer/lan',
@@ -243,7 +233,6 @@ export class LANGameManager {
         this.deck = await loadDeck(selectedDeck);
       } catch (deckError) {
         // If deck loading fails, fallback to default
-        console.warn('🎮 Failed to load deck:', selectedDeck, '- falling back to buildings-height-en');
         logger.warn({
           scope: 'renderer/lan',
           msg: 'deck loading failed, using fallback',
@@ -276,8 +265,6 @@ export class LANGameManager {
 
       // Card distribution is prepared but NOT sent yet
       // It will be sent after the canvas is initialized and cards are displayed
-      console.log('🎴 Card distribution prepared but not sent yet');
-
       logger.info({
         scope: 'renderer/lan',
         msg: 'LAN game initialized successfully',
@@ -303,8 +290,6 @@ export class LANGameManager {
    */
   private async initializeAsLANClient(): Promise<void> {
     try {
-      console.log('🎮 Initializing as LAN client...');
-
       // Get server connection details from localStorage
       const serverUrl = localStorage.getItem('lanServerUrl') || 'ws://localhost:8080';
       const playerName = this.clientPlayerName;
@@ -318,10 +303,11 @@ export class LANGameManager {
           playerAvatar = playerData.avatar || 'default';
         }
       } catch (e) {
-        console.warn('🎮 Could not parse player data for avatar');
+        logger.warn({
+          scope: 'renderer/lan',
+          msg: 'could not parse player data for avatar',
+        });
       }
-
-      console.log('🎮 Connecting to server:', serverUrl, 'as:', playerName, 'with avatar:', playerAvatar);
 
       // Import and initialize LAN client
       const { LANClient } = await import('./lan-client');
@@ -329,7 +315,11 @@ export class LANGameManager {
 
       // Set up message handlers
       this.lanClient.onMessage((message: any) => {
-        console.log('🎮 LANGameManager: Received WebSocket message:', message.type);
+        logger.debug({
+          scope: 'renderer/lan',
+          msg: 'received WebSocket message',
+          meta: { type: message.type },
+        });
         this.handleWebSocketMessage(message);
       });
 
@@ -359,43 +349,49 @@ export class LANGameManager {
    */
   private handleWebSocketMessage(message: any): void {
     try {
-      console.log('🎮 LAN client received message:', message.type);
-
       switch (message.type) {
         case 'cardPlacement':
         // IMPORTANT: Forward cardPlacement messages to lan-game-main.ts for processing
-          console.log('🎮 LANGameManager: Forwarding cardPlacement to lan-game-main.ts');
           if (this.onMessageCallback) {
             this.onMessageCallback(message);
           } else {
-            console.warn('🎮 LANGameManager: No message callback set for cardPlacement');
+            logger.warn({
+              scope: 'renderer/lan',
+              msg: 'no message callback set for cardPlacement',
+            });
           }
           break;
         case 'playerSwitch':
         // IMPORTANT: Forward playerSwitch messages to lan-game-main.ts for processing
-          console.log('🎮 LANGameManager: Forwarding playerSwitch to lan-game-main.ts');
           if (this.onMessageCallback) {
             this.onMessageCallback(message);
           } else {
-            console.warn('🎮 LANGameManager: No message callback set for playerSwitch');
+            logger.warn({
+              scope: 'renderer/lan',
+              msg: 'no message callback set for playerSwitch',
+            });
           }
           break;
         case 'gameRestart':
         // IMPORTANT: Forward gameRestart messages to lan-game-main.ts for processing
-          console.log('🎮 LANGameManager: Forwarding gameRestart to lan-game-main.ts');
           if (this.onMessageCallback) {
             this.onMessageCallback(message);
           } else {
-            console.warn('🎮 LANGameManager: No message callback set for gameRestart');
+            logger.warn({
+              scope: 'renderer/lan',
+              msg: 'no message callback set for gameRestart',
+            });
           }
           break;
         case 'remainingCardsUpdate':
         // IMPORTANT: Forward remainingCardsUpdate messages to lan-game-main.ts for processing
-          console.log('🎮 LANGameManager: Forwarding remainingCardsUpdate to lan-game-main.ts');
           if (this.onMessageCallback) {
             this.onMessageCallback(message);
           } else {
-            console.warn('🎮 LANGameManager: No message callback set for remainingCardsUpdate');
+            logger.warn({
+              scope: 'renderer/lan',
+              msg: 'no message callback set for remainingCardsUpdate',
+            });
           }
           break;
         case 'gameStateUpdate':
@@ -403,19 +399,28 @@ export class LANGameManager {
           break;
         case 'currentPlayerUpdate':
         // DISABLED: currentPlayer logic before card distribution
-          console.log('🎮 Received currentPlayerUpdate - IGNORED (waiting for card distribution)');
+          logger.debug({
+            scope: 'renderer/lan',
+            msg: 'received currentPlayerUpdate before card distribution; ignored',
+          });
           break;
         case 'currentPlayerSet':
         // IMPORTANT: Forward currentPlayerSet messages to lan-game-main.ts for processing
-          console.log('🎮 LANGameManager: Forwarding currentPlayerSet to lan-game-main.ts');
           if (this.onMessageCallback) {
             this.onMessageCallback(message);
           } else {
-            console.warn('🎮 LANGameManager: No message callback set for currentPlayerSet');
+            logger.warn({
+              scope: 'renderer/lan',
+              msg: 'no message callback set for currentPlayerSet',
+            });
           }
           break;
         default:
-          console.log('🎮 Unknown message type:', message.type);
+          logger.warn({
+            scope: 'renderer/lan',
+            msg: 'unknown message type received',
+            meta: { type: message.type },
+          });
       }
     } catch (error: any) {
       logger.error({
@@ -431,8 +436,6 @@ export class LANGameManager {
    */
   private handleRemoteGameStateUpdate(message: any): void {
     try {
-      console.log('🎮 Handling remote game state update:', message);
-
       // DISABLED: currentPlayer logic before card distribution
       // this.currentPlayer = message.currentPlayer;
       this.placedCards = message.placedCards || [];
