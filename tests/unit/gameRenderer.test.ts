@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GameRenderer, RenderState } from '@/utils/gameRenderer';
 import { GameCard } from '@/game/Card';
-import type { CardData } from '@/data/types';
+import type { Card } from '@/data/types';
 
 // Mock the logger
 vi.mock('@/utils/logger', () => ({
@@ -79,7 +79,7 @@ describe('GameRenderer', () => {
   });
 
   function createMockCard(id: string, title: string): GameCard {
-    const cardData: CardData = {
+    const cardData: Card = {
       id,
       title,
       axis: 'time',
@@ -92,7 +92,17 @@ describe('GameRenderer', () => {
       difficulty: 'easy',
     };
 
-    const deck = { id: 'test-deck', name: 'Test Deck', axis: 'time', theme: 'test', locale: 'en', version: '1.0.0', cards: [] };
+    const deck = {
+      id: 'test-deck',
+      name: 'Test Deck',
+      axis: 'time',
+      theme: 'test',
+      locale: 'en',
+      version: '1.0.0',
+      imageFolder: 'test',
+      cards: [],
+      isUserDeck: false,
+    };
     return new GameCard(cardData, deck, 100, 100, 1);
   }
 

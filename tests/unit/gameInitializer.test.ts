@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import { GameInitializer, GameInitializerCallbacks } from '@/utils/gameInitializer';
 import { GameCard } from '@/game/Card';
 import { Card as CardData } from '@/data/types';
@@ -84,15 +84,7 @@ function createMockCanvas(): HTMLCanvasElement {
  * Helper to create mock callbacks
  */
 function createMockCallbacks(): GameInitializerCallbacks {
-  let deck: ExtendedDeck | null = null;
   let remainingCards: CardData[] = [];
-  let boardCard: GameCard | null = null;
-  let scale = 1;
-  let snapThreshold = 80;
-  let logoImage: HTMLImageElement | null = null;
-  let arrowLeftImage: HTMLImageElement | null = null;
-  let arrowRightImage: HTMLImageElement | null = null;
-  let backgroundImage: HTMLImageElement | null = null;
 
   return {
     onGetGameState: vi.fn(() => ({
@@ -106,33 +98,17 @@ function createMockCallbacks(): GameInitializerCallbacks {
       player1Hand: [],
       player2Hand: [],
     })),
-    onSetDeck: vi.fn((d: ExtendedDeck) => {
-      deck = d;
-    }),
+    onSetDeck: vi.fn(),
     onSetRemainingCards: vi.fn((cards: CardData[]) => {
       remainingCards = cards;
     }),
-    onSetBoardCard: vi.fn((card: GameCard | null) => {
-      boardCard = card;
-    }),
-    onSetScale: vi.fn((s: number) => {
-      scale = s;
-    }),
-    onSetSnapThreshold: vi.fn((threshold: number) => {
-      snapThreshold = threshold;
-    }),
-    onSetLogoImage: vi.fn((image: HTMLImageElement | null) => {
-      logoImage = image;
-    }),
-    onSetArrowLeftImage: vi.fn((image: HTMLImageElement | null) => {
-      arrowLeftImage = image;
-    }),
-    onSetArrowRightImage: vi.fn((image: HTMLImageElement | null) => {
-      arrowRightImage = image;
-    }),
-    onSetBackgroundImage: vi.fn((image: HTMLImageElement | null) => {
-      backgroundImage = image;
-    }),
+    onSetBoardCard: vi.fn(),
+    onSetScale: vi.fn(),
+    onSetSnapThreshold: vi.fn(),
+    onSetLogoImage: vi.fn(),
+    onSetArrowLeftImage: vi.fn(),
+    onSetArrowRightImage: vi.fn(),
+    onSetBackgroundImage: vi.fn(),
     onSetCurrentPlayerHand: vi.fn(),
     onSetNextPlayerHand: vi.fn(),
     onUpdateGameStateManager: vi.fn(),
@@ -146,6 +122,7 @@ describe('GameInitializer', () => {
   let initializer: GameInitializer;
   let callbacks: GameInitializerCallbacks;
   let canvas: HTMLCanvasElement;
+  let mockLocalStorage: Storage;
 
   beforeEach(() => {
     // Reset mocks
@@ -161,6 +138,20 @@ describe('GameInitializer', () => {
       writable: true,
       configurable: true,
       value: 1080,
+    });
+
+    mockLocalStorage = {
+      getItem: vi.fn(() => 'test-deck'),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+      key: vi.fn(() => null),
+      length: 0,
+    } as unknown as Storage;
+
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      value: mockLocalStorage,
     });
 
     callbacks = createMockCallbacks();
@@ -399,11 +390,6 @@ describe('GameInitializer', () => {
   });
 
   describe('loadGame', () => {
-    beforeEach(() => {
-      // Mock localStorage
-      Storage.prototype.getItem = vi.fn(() => 'test-deck');
-    });
-
     it('should load deck from localStorage', async () => {
       const { loadDeck } = await import('@/data/deckLoader');
       const mockDeck = createMockDeck();
@@ -416,7 +402,7 @@ describe('GameInitializer', () => {
     });
 
     it('should fall back to default deck if localStorage is empty', async () => {
-      Storage.prototype.getItem = vi.fn(() => null);
+      vi.mocked(mockLocalStorage.getItem).mockReturnValue(null);
       const { loadDeck } = await import('@/data/deckLoader');
       const mockDeck = createMockDeck();
       vi.mocked(loadDeck).mockResolvedValue(mockDeck);
@@ -481,7 +467,7 @@ describe('GameInitializer', () => {
       await initializer.loadGame();
 
       expect(callbacks.onSetBoardCard).toHaveBeenCalled();
-      const boardCardCall = callbacks.onSetBoardCard.mock.calls[0][0];
+      const boardCardCall = (callbacks.onSetBoardCard as Mock).mock.calls[0][0];
       expect(boardCardCall).toBeInstanceOf(GameCard);
       expect(boardCardCall.isInHand).toBe(false);
     });

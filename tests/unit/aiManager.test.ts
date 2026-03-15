@@ -28,7 +28,23 @@ const createMockCardData = (id: string, value: number, unit: string = 'm'): Card
 
 // Mock GameCard
 const createMockGameCard = (cardData: Card, x: number = 0, y: number = 0): GameCard => {
-  const card = new GameCard(cardData, { id: 'test-deck', name: 'Test Deck', axis: 'height', cards: [] }, x, y, 1);
+  const card = new GameCard(
+    cardData,
+    {
+      id: 'test-deck',
+      name: 'Test Deck',
+      axis: 'height',
+      theme: 'test',
+      locale: 'en',
+      version: '1.0.0',
+      imageFolder: 'test',
+      cards: [],
+      isUserDeck: false,
+    },
+    x,
+    y,
+    1,
+  );
   return card;
 };
 
@@ -162,7 +178,7 @@ describe('AIManager', () => {
   });
 
   describe('callbacks', () => {
-    it('should call onCardRemovedFromHand when card is placed', (done) => {
+    it('should call onCardRemovedFromHand when card is placed', async () => {
       const hand = [createMockGameCard(createMockCardData('1', 10))];
       hand[0].startDrag = vi.fn();
       hand[0].updateDrag = vi.fn();
@@ -182,19 +198,18 @@ describe('AIManager', () => {
       aiManager.playTurn(hand, false);
 
       // Wait for animation to complete (800ms + 400ms delay)
-      setTimeout(() => {
-        expect(callbacks.onCardRemovedFromHand).toHaveBeenCalledWith(hand[0]);
-        expect(callbacks.onCardPlaced).toHaveBeenCalled();
-        expect(callbacks.onLayoutAxisCards).toHaveBeenCalled();
-        expect(callbacks.onCardSetCorrect).toHaveBeenCalledWith(hand[0]);
-        expect(callbacks.onTurnComplete).toHaveBeenCalled();
-        expect(callbacks.onCheckWin).toHaveBeenCalled();
-        expect(callbacks.onPlaySound).toHaveBeenCalledWith(SoundType.CARD_PLACE);
-        done();
-      }, 1500);
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      expect(callbacks.onCardRemovedFromHand).toHaveBeenCalledWith(hand[0]);
+      expect(callbacks.onCardPlaced).toHaveBeenCalled();
+      expect(callbacks.onLayoutAxisCards).toHaveBeenCalled();
+      expect(callbacks.onCardSetCorrect).toHaveBeenCalledWith(hand[0]);
+      expect(callbacks.onTurnComplete).toHaveBeenCalled();
+      expect(callbacks.onCheckWin).toHaveBeenCalled();
+      expect(callbacks.onPlaySound).toHaveBeenCalledWith(SoundType.CARD_PLACE);
     }, 2000);
 
-    it('should call onShowPreview during animation', (done) => {
+    it('should call onShowPreview during animation', async () => {
       const hand = [createMockGameCard(createMockCardData('1', 10))];
       hand[0].startDrag = vi.fn();
       hand[0].updateDrag = vi.fn();
@@ -213,13 +228,12 @@ describe('AIManager', () => {
       aiManager.playTurn(hand, false);
 
       // Preview should show after 30% of animation (240ms)
-      setTimeout(() => {
-        expect(callbacks.onShowPreview).toHaveBeenCalled();
-        done();
-      }, 300);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      expect(callbacks.onShowPreview).toHaveBeenCalled();
     }, 500);
 
-    it('should call onHidePreview after placement', (done) => {
+    it('should call onHidePreview after placement', async () => {
       const hand = [createMockGameCard(createMockCardData('1', 10))];
       hand[0].startDrag = vi.fn();
       hand[0].updateDrag = vi.fn();
@@ -238,11 +252,10 @@ describe('AIManager', () => {
       aiManager.playTurn(hand, false);
 
       // Hide preview should be called after placement delay (400ms)
-      setTimeout(() => {
-        expect(callbacks.onHidePreview).toHaveBeenCalled();
-        done();
-      }, 500);
-    }, 1000);
+      await new Promise((resolve) => setTimeout(resolve, 1300));
+
+      expect(callbacks.onHidePreview).toHaveBeenCalled();
+    }, 2000);
   });
 
   describe('updateConfig', () => {

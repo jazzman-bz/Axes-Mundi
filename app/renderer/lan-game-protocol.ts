@@ -93,7 +93,7 @@ export class LANGameProtocol {
       }
 
       return { isValid: errors.length === 0, errors };
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'lan/protocol',
         msg: 'failed to validate message',
@@ -228,7 +228,7 @@ export class LANGameProtocol {
         isValid: validation.isValid,
         errors: validation.errors,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'lan/protocol',
         msg: 'failed to parse message JSON',
@@ -250,7 +250,7 @@ export class LANGameProtocol {
   static serializeMessage(message: any): string {
     try {
       return JSON.stringify(message);
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'lan/protocol',
         msg: 'failed to serialize message',
@@ -323,7 +323,7 @@ export class LANGameProtocol {
       }
 
       logger.debug(logData);
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'lan/protocol',
         msg: 'failed to log message',

@@ -31,7 +31,17 @@ function createTestCard(id: string, title: string, isCorrect: boolean = true): G
   };
   const gameCard = new GameCard(
     card,
-    { id: 'test-deck', name: 'Test', axis: 'height', theme: 'test', locale: 'en', version: '1.0.0', cards: [], isUserDeck: false },
+    {
+      id: 'test-deck',
+      name: 'Test',
+      axis: 'height',
+      theme: 'test',
+      locale: 'en',
+      version: '1.0.0',
+      imageFolder: 'test',
+      cards: [],
+      isUserDeck: false,
+    },
     0,
     0,
     1,
@@ -54,13 +64,7 @@ function createMockCallbacks(): LearningModeManagerCallbacks {
   let remainingCards: CardData[] = [];
   let score = 0;
   let currentTurn = 0;
-  let isGameStarted = false;
-  let isPlayerTurn = true;
-  let turnText = '';
-  let turnTimer = 30;
-  let tooltipVisible = false;
   let tooltipCard: GameCard | null = null;
-  let hoveredCard: GameCard | null = null;
 
   return {
     onGetBoardCards: vi.fn(() => ({
@@ -97,27 +101,15 @@ function createMockCallbacks(): LearningModeManagerCallbacks {
     onSetCurrentTurn: vi.fn((turn) => {
       currentTurn = turn;
     }),
-    onSetIsGameStarted: vi.fn((started) => {
-      isGameStarted = started;
-    }),
-    onSetIsPlayerTurn: vi.fn((playerTurn) => {
-      isPlayerTurn = playerTurn;
-    }),
-    onSetTurnText: vi.fn((text) => {
-      turnText = text;
-    }),
-    onSetTurnTimer: vi.fn((timer) => {
-      turnTimer = timer;
-    }),
-    onSetTooltipVisible: vi.fn((visible) => {
-      tooltipVisible = visible;
-    }),
+    onSetIsGameStarted: vi.fn(),
+    onSetIsPlayerTurn: vi.fn(),
+    onSetTurnText: vi.fn(),
+    onSetTurnTimer: vi.fn(),
+    onSetTooltipVisible: vi.fn(),
     onSetTooltipCard: vi.fn((card) => {
       tooltipCard = card;
     }),
-    onSetHoveredCard: vi.fn((card) => {
-      hoveredCard = card;
-    }),
+    onSetHoveredCard: vi.fn(),
     onSetWeiterButtonBounds: vi.fn(),
     onSetClearBoardButtonBounds: vi.fn(),
     onSetResetGameButtonBounds: vi.fn(),

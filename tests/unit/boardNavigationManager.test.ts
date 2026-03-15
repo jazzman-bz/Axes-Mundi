@@ -30,7 +30,17 @@ function createTestCard(id: string, title: string, x: number = 100, y: number = 
   };
   const gameCard = new GameCard(
     card,
-    { id: 'test-deck', name: 'Test', axis: 'height', theme: 'test', locale: 'en', version: '1.0.0', cards: [], isUserDeck: false },
+    {
+      id: 'test-deck',
+      name: 'Test',
+      axis: 'height',
+      theme: 'test',
+      locale: 'en',
+      version: '1.0.0',
+      imageFolder: 'test',
+      cards: [],
+      isUserDeck: false,
+    },
     x,
     y,
     1,

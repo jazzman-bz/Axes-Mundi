@@ -113,6 +113,8 @@ module.exports = {
     '*.min.js',
     '*.bundle.js',
     '*.chunk.js',
+    'app/generated/version.ts',
     'vite.config.ts', // Exclude vite config from linting
+    'vitest.config.ts',
   ],
 };

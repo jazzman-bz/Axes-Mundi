@@ -1,6 +1,5 @@
 import { GameCard } from '@/game/Card';
 import { Card as CardData } from '@/data/types';
-import { logger } from '@/utils/logger';
 import { isAxisCorrectlySorted, getScore } from '@/data/scoring';
 import { SoundType } from '@/utils/soundManager';
 
@@ -105,7 +104,7 @@ export class CardPlacementHandler {
   /**
    * Handle first card placement (becomes board card)
    */
-  private handleFirstCardPlacement(card: GameCard, x: number, y: number): void {
+  private handleFirstCardPlacement(card: GameCard, _x: number, y: number): void {
     const canvasDimensions = this.config.callbacks.onGetCanvasDimensions();
     this.config.callbacks.onSetBoardCard(card);
     card.isInHand = false;

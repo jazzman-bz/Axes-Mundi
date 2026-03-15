@@ -2,7 +2,7 @@ import { logger } from '@/utils/logger';
 import { loadDeck } from '@/data/deckLoader';
 import { Card as CardData } from '@/data/types';
 import { soundManager, SoundType } from '@/utils/soundManager';
-import { evaluatePlacement, isAxisCorrectlySorted } from '@/data/scoring';
+import { evaluatePlacement } from '@/data/scoring';
 
 /**
  * LAN Game Manager - Handles card distribution for LAN mode without full game UI
@@ -37,6 +37,12 @@ export class LANGameManager {
   private placedCards: CardData[] = []; // Cards placed on the axis
 
   private gameStarted: boolean = false;
+
+  disconnect(): void {
+    if (this.lanClient && typeof this.lanClient.disconnect === 'function') {
+      this.lanClient.disconnect();
+    }
+  }
 
   constructor() {
     console.log('🎮 LANGameManager constructor called');
@@ -283,7 +289,7 @@ export class LANGameManager {
           gameStarted: this.gameStarted,
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/lan',
         msg: 'failed to initialize LAN game',
@@ -338,7 +344,7 @@ export class LANGameManager {
         msg: 'LAN client initialized successfully',
         meta: { serverUrl, playerName },
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/lan',
         msg: 'failed to initialize LAN client',
@@ -411,23 +417,13 @@ export class LANGameManager {
         default:
           console.log('🎮 Unknown message type:', message.type);
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/lan',
         msg: 'failed to handle WebSocket message',
         err: { message: error.message, stack: error.stack },
       });
     }
-  }
-
-  /**
-   * Handle remote card placement from server
-   * DISABLED: Duplicate handler removed - main processing happens in lan-game-main.ts
-   */
-  private handleRemoteCardPlacement(message: any): void {
-    // This method is disabled to prevent duplicate processing
-    // Main card placement handling happens in lan-game-main.ts
-    console.log('🎮 handleRemoteCardPlacement disabled - main processing in lan-game-main.ts');
   }
 
   /**
@@ -457,41 +453,10 @@ export class LANGameManager {
       if (this.onGameStateUpdateCallback) {
         this.onGameStateUpdateCallback(this.getGameState());
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/lan',
         msg: 'failed to handle remote game state update',
-        err: { message: error.message, stack: error.stack },
-      });
-    }
-  }
-
-  /**
-   * Handle remote current player update from server
-   */
-  private handleRemoteCurrentPlayerUpdate(message: any): void {
-    try {
-      console.log('🎮 DISABLED: handleRemoteCurrentPlayerUpdate called - waiting for card distribution');
-      console.log('🎮 Would set current player to:', message.currentPlayer);
-
-      // DISABLED: currentPlayer logic before card distribution
-      // this.currentPlayer = message.currentPlayer;
-      // localStorage.setItem('currentPlayer', this.currentPlayer);
-
-      // logger.info({
-      //   scope: 'renderer/lan',
-      //   msg: 'remote current player updated',
-      //   meta: { currentPlayer: this.currentPlayer }
-      // });
-
-      // // Notify callback if set
-      // if (this.onGameStateUpdateCallback) {
-      //   this.onGameStateUpdateCallback(this.getGameState());
-      // }
-    } catch (error) {
-      logger.error({
-        scope: 'renderer/lan',
-        msg: 'failed to handle remote current player update',
         err: { message: error.message, stack: error.stack },
       });
     }
@@ -693,7 +658,7 @@ export class LANGameManager {
       }
 
       // Logging already done above
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/lan',
         msg: 'failed to send card distribution',
@@ -789,7 +754,7 @@ export class LANGameManager {
 
       // Send confirmation to server that client received cards
       this.sendCardDistributionConfirmation();
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/lan',
         msg: 'failed to handle card distribution from server',
@@ -830,7 +795,7 @@ export class LANGameManager {
           msg: 'WebSocket client not available for card distribution confirmation',
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/lan',
         msg: 'failed to send card distribution confirmation',
@@ -1004,7 +969,7 @@ export class LANGameManager {
         isCorrect: false,
         cardData: card,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/lan',
         msg: 'failed to place card',
@@ -1048,7 +1013,7 @@ export class LANGameManager {
       });
 
       return isCorrect;
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/lan',
         msg: 'failed to validate card placement',
@@ -1083,7 +1048,7 @@ export class LANGameManager {
       }
 
       return isWon;
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/lan',
         msg: 'failed to check game win',
@@ -1136,7 +1101,7 @@ export class LANGameManager {
           clientHandSize: this.opponentHand.length,
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/lan',
         msg: 'failed to update game state',

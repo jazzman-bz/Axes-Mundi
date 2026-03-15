@@ -191,9 +191,9 @@ export class CardLayoutManager {
  * @param gameCards - Array of GameCard objects
  * @returns Array of card data
  */
-export function extractCardData<T extends { card: any }>(
-  gameCards: T[],
-): T['card'][] {
+export function extractCardData<TCard>(
+  gameCards: Array<{ card: TCard }>,
+): TCard[] {
   return gameCards.map((gameCard) => gameCard.card);
 }
 
@@ -203,10 +203,10 @@ export function extractCardData<T extends { card: any }>(
  * @param deck - Array of card data to add to
  * @returns New deck array with graveyard cards added
  */
-export function recycleGraveyard<T extends { card: any }>(
-  graveyard: T[],
-  deck: T['card'][],
-): T['card'][] {
+export function recycleGraveyard<TCard>(
+  graveyard: Array<{ card: TCard }>,
+  deck: TCard[],
+): TCard[] {
   if (graveyard.length === 0) {
     return [...deck]; // Return new array even if empty
   }

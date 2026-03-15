@@ -4,8 +4,6 @@ import {
   dealCards,
   getOpponentCardCount,
   getCardCounts,
-  GameDifficulty,
-  GameMode,
 } from '@/utils/cardDealer';
 import { Card } from '@/data/types';
 

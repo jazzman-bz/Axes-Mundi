@@ -1,5 +1,4 @@
 import { Card } from '@/data/types';
-import { logger } from '@/utils/logger';
 
 /**
  * Game difficulty levels
@@ -81,7 +80,7 @@ export function dealCards(deck: Card[], count: number): Card[] {
 export function getCardCounts(
   mode: GameMode = 'normal',
   difficulty: GameDifficulty = 'medium',
-): { player: number; opponent?: number; player1?: number; player2?: number } {
+): { player?: number; opponent?: number; player1?: number; player2?: number } {
   switch (mode) {
     case 'learning':
       return { player: DEFAULT_COUNTS.learning.player };

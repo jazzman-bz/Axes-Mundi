@@ -70,8 +70,6 @@ class LANGameApp {
 
   private isValidationInProgress: boolean = false; // Block interaction during card validation
 
-  private backButtonBounds: { x: number; y: number; width: number; height: number } | null = null; // Back to menu button
-
   constructor() {
     console.log('🎮 LANGameApp constructor called');
     this.init();
@@ -927,50 +925,6 @@ class LANGameApp {
     ctx.fillText('Graveyard', graveyardX + graveyardBoxWidth / 2, graveyardY - 20 * this.scale);
 
     // Back to menu button is now an HTML element (not canvas)
-  }
-
-  /**
-   * Draw back to menu button (top-left corner, where status message was)
-   * Same width (100px) and font size (13px) as player info avatar box
-   */
-  private drawBackButton(ctx: CanvasRenderingContext2D): void {
-    if (!this.canvas) return;
-    
-    const buttonWidth = 100 * this.scale; // Same width as avatar box
-    const buttonHeight = 35 * this.scale;
-    const buttonX = 20 * this.scale;
-    const buttonY = 15 * this.scale;
-    const borderRadius = 8 * this.scale; // Same border radius as avatar box
-
-    // Store button bounds for click detection
-    this.backButtonBounds = {
-      x: buttonX,
-      y: buttonY,
-      width: buttonWidth,
-      height: buttonHeight,
-    };
-
-    // Draw button background with gradient
-    const gradient = ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
-    gradient.addColorStop(0, '#ff6b6b');
-    gradient.addColorStop(1, '#ee5a5a');
-
-    ctx.fillStyle = gradient;
-    this.roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, borderRadius);
-    ctx.fill();
-
-    // Draw button border
-    ctx.strokeStyle = '#cc4444';
-    ctx.lineWidth = 2;
-    this.roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, borderRadius);
-    ctx.stroke();
-
-    // Draw button text with icon (same font size as avatar box name: 13px)
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${13 * this.scale}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('✕ Beenden', buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
   }
 
   /**
@@ -2591,7 +2545,7 @@ class LANGameApp {
   /**
    * Show preview of where card would be placed on axis
    */
-  private showPlacementPreview(mouseX: number, mouseY: number): void {
+  private showPlacementPreview(mouseX: number, _mouseY: number): void {
     try {
       // Use the CARD's position, not mouse position, for more intuitive dragging
       if (!this.selectedCard) return;

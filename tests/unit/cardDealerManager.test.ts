@@ -3,7 +3,6 @@ import { CardDealerManager, CardDealerManagerCallbacks } from '@/utils/cardDeale
 import { GameCard } from '@/game/Card';
 import { Card as CardData } from '@/data/types';
 import { ExtendedDeck } from '@/data/deckLoader';
-import { SoundType } from '@/utils/soundManager';
 
 // Mock the logger
 vi.mock('@/utils/logger', () => ({
@@ -84,8 +83,6 @@ function createMockCallbacks(): CardDealerManagerCallbacks {
   const graveyard: GameCard[] = [];
   let remainingCards: CardData[] = [];
   let boardCard: GameCard | null = null;
-  let isPlayerTurn = false;
-  let isGameStarted = false;
   let currentTurn = 0;
 
   return {
@@ -120,12 +117,8 @@ function createMockCallbacks(): CardDealerManagerCallbacks {
     onSetBoardCard: vi.fn((card: GameCard | null) => {
       boardCard = card;
     }),
-    onSetIsPlayerTurn: vi.fn((turn: boolean) => {
-      isPlayerTurn = turn;
-    }),
-    onSetIsGameStarted: vi.fn((started: boolean) => {
-      isGameStarted = started;
-    }),
+    onSetIsPlayerTurn: vi.fn(),
+    onSetIsGameStarted: vi.fn(),
     onSetCurrentTurn: vi.fn((turn: number) => {
       currentTurn = turn;
     }),
@@ -253,7 +246,6 @@ describe('CardDealerManager', () => {
 
   describe('dealCardToPlayer', () => {
     it('should deal a card from remaining cards', () => {
-      const initialCount = testCards.length;
       manager.dealCardToPlayer();
 
       expect(callbacks.onAddCardToPlayerHand).toHaveBeenCalled();

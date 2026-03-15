@@ -2,8 +2,7 @@
 // REMOVED: loadDeck, shuffleCardsInPlace - Now used in GameInitializer
 import { GameCard } from '@/game/Card';
 import { Card as CardData } from '@/data/types';
-import { soundManager, SoundType } from '@/utils/soundManager';
-import { drawRoundedRect, wrapText } from '@/utils/canvasUtils';
+import { soundManager } from '@/utils/soundManager';
 // REMOVED: loadImage - Now used in GameInitializer
 import { calculateScale, calculateSnapThreshold } from '@/utils/scaleUtils';
 import { ResizeHandler } from '@/utils/resizeHandler';
@@ -22,27 +21,6 @@ import { LearningModeManager } from '@/utils/learningModeManager';
 import { BoardNavigationManager } from '@/utils/boardNavigationManager';
 
 /**
- * Avatar emoji mapping
- * Maps avatar ID (1-6) to emoji
- */
-const AVATAR_EMOJIS: Record<string, string> = {
-  '1': 'ðŸ‘¨â€ðŸš€', // Astronaut
-  '2': 'ðŸ§™â€â™‚ï¸', // Magier
-  '3': 'ðŸ´â€â˜ ï¸', // Pirat
-  '4': 'ðŸ¦„', // Einhorn
-  '5': 'ðŸ¤–', // Roboter
-  '6': 'ðŸ‰', // Drache
-};
-
-/**
- * Get avatar emoji from avatar ID
- */
-function getAvatarEmoji(avatarId: string | number | null | undefined): string {
-  if (!avatarId) return 'ðŸ‘¤';
-  return AVATAR_EMOJIS[String(avatarId)] || 'ðŸ‘¤';
-}
-
-/**
  * Main application class
  */
 class AxesMundiApp {
@@ -51,8 +29,6 @@ class AxesMundiApp {
   private gameCanvas: HTMLCanvasElement;
 
   private gameContext: CanvasRenderingContext2D;
-
-  private animationId: number = 0;
 
   private lastTime: number = 0;
 
@@ -73,10 +49,6 @@ class AxesMundiApp {
 
   private boardCard: GameCard | null = null;
 
-  private selectedCard: GameCard | null = null;
-
-  private isDragging: boolean = false;
-
   private placedLeft: GameCard[] = [];
 
   private placedRight: GameCard[] = [];
@@ -94,8 +66,6 @@ class AxesMundiApp {
   private gameLost: boolean = false; // Track if player has lost
 
   private snapThreshold: number = 80; // px distance to axis
-
-  private readonly stackSpacing: number = 140; // px spacing between placed cards
 
   private scale: number = 1; // Global scale factor
 
@@ -125,8 +95,6 @@ class AxesMundiApp {
 
   private boardNavigationManager: BoardNavigationManager | null = null; // Board navigation manager for board navigation logic
 
-  private isGameStarted: boolean = false; // Track if first card has been placed on axis
-
   private currentTurn: number = 0; // Track current turn
 
   private isPlayerTurn: boolean = true; // Track whose turn it is (true = player, false = AI)
@@ -143,8 +111,6 @@ class AxesMundiApp {
 
   // Learning mode state
   private isLearningMode: boolean = false; // Track if we're in learning mode
-
-  private hoveredCard: GameCard | null = null; // Track which card is being hovered for tooltip
 
   private tooltipCard: GameCard | null = null; // Track which card shows tooltip
 
@@ -186,8 +152,6 @@ class AxesMundiApp {
 
   private isLANServerClient: boolean = false; // True if this is the server-client
 
-  private lanCardDistribution: any = null; // Card distribution for LAN mode
-
   constructor() {
     this.loadingElement = document.getElementById('loading') as HTMLElement;
     this.gameCanvas = document.getElementById('game-canvas') as HTMLCanvasElement;
@@ -223,10 +187,7 @@ class AxesMundiApp {
       gameLost: this.gameLost,
       playerSwitchOverlayVisible: this.playerSwitchOverlayVisible,
       callbacks: {
-        onCardSelected: (card) => {
-          this.selectedCard = card;
-          this.isDragging = true;
-        },
+        onCardSelected: () => {},
         onCardPlaced: (card, x, y, isLeft, isFirstCard) => {
           if (this.cardPlacementHandler) {
             this.cardPlacementHandler.handleCardPlacement(card, x, y, isLeft, isFirstCard);
@@ -286,7 +247,6 @@ class AxesMundiApp {
                                     || this.placedRight.find((c) => c.isCorrect === false)
                                     || (this.boardCard && this.boardCard.isCorrect === false);
           if (!hasIncorrectCard) {
-            this.hoveredCard = card;
             this.tooltipCard = card;
             this.tooltipVisible = !!card;
             logger.debug({
@@ -804,9 +764,7 @@ class AxesMundiApp {
         onSetCurrentTurn: (turn) => {
           this.currentTurn = turn;
         },
-        onSetIsGameStarted: (started) => {
-          this.isGameStarted = started;
-        },
+        onSetIsGameStarted: () => {},
         onSetIsPlayerTurn: (isPlayerTurn) => {
           this.isPlayerTurn = isPlayerTurn;
         },
@@ -822,9 +780,7 @@ class AxesMundiApp {
         onSetTooltipCard: (card) => {
           this.tooltipCard = card;
         },
-        onSetHoveredCard: (card) => {
-          this.hoveredCard = card;
-        },
+        onSetHoveredCard: () => {},
         onSetWeiterButtonBounds: (bounds) => {
           this.weiterButtonBounds = bounds;
         },
@@ -1128,9 +1084,7 @@ class AxesMundiApp {
                 onSetIsPlayerTurn: (isPlayerTurn) => {
                   this.isPlayerTurn = isPlayerTurn;
                 },
-                onSetIsGameStarted: (started) => {
-                  this.isGameStarted = started;
-                },
+                onSetIsGameStarted: () => {},
                 onSetCurrentTurn: (turn) => {
                   this.currentTurn = turn;
                 },
@@ -1252,17 +1206,6 @@ class AxesMundiApp {
 
   // REMOVED: setupLANIPCListeners() and startLANGame() - Now handled by LANGameManager
 
-  /**
-   * Find card in deck by ID
-   */
-  private findCardInDeck(cardId: string): CardData | null {
-    // Search in the original deck data
-    if (this.deck && this.deck.cards) {
-      return this.deck.cards.find((card: CardData) => card.id === cardId) || null;
-    }
-    return null;
-  }
-
   // REMOVED: sendCardDistributionToClient() - Now handled by LANGameManager
 
   // REMOVED: Opponent card dealing methods - Now handled by CardDealerManager
@@ -1334,15 +1277,6 @@ class AxesMundiApp {
   // REMOVED: showTooltipForIncorrectCard() - Now handled by LearningModeManager
 
   /**
-   * Hide axis preview (delegates to InputHandler)
-   */
-  private hideAxisPreview(): void {
-    if (this.inputHandler) {
-      this.inputHandler.hidePreview();
-    }
-  }
-
-  /**
    * Update input handler config when game state changes
    */
   private updateInputHandlerConfig(): void {
@@ -1397,7 +1331,7 @@ class AxesMundiApp {
         this.lastTime = currentTime;
       }
 
-      this.animationId = requestAnimationFrame(this.gameLoop.bind(this));
+      requestAnimationFrame(this.gameLoop.bind(this));
     } catch (error: any) {
       logger.error({
         scope: 'renderer/gameloop',
@@ -1405,7 +1339,7 @@ class AxesMundiApp {
         err: { message: (error as Error).message, stack: (error as Error).stack },
       });
       // Continue the loop even if there's an error
-      this.animationId = requestAnimationFrame(this.gameLoop.bind(this));
+      requestAnimationFrame(this.gameLoop.bind(this));
     }
   }
 
@@ -1661,9 +1595,6 @@ class AxesMundiApp {
     this.placedLeft = [];
     this.placedRight = [];
     this.graveyard = [];
-    this.selectedCard = null;
-    this.isDragging = false;
-    this.isGameStarted = false;
     this.currentTurn = 0;
     this.isPlayerTurn = true;
     this.turnText = '';

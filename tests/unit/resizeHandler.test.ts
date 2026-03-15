@@ -26,6 +26,19 @@ describe('ResizeHandler', () => {
   let canvas: HTMLCanvasElement;
   let mockWindow: Window;
 
+  function setWindowSize(width: number, height: number): void {
+    Object.defineProperty(mockWindow, 'innerWidth', {
+      value: width,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(mockWindow, 'innerHeight', {
+      value: height,
+      writable: true,
+      configurable: true,
+    });
+  }
+
   beforeEach(() => {
     vi.useFakeTimers();
 
@@ -71,8 +84,7 @@ describe('ResizeHandler', () => {
     });
 
     it('should calculate initial scale from window', () => {
-      mockWindow.innerWidth = 960;
-      mockWindow.innerHeight = 540;
+      setWindowSize(960, 540);
 
       const handler = new ResizeHandler(canvas);
       expect(handler.scale).toBeCloseTo(0.5, 1);
@@ -102,8 +114,7 @@ describe('ResizeHandler', () => {
 
     it('should update canvas dimensions on resize', async () => {
       const handler = new ResizeHandler(canvas);
-      mockWindow.innerWidth = 1280;
-      mockWindow.innerHeight = 720;
+      setWindowSize(1280, 720);
 
       handler.handleResize();
       await vi.advanceTimersByTimeAsync(150);
@@ -114,8 +125,7 @@ describe('ResizeHandler', () => {
 
     it('should recalculate scale on resize', async () => {
       const handler = new ResizeHandler(canvas);
-      mockWindow.innerWidth = 960;
-      mockWindow.innerHeight = 540;
+      setWindowSize(960, 540);
 
       handler.handleResize();
       await vi.advanceTimersByTimeAsync(150);
@@ -296,8 +306,7 @@ describe('ResizeHandler', () => {
 
     it('should return updated scale after resize', async () => {
       const handler = new ResizeHandler(canvas);
-      mockWindow.innerWidth = 960;
-      mockWindow.innerHeight = 540;
+      setWindowSize(960, 540);
 
       handler.handleResize();
       await vi.advanceTimersByTimeAsync(150);

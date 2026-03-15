@@ -1,5 +1,3 @@
-import { logger } from '@/utils/logger';
-
 /**
  * Scale calculation configuration
  */

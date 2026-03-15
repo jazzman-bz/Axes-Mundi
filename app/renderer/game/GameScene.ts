@@ -4,7 +4,12 @@ import {
 import { logger } from '@/utils/logger';
 import { soundManager, SoundType } from '@/utils/soundManager';
 import { GameCard } from './Card';
-import { Card as CardData } from '@/data/types';
+
+type PixiCardContainer = Container & {
+  userData?: {
+    gameCard: GameCard;
+  };
+};
 
 /**
  * Game scene for Axes-Mundi
@@ -14,16 +19,14 @@ export class GameScene {
 
   private app: Application;
 
-  private axisLine: Graphics;
+  private axisLine!: Graphics;
 
-  private axisLabel: Text;
+  private axisLabel!: Text;
 
-  private testCard: Graphics;
+  private testCard!: Graphics;
 
   // LAN mode support
   private isLANMode: boolean = false;
-
-  private lanCards: GameCard[] = [];
 
   private lanBoardCard: GameCard | null = null;
 
@@ -73,7 +76,7 @@ export class GameScene {
         console.warn('🎮 GameScene: No lanCardDistribution found in localStorage');
         logger.warn({ scope: 'renderer/game/scene', msg: 'no LAN card distribution found' });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('🎮 GameScene: Error in initLANMode:', error);
       logger.error({
         scope: 'renderer/game/scene',
@@ -99,10 +102,10 @@ export class GameScene {
         } else {
           console.error('🎮 GameScene: Failed to load deck');
         }
-      }).catch((error) => {
+      }).catch((error: any) => {
         console.error('🎮 GameScene: Error loading deck:', error);
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('🎮 GameScene: Error in setupLANCards:', error);
       logger.error({
         scope: 'renderer/game/scene',
@@ -120,7 +123,7 @@ export class GameScene {
       // Import deck loader dynamically to avoid circular dependencies
       const { loadDeck } = await import('@/data/deckLoader');
       return await loadDeck(deckId);
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/game/scene',
         msg: 'failed to load deck for LAN mode',
@@ -230,7 +233,7 @@ export class GameScene {
         console.log('🎮 GameScene: Starting layout of hands');
         this.layoutLANHands();
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('🎮 GameScene: Error in createLANCards:', error);
       logger.error({
         scope: 'renderer/game/scene',
@@ -249,7 +252,7 @@ export class GameScene {
       console.log('🎮 GameScene: Card dimensions:', card.width, 'x', card.height);
       console.log('🎮 GameScene: Card position:', card.x, ',', card.y);
 
-      const container = new Container();
+      const container = new Container() as PixiCardContainer;
 
       // Create card background
       const cardBg = new Graphics();
@@ -295,7 +298,7 @@ export class GameScene {
 
       console.log('🎮 GameScene: PixiJS card representation created successfully');
       return container;
-    } catch (error) {
+    } catch (error: any) {
       console.error('🎮 GameScene: Error creating PixiJS card representation:', error);
       throw error;
     }
@@ -328,7 +331,7 @@ export class GameScene {
   private findPixiContainerForCard(card: GameCard): Container | null {
     // Search through all children to find the container that represents this card
     for (let i = 0; i < this.container.children.length; i++) {
-      const child = this.container.children[i];
+      const child = this.container.children[i] as PixiCardContainer;
       if (child instanceof Container && child.userData && child.userData.gameCard === card) {
         return child;
       }
@@ -372,7 +375,7 @@ export class GameScene {
       }
 
       logger.info({ scope: 'renderer/game/scene', msg: 'LAN hands laid out' });
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/game/scene',
         msg: 'failed to layout LAN hands',
@@ -437,7 +440,7 @@ export class GameScene {
       this.container.addChild(this.axisLabel);
 
       logger.debug({ scope: 'renderer/game/scene', msg: 'axis initialized' });
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/game/scene',
         msg: 'failed to initialize axis',
@@ -478,7 +481,7 @@ export class GameScene {
       this.container.addChild(this.testCard);
 
       logger.debug({ scope: 'renderer/game/scene', msg: 'test card initialized' });
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/game/scene',
         msg: 'failed to initialize test card',
@@ -497,7 +500,7 @@ export class GameScene {
       this.testCard.on('pointerdown', this.handleCardClick.bind(this));
 
       logger.debug({ scope: 'renderer/game/scene', msg: 'event listeners set up' });
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/game/scene',
         msg: 'failed to set up event listeners',
@@ -540,7 +543,7 @@ export class GameScene {
       setTimeout(() => {
         this.testCard.tint = 0xffffff;
       }, 1000);
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/game/scene',
         msg: 'card click failed',
@@ -579,7 +582,7 @@ export class GameScene {
         msg: 'scene resized',
         meta: { width, height },
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('🎮 GameScene: Error in handleResize:', error);
       logger.error({
         scope: 'renderer/game/scene',

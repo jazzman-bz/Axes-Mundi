@@ -1,6 +1,5 @@
 import { logger } from '@/utils/logger';
 import {
-  calculateScale,
   calculateScaleFromWindow,
   ScaleConfig,
 } from '@/utils/scaleUtils';

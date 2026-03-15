@@ -28,7 +28,23 @@ function createTestCard(id: string): GameCard {
     sources: [{ label: 'Test', url: 'https://test.com' }],
     difficulty: 'medium' as const,
   };
-  return new GameCard(card, { id: 'test-deck', name: 'Test', axis: 'height', theme: 'test', locale: 'en', version: '1.0.0', cards: [], isUserDeck: false }, 0, 0, 1);
+  return new GameCard(
+    card,
+    {
+      id: 'test-deck',
+      name: 'Test',
+      axis: 'height',
+      theme: 'test',
+      locale: 'en',
+      version: '1.0.0',
+      imageFolder: 'test',
+      cards: [],
+      isUserDeck: false,
+    },
+    0,
+    0,
+    1,
+  );
 }
 
 /**
@@ -36,7 +52,6 @@ function createTestCard(id: string): GameCard {
  */
 function createMockCallbacks(): TurnTimerManagerCallbacks {
   let turnTimer = 10;
-  let turnText = '';
   let isPlayerTurn = true;
   let currentTurn = 0;
 
@@ -61,9 +76,7 @@ function createMockCallbacks(): TurnTimerManagerCallbacks {
     onSetTurnTimer: vi.fn((timer: number) => {
       turnTimer = timer;
     }),
-    onSetTurnText: vi.fn((text: string) => {
-      turnText = text;
-    }),
+    onSetTurnText: vi.fn(),
     onSetIsPlayerTurn: vi.fn((playerTurn: boolean) => {
       isPlayerTurn = playerTurn;
     }),
@@ -328,7 +341,7 @@ describe('TurnTimerManager', () => {
       callbacks.onGetTurnTimer = vi.fn(() => 20);
 
       manager.startTurnTimer();
-      const initialCallCount = callbacks.onSetTurnText.mock.calls.length;
+      const initialCallCount = vi.mocked(callbacks.onSetTurnText).mock.calls.length;
 
       // Advance time by 1 second
       vi.advanceTimersByTime(1000);
@@ -366,8 +379,6 @@ describe('TurnTimerManager', () => {
       callbacks.onGetTurnTimer = vi.fn(() => 20);
 
       manager.startTurnTimer();
-      const firstInterval = (manager as any).turnTimerInterval;
-
       manager.startTurnTimer();
       const secondInterval = (manager as any).turnTimerInterval;
 
@@ -412,14 +423,14 @@ describe('TurnTimerManager', () => {
       callbacks.onGetTurnTimer = vi.fn(() => 20);
 
       manager.startTurnTimer();
-      const callCountBefore = callbacks.onSetTurnTimer.mock.calls.length;
+      const callCountBefore = vi.mocked(callbacks.onSetTurnTimer).mock.calls.length;
 
       manager.stopTurnTimer();
 
       // Advance time - timer should not continue
       vi.advanceTimersByTime(2000);
 
-      expect(callbacks.onSetTurnTimer.mock.calls.length).toBe(callCountBefore);
+      expect(vi.mocked(callbacks.onSetTurnTimer).mock.calls.length).toBe(callCountBefore);
     });
   });
 

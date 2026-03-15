@@ -50,7 +50,7 @@ export class GameCard {
   private imageLoadFailed: boolean = false; // Avoid retrying permanently broken paths every frame
 
   // Timer for correct card highlighting
-  private correctTimer: number | null = null;
+  private correctTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Preview position for drag feedback
   private previewX: number | null = null;
@@ -728,7 +728,7 @@ export class GameCard {
             actualImageDimensions.height,
           );
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error({
           scope: 'game/card',
           msg: 'error drawing card image',
@@ -889,43 +889,6 @@ export class GameCard {
   /**
     * Draw subtle pattern in bottom section
     */
-  private drawPattern(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number): void {
-    ctx.strokeStyle = 'rgba(100, 100, 100, 0.2)';
-    ctx.lineWidth = 1 * this.scale; // Scale line width
-
-    // Draw some subtle lines
-    for (let i = 0; i < 3; i++) {
-      const lineY = y + (height / 4) * (i + 1);
-      ctx.beginPath();
-      ctx.moveTo(x + 10 * this.scale, lineY);
-      ctx.lineTo(x + width - 10 * this.scale, lineY);
-      ctx.stroke();
-    }
-  }
-
-  /**
-   * Draw wrapped text
-   */
-  private drawWrappedText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number): void {
-    const words = text.split(' ');
-    let line = '';
-    let currentY = y;
-
-    for (let i = 0; i < words.length; i++) {
-      const testLine = `${line + words[i]} `;
-      const metrics = ctx.measureText(testLine);
-
-      if (metrics.width > maxWidth && i > 0) {
-        ctx.fillText(line, x, currentY);
-        line = `${words[i]} `;
-        currentY += lineHeight;
-      } else {
-        line = testLine;
-      }
-    }
-    ctx.fillText(line, x, currentY);
-  }
-
   /**
    * Draw wrapped text centered
    */

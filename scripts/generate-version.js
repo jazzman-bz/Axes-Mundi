@@ -39,13 +39,21 @@ const versionInfo = {
   buildDate,
 };
 
+function toSingleQuotedLiteral(value) {
+  return `'${String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+}
+
 mkdirSync(outputDir, { recursive: true });
 writeFileSync(
   outputPath,
   [
-    'export const versionInfo = Object.freeze(',
-    `${JSON.stringify(versionInfo, null, 2)}`,
-    ');',
+    'export const versionInfo = Object.freeze({',
+    `  appVersion: ${toSingleQuotedLiteral(versionInfo.appVersion)},`,
+    `  commit: ${toSingleQuotedLiteral(versionInfo.commit)},`,
+    `  branch: ${toSingleQuotedLiteral(versionInfo.branch)},`,
+    `  dirty: ${versionInfo.dirty},`,
+    `  buildDate: ${toSingleQuotedLiteral(versionInfo.buildDate)},`,
+    '});',
     '',
     'export default versionInfo;',
     '',

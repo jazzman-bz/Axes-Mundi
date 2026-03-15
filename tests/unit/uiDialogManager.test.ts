@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { UIDialogManager, UIDialogManagerCallbacks } from '@/utils/uiDialogManager';
-import { SoundType } from '@/utils/soundManager';
 
 // Mock the logger
 vi.mock('@/utils/logger', () => ({
@@ -26,12 +25,7 @@ vi.mock('@/utils/soundManager', () => ({
  * Helper to create mock callbacks
  */
 function createMockCallbacks(): UIDialogManagerCallbacks {
-  let playerSwitchOverlayVisible = false;
-  let playerSwitchOverlayBounds: { x: number; y: number; width: number; height: number } | null = null;
-  let isPlayerTurn = true;
   let currentPlayerIndex = 0;
-  let currentPlayerHand: any[] = [];
-  let nextPlayerHand: any[] = [];
 
   return {
     onGetGameState: vi.fn(() => ({
@@ -47,24 +41,14 @@ function createMockCallbacks(): UIDialogManagerCallbacks {
       player1Hand: [{ id: '1' }, { id: '2' }],
       player2Hand: [{ id: '3' }, { id: '4' }, { id: '5' }],
     })),
-    onSetPlayerSwitchOverlayVisible: vi.fn((visible: boolean) => {
-      playerSwitchOverlayVisible = visible;
-    }),
-    onSetPlayerSwitchOverlayBounds: vi.fn((bounds) => {
-      playerSwitchOverlayBounds = bounds;
-    }),
-    onSetIsPlayerTurn: vi.fn((playerTurn: boolean) => {
-      isPlayerTurn = playerTurn;
-    }),
+    onSetPlayerSwitchOverlayVisible: vi.fn(),
+    onSetPlayerSwitchOverlayBounds: vi.fn(),
+    onSetIsPlayerTurn: vi.fn(),
     onSetCurrentPlayerIndex: vi.fn((index: number) => {
       currentPlayerIndex = index;
     }),
-    onSetCurrentPlayerHand: vi.fn((hand: any[]) => {
-      currentPlayerHand = hand;
-    }),
-    onSetNextPlayerHand: vi.fn((hand: any[]) => {
-      nextPlayerHand = hand;
-    }),
+    onSetCurrentPlayerHand: vi.fn(),
+    onSetNextPlayerHand: vi.fn(),
     onRestartGame: vi.fn(),
     onGoToMainMenu: vi.fn(),
     onUpdateInputHandlerConfig: vi.fn(),

@@ -1,185 +1,117 @@
-# Axes-Mundi TODO List
+# Axes-Mundi TODO
 
-**Last Updated:** 2025-01-12  
-**Status:** Active development tasks and future improvements
+**Last Updated:** 2026-03-15
+**Purpose:** Bereinigte, verifizierte Aufgabenliste auf Basis von Code-Stand, Tests und Tooling-Checks
 
-> **Note:** Completed tasks have been moved to [COMPLETED.md](./COMPLETED.md)
+## Verifiziert erledigt
 
----
+- Landing-Page-Flow mit Spielerprofil, Avatarwahl, Spielmodus-Auswahl und Deck-Auswahl
+- Spielmodi Singleplayer, Learning Mode, Hotseat und LAN
+- Deck-Import aus ZIP und Laden von User-Decks
+- Versionsanzeige auf der Landing Page
+- Modulare Renderer-Architektur mit den Refactoring-Schritten 1-16
+- Umfangreiche Unit-Test-Abdeckung fuer Core-Module
+- Sound-Integration fuer Landing Page, Spiel und Dialoge
 
-## 🎨 **Sprint 4: Polish & UX**
+## Sofort angehen
 
-### **High Priority**
-- [ ] **Performance Optimization** - 60 FPS garantieren (monitoring & optimization)
-- [ ] **Memory Management** - Ressourcen-Optimierung (profiling & cleanup)
+### 1. Baseline wieder gruen bekommen
+- [x] `npm run typecheck` reparieren
+  - Renderer-/LAN-Typfehler, doppelte Implementierungen und offensichtliche API-Brueche bereinigt
+  - `unknown`-/Timer-/Property-Probleme im akuten Fehlerpfad entfernt
+- [x] Test-Suite wieder voll gruen machen
+  - `tests/unit/gameInitializer.test.ts` an die `localStorage`-Nutzung in [`gameInitializer.ts`](/Users/jazzman/Code/Axes-Mundi/app/renderer/utils/gameInitializer.ts#L226) angepasst
+  - Ziel erreicht: `npm test` ist wieder voll gruen
+- [ ] Lint-Strategie bereinigen
+  - [x] Generated File [`version.ts`](/Users/jazzman/Code/Axes-Mundi/app/generated/version.ts) generator-konform schreiben und aus globalem Lint-Rauschen nehmen
+  - [x] `vitest.config.ts` aus dem fehlerhaften typed-lint-Pfad nehmen
+  - [ ] CRLF/LF-Problem in betroffenen Dateien vereinheitlichen
+  - [ ] echten Lint-Restbestand in `app/main/index.ts`, `app/main/websocket-server.ts` und Legacy-Renderer-Dateien priorisieren
 
-### **Medium Priority**
-- [ ] **Responsive Design** - Verschiedene Bildschirmgrößen (mobile/tablet support)
-- [ ] **Smooth Animations** - Übergänge zwischen Sektionen (GSAP transitions)
-- [ ] **Error Handling** - Benutzerfreundliche Fehlermeldungen (error boundaries)
-- [ ] **Loading States** - Visuelle Rückmeldung (loading indicators)
-- [ ] **Accessibility** - Barrierefreiheit (WCAG compliance, keyboard navigation)
-- [ ] **Internationalization** - Mehrsprachigkeit (i18n system)
-- [ ] **Settings Menu** - Einstellungen (volume, graphics, etc.)
+### 2. LAN-Code stabilisieren
+- [x] Doppelte Methoden und API-Brueche im LAN-Stack beheben
+  - doppelte `isConnected()`-Implementierung in [`lan-client.ts`](/Users/jazzman/Code/Axes-Mundi/app/renderer/lan-client.ts#L530) entfernt
+  - fehlende `disconnect()`-API fuer [`lan-game-main.ts`](/Users/jazzman/Code/Axes-Mundi/app/renderer/lan-game-main.ts) nachgezogen
+- [ ] Debug-Logging im LAN-Pfad reduzieren
+  - rohe `console.log`/`console.error`-Ausgaben durch den strukturierten Logger ersetzen
+  - nur gezielte Diagnosepunkte behalten
+- [ ] LAN-Flows durch Integrations- oder E2E-Tests absichern
+  - Join
+  - Deck-Verteilung
+  - Zugwechsel
+  - Spiel-Neustart
 
-### **Low Priority**
-- [ ] **Keyboard Navigation** - Vollständige Tastatur-Unterstützung (full keyboard control)
+### 3. Dokumentation und Planung korrigieren
+- [ ] `Readme.txt`, `ARCHITECTURE.md` und `COMPLETED.md` gegen den realen Stand angleichen
+  - TypeScript ist zwar `strict`, aber die Codebasis ist aktuell nicht typecheck-clean
+  - "alle Tests gruen" ist veraltet
+  - XState ist als Dependency vorhanden, aber aktuell nicht produktiv im App-Code verankert
+- [ ] Historische Bugs verifizieren und danach schliessen oder neu formulieren
+  - Electron White Screen
+  - Port-5179-Konflikte
 
----
+## Kurzfristig sinnvoll
 
-## 🎮 **Game Enhancements**
+### UX und Bedienbarkeit
+- [ ] Tastaturbedienung systematisch einfuehren
+  - aktuell gibt es praktisch nur Enter-Support fuer das Server-IP-Feld in [`landing.js`](/Users/jazzman/Code/Axes-Mundi/app/renderer/landing.js#L309)
+  - Navigationskarten, Avatar-Auswahl und Deck-Auswahl brauchen Keyboard- und Focus-Handling
+- [ ] Sprachkonsistenz herstellen
+  - UI ist derzeit gemischt deutsch/englisch
+  - `lang="en"` in [`index.html`](/Users/jazzman/Code/Axes-Mundi/app/renderer/index.html#L2) passt nicht zur tatsaechlichen UI-Sprache
+  - vor voller i18n-Einfuehrung erst eine klare Primarsprache definieren
+- [ ] Responsive Verhalten nicht nur fuer Landing Page, sondern fuer das eigentliche Spiel pruefen
+  - Landing Page hat bereits Media Queries in [`main.css`](/Users/jazzman/Code/Axes-Mundi/app/renderer/styles/main.css#L696)
+  - fuer Canvas-/Spielansicht fehlt eine verifizierte Mobile-/Tablet-Abnahme
+- [ ] Benutzerfreundliche Fehlermeldungen fuer Import-, LAN- und Startfehler vereinheitlichen
 
-### **Medium Priority**
-- [ ] **Progress Tracking** - Spieler-Fortschritt speichern (persistent stats)
-- [ ] **Achievements** - Erfolge-System (achievement tracking)
-- [ ] **Custom Decks** - Benutzerdefinierte Decks (deck import/creation)
-- [ ] **Statistics** - Spieler-Statistiken (detailed game statistics)
+### Qualitaet und Wartbarkeit
+- [ ] `any`-Hotspots priorisiert abbauen
+  - zuerst Main/Preload/LAN-Grenzen
+  - dann Renderer-State und Protokollnachrichten
+- [ ] `main.ts` weiter entkoppeln
+  - Datei ist trotz Refactoring noch gross und enthaelt viel Orchestrierung plus Legacy-Zustand
+- [ ] Package-Manager-Entscheidung treffen
+  - sowohl `package-lock.json` als auch `pnpm-lock.yaml` liegen im Repo
+  - einen Weg festlegen und Doku/Skripte darauf ausrichten
 
----
+## Danach
 
-## 🔧 **Technical Debt**
+### Produkt-Features mit echtem Mehrwert
+- [ ] Progress Tracking fuer Spielerstand einfuehren
+- [ ] Spielerstatistiken sichtbar machen
+- [ ] Settings-Menue fuer Sound und allgemeine Optionen bauen
+- [ ] Accessibility-Verbesserungen nach einer echten Tastatur-/Screenreader-Pruefung umsetzen
 
-### **High Priority**
-- [ ] **TypeScript Strict Mode** - Alle `any` Types entfernen (strict type safety)
-- [ ] **Error Boundaries** - Robuste Fehlerbehandlung (React-style error boundaries)
-- [ ] **E2E Tests** - Spielablauf testen (Playwright E2E tests)
+### Performance und Beobachtbarkeit
+- [ ] Echte Performance-Messung einfuehren
+  - das Feld `fps` in [`main.ts`](/Users/jazzman/Code/Axes-Mundi/app/renderer/main.ts#L59) ist aktuell nur Ziel-/Loop-Steuerung, kein Monitoring
+  - FPS, Startzeit und Speicherverbrauch messbar machen
+- [ ] Speicher- und Cleanup-Audit machen
+  - Event-Listener
+  - Timer
+  - Asset-Caches
+- [ ] Produktionsrelevante Logs und Fehlerpfade definieren
 
-### **Medium Priority**
-- [ ] **Performance Monitoring** - FPS-Tracking (real-time performance metrics)
+## Vorerst nicht als aktive High-Priority fuehren
 
----
+- State-Machine-Integration mit XState
+  - erst wieder aufnehmen, wenn ein konkreter Fluss davon profitiert
+- "React-style Error Boundaries"
+  - die App ist hier nicht React-zentriert aufgebaut; Fehlerstrategie lieber passend zur aktuellen Architektur formulieren
+- Achievements, Retention-Metriken und grosse Analytics-Ziele
+  - erst sinnvoll, wenn Build-Stabilitaet, Tests und Kern-UX sauber sind
 
-## 🐛 **Known Issues**
+## Referenz: Stand der letzten lokalen Pruefung
 
-### **Critical**
-- [ ] **Electron White Screen** - Electron lädt falsche URL (verify if still an issue)
-- [ ] **Port 5179 Conflicts** - Vite-Server Port-Probleme (verify if still an issue)
+### Checks
+- `npm run typecheck` -> erfolgreich
+- `npm test` -> 452 Tests bestanden, 0 Fehltests
+- `npm run lint` -> fehlgeschlagen, sehr viele Bestandsprobleme
 
-### **Medium**
-- [ ] **Memory Leaks** - Event Listener Cleanup (audit and fix)
-- [ ] **Responsive Issues** - Mobile Layout (mobile device testing)
-
----
-
-## 📊 **Success Metrics**
-
-### **Performance**
-- [ ] **Startup Time** < 3 Sekunden (measure and optimize)
-- [ ] **FPS** = 60 FPS während Gameplay (monitor and maintain)
-- [ ] **Memory Usage** < 200MB RAM (profile and optimize)
-
-### **User Experience**
-- [ ] **Navigation** - Max 3 Klicks zu jedem Feature (verify UX flow)
-- [ ] **Error Rate** < 1% Fehler (monitor and track)
-- [ ] **User Retention** - 80% Spieler spielen weiter (analytics)
-
----
-
-## 🔧 **Main.ts Refactoring Steps (11-16)**
-
-### **Step 11: Extract Card Dealing Logic** ✅
-- [x] **Create CardDealerManager module** - Extract card dealing methods
-  - [x] `dealCardsToPlayers()` - Main card dealing logic for AI mode
-  - [x] `dealCardToPlayer()` - Deal single card to player
-  - [x] `dealCardToOpponent()` - Deal single card to opponent
-  - [x] `dealCardsToPlayersLearningMode()` - Learning mode card dealing
-  - [x] `dealCardsToPlayersHotseat()` - Hotseat mode card dealing
-  - [x] `dealCardToPlayer1()` - Deal card to player 1 (hotseat)
-  - [x] `dealCardToPlayer2()` - Deal card to player 2 (hotseat)
-  - [x] `animateCardToHand()` - Animate card from deck to hand
-  - [x] `animateOpponentCardFromDeck()` - Animate opponent card from deck
-  - [x] `animateFirstCardToCenter()` - Animate first card to board center
-  - [x] Create unit tests for CardDealerManager (26 tests, all passing)
-  - [x] Update main.ts to use CardDealerManager
-
-### **Step 12: Extract Game Initialization Logic** ✅
-- [x] **Create GameInitializer module** - Extract game loading and initialization
-  - [x] `loadGame()` - Main game loading logic
-  - [x] `loadAssets()` - Load UI assets (logo, arrows, background)
-  - [x] `loadLogo()` - Load logo image
-  - [x] `loadArrowImages()` - Load navigation arrows
-  - [x] `loadBackgroundImage()` - Load background image
-  - [x] `initCanvas()` - Canvas initialization
-  - [x] `setupEventListeners()` - Event listener setup
-  - [x] Create unit tests for GameInitializer (29 tests, all passing)
-  - [x] Update main.ts to use GameInitializer
-
-### **Step 13: Extract Turn Timer Management** ✅
-- [x] **Create TurnTimerManager module** - Extract turn timer logic
-  - [x] `startTurnTimer()` - Start player turn timer (single-player mode only)
-  - [x] `stopTurnTimer()` - Stop turn timer
-  - [x] `endTurn()` - Handle turn timeout (switch to AI)
-  - [x] `getDifficultyTimer()` - Get timer duration based on difficulty
-  - [x] `updateTurnText()` - Update turn display text (all modes)
-  - [x] Create unit tests for TurnTimerManager (31 tests, all passing)
-  - [x] Update main.ts to use TurnTimerManager
-
-### **Step 14: Extract UI Dialogs and Overlays** ✅
-- [x] **Create UIDialogManager module** - Extract dialog and overlay management
-  - [x] `showWinDialog()` - Show win dialog
-  - [x] `showLoseDialog()` - Show lose dialog
-  - [x] `showHotseatWinDialog()` - Show hotseat win dialog
-  - [x] `showPlayerSwitchOverlay()` - Show player switch overlay (hotseat)
-  - [x] `switchPlayers()` - Switch players in hotseat mode
-  - [x] Dialog rendering and button handling
-  - [x] Create unit tests for UIDialogManager (37 tests, all passing)
-  - [x] Update main.ts to use UIDialogManager
-
-### **Step 15: Extract Learning Mode Logic** ✅
-- [x] **Create LearningModeManager module** - Extract learning mode specific functionality
-  - [x] `clearBoard()` - Clear board and move cards to graveyard
-  - [x] `resetLearningGame()` - Reset learning game with same deck
-  - [x] `removeCardFromBoard()` - Remove incorrect card from board
-  - [x] `showTooltipForIncorrectCard()` - Show tooltip for incorrect placement
-  - [x] `handleWeiterButtonClick()` - Handle Weiter button click
-  - [x] Create unit tests for LearningModeManager (48 tests, all passing)
-  - [x] Update main.ts to use LearningModeManager
-
-### **Step 16: Extract Board Navigation Logic** ✅
-- [x] **Create BoardNavigationManager module** - Extract board navigation and card movement
-  - [x] `moveBoardCardsLeft()` - Move all cards left for navigation
-  - [x] `moveBoardCardsRight()` - Move all cards right for navigation
-  - [x] Navigation arrow rendering and click handling (already in GameRenderer and InputHandler)
-  - [x] Board bounds calculation and scrolling logic
-  - [x] Create unit tests for BoardNavigationManager (30 tests, all passing)
-  - [x] Update main.ts to use BoardNavigationManager
-
----
-
-## 🚀 **Architecture Future Improvements**
-
-### **High Priority**
-- [ ] **State Machine Integration** - Consider using XState for complex game flows
-- [ ] **UI Component Extraction** - Extract more UI logic into separate components
-- [ ] **Dependency Injection** - Consider a dependency injection container for callback management
-- [ ] **Integration Tests** - Add integration tests for module interactions
-
-### **Medium Priority**
-- [ ] **Event System** - Evaluate if event system would be better than callbacks for some use cases
-- [ ] **Module Registry** - Create a module registry for dynamic module loading
-- [ ] **Performance Monitoring** - Add performance metrics to module interactions
-- [ ] **Documentation** - Add JSDoc comments to all public module APIs
-
-### **Low Priority**
-- [ ] **Module Bundling** - Optimize module bundling for production
-- [ ] **Type Safety** - Enhance type safety with stricter TypeScript configurations
-- [ ] **Code Generation** - Consider code generation for callback interfaces
-
----
-
-## 📋 **Quick Reference**
-
-### **Current Status**
-- ✅ Core game features: **Complete**
-- ✅ Landing page & navigation: **Complete**
-- ✅ All game modes: **Complete** (Single Player, Hotseat, LAN, Learning)
-- ✅ Architecture refactoring: **Steps 1-16 Complete** (All refactoring steps done!)
-- ✅ Unit tests: **Core modules covered** (442 tests passing)
-- ⏳ Polish & UX: **In Progress**
-- ⏳ E2E tests: **Pending**
-
-### **Next Priorities**
-1. ✅ All refactoring steps (1-16) complete!
-2. Add E2E tests with Playwright
-3. Performance optimization and monitoring
-4. Polish UX (animations, responsive design, accessibility)
+### Wichtigste Befunde
+- TypeScript `strict` ist aktiv und die Codebasis ist lokal wieder `typecheck`-clean
+- E2E-Script ist in `package.json` vorhanden, aber es gibt aktuell keine verifizierte Playwright-Konfiguration oder E2E-Suite im Repo
+- Deck-Import ist bereits implementiert und sollte nicht mehr als offener Grundpunkt gefuehrt werden
+- Responsive Design ist fuer die Landing Page teilweise vorhanden, fuer die eigentliche Spielansicht aber nicht belastbar abgeschlossen
+- Lint ist weiterhin kein verlaesslicher Release-Gate; groesste Restbloecke liegen aktuell in `app/main/index.ts` und `app/main/websocket-server.ts`

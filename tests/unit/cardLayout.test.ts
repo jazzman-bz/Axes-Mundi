@@ -6,7 +6,6 @@ import {
   extractCardData,
   recycleGraveyard,
   LayoutConfig,
-  CardPosition,
 } from '@/utils/cardLayout';
 import { GameCard } from '@/game/Card';
 import { Card } from '@/data/types';

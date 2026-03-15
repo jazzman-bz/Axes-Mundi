@@ -42,7 +42,7 @@ export function isAxisCorrectlySorted(allCards: Card[]): boolean {
     });
 
     return true;
-  } catch (error) {
+  } catch (error: any) {
     logger.error({
       scope: 'data/scoring',
       msg: 'failed to check axis sorting',
@@ -83,7 +83,7 @@ export function evaluatePlacement(
     });
 
     return isCorrect;
-  } catch (error) {
+  } catch (error: any) {
     logger.error({
       scope: 'data/scoring',
       msg: 'failed to evaluate placement',

@@ -95,7 +95,7 @@ export class LANGameClient {
           if (this.onMessageCallback) {
             this.onMessageCallback(message);
           }
-        } catch (error) {
+        } catch (error: any) {
           logger.error({
             scope: 'lan/client',
             msg: 'Failed to parse message',
@@ -119,7 +119,7 @@ export class LANGameClient {
           err: { message: error.toString() },
         });
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'lan/client',
         msg: 'Failed to connect',
@@ -156,7 +156,7 @@ export class LANGameClient {
       default:
         // Unknown message type
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'lan/client',
         msg: 'failed to handle WebSocket message',
@@ -205,7 +205,7 @@ export class LANGameClient {
           currentPlayer: 'WAITING_FOR_CARD_DISTRIBUTION',
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'lan/client',
         msg: 'failed to handle joined message',
@@ -258,7 +258,7 @@ export class LANGameClient {
           this.onGameStateUpdateCallback(this.getGameState());
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'lan/client',
         msg: 'failed to handle remote card placement',
@@ -293,7 +293,7 @@ export class LANGameClient {
       if (this.onGameStateUpdateCallback) {
         this.onGameStateUpdateCallback(this.getGameState());
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'lan/client',
         msg: 'failed to handle remote game state update',
@@ -324,7 +324,7 @@ export class LANGameClient {
       if (this.onGameStateUpdateCallback) {
         this.onGameStateUpdateCallback(this.getGameState());
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'lan/client',
         msg: 'failed to handle remote current player update',
@@ -366,7 +366,7 @@ export class LANGameClient {
       if (this.onGameStateUpdateCallback) {
         this.onGameStateUpdateCallback(this.getGameState());
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'lan/client',
         msg: 'failed to handle card distribution from server',
@@ -551,7 +551,7 @@ export class LANGameClient {
           meta: { currentPlayer },
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'lan/client',
         msg: 'failed to handle current player set',
@@ -588,7 +588,7 @@ export class LANGameClient {
       if (currentTurnElement) {
         currentTurnElement.textContent = 'Turn: Waiting for game start...';
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'lan/client',
         msg: 'failed to update player names UI',
@@ -635,7 +635,7 @@ export class LANGameClient {
       if (currentTurnElement) {
         currentTurnElement.textContent = `Turn: ${currentPlayer}`;
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'lan/client',
         msg: 'failed to update current player UI',
@@ -667,7 +667,7 @@ export class LANGameClient {
           msg: 'WebSocket not available for card distribution confirmation',
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'lan/client',
         msg: 'failed to send card distribution confirmation',
@@ -676,12 +676,6 @@ export class LANGameClient {
     }
   }
 
-  /**
-   * Check if client is connected
-   */
-  isConnected(): boolean {
-    return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
-  }
 }
 
 // Legacy export for backward compatibility

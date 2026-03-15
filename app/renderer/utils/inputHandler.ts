@@ -65,6 +65,9 @@ export interface InputHandlerCallbacks {
 
   /** Find incorrect card on board */
   onFindIncorrectCard?: () => GameCard | null;
+
+  /** Optional structured logger passthrough */
+  onLog?: (level: 'debug' | 'info' | 'warn' | 'error', scope: string, msg: string, meta?: Record<string, unknown>) => void;
 }
 
 /**
