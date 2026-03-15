@@ -1,5 +1,4 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import versionInfo from '../generated/version';
 
 interface AppVersionInfo {
   appVersion: string;
@@ -15,7 +14,7 @@ interface AppVersionInfo {
  */
 contextBridge.exposeInMainWorld('AXM', {
   // App info
-  version: versionInfo.appVersion,
+  version: process.env.npm_package_version || 'unknown',
   logLevel: process.env.AXM_LOG_LEVEL || 'info',
 
   // IPC methods

@@ -7,10 +7,11 @@ const electron_1 = require("electron");
  */
 electron_1.contextBridge.exposeInMainWorld('AXM', {
     // App info
-    version: '1.0.0',
+    version: process.env.npm_package_version || 'unknown',
     logLevel: process.env.AXM_LOG_LEVEL || 'info',
     // IPC methods
     getVersion: () => electron_1.ipcRenderer.invoke('get-version'),
+    getVersionInfo: () => electron_1.ipcRenderer.invoke('get-version-info'),
     getEnvironment: () => electron_1.ipcRenderer.invoke('get-environment'),
     placeCard: (index) => electron_1.ipcRenderer.invoke('place-card', index),
     // LAN Server management

@@ -139,7 +139,7 @@ function createWindow(): void {
         nodeIntegration: false,
         contextIsolation: true,
         sandbox: true,
-        preload: join(__dirname, '../../preload/preload/index.js'),
+        preload: join(__dirname, '../../preload/index.js'),
       },
       title: 'Axes-Mundi',
       icon: join(__dirname, '../assets/icon.png'), // Will be added later
