@@ -6,6 +6,7 @@
 // Import sound manager
 import { soundManager, SoundType } from './utils/soundManager.ts';
 import { getDeckDescription, getDeckLocaleLabel, getDeckThemeLabel } from './utils/deckPresentation.ts';
+import { formatVersionBadge, formatVersionTooltip } from './utils/versionPresentation.ts';
 
 // Silent logger for production
 const logger = {
@@ -93,6 +94,8 @@ class LandingPageController {
     try {
       logger.info({ scope: 'landing/init', msg: 'initializing landing page' });
       
+      await this.renderVersionBadge();
+
       // Initialize sound manager
       await this.initializeSoundManager();
       
@@ -123,6 +126,36 @@ class LandingPageController {
         scope: 'landing/init', 
         msg: 'failed to initialize landing page', 
         err: { message: error.message, stack: error.stack } 
+      });
+    }
+  }
+
+  async renderVersionBadge() {
+    const versionBadge = document.getElementById('version-badge');
+    if (!versionBadge) {
+      return;
+    }
+
+    const fallback = {
+      appVersion: window.AXM?.version || 'unknown',
+      commit: 'unknown',
+      dirty: false,
+    };
+
+    try {
+      const versionInfo = window.AXM?.getVersionInfo
+        ? await window.AXM.getVersionInfo()
+        : fallback;
+
+      versionBadge.textContent = formatVersionBadge(versionInfo);
+      versionBadge.title = formatVersionTooltip(versionInfo);
+    } catch (error) {
+      versionBadge.textContent = formatVersionBadge(fallback);
+      versionBadge.title = formatVersionTooltip(fallback);
+      logger.warn({
+        scope: 'landing/version',
+        msg: 'failed to load version info, using fallback',
+        err: { message: error.message }
       });
     }
   }

@@ -92,8 +92,9 @@ Entwickelt mit Electron + Vite + PixiJS + GSAP.
     }
   ]
 }
+```
 
-Deck-Import (ZIP)
+## Deck-Import (ZIP)
 
 Importierbare Decks werden als ZIP-Paket mit folgendem Aufbau erwartet:
 
@@ -117,6 +118,31 @@ Empfohlene Felder in `deck.json`:
 - `cards`
 
 `description` ist optional, wird aber empfohlen. Wenn sie fehlt, erzeugt die App fuer importierte Deck-Kacheln einen generischen Fallback-Text.
+
+## Versionierung
+
+Die Landing Page zeigt die aktuell laufende Software-Version unten rechts an.
+
+- Release-Version kommt aus `package.json`
+- Build-Identitaet kommt aus Git:
+  - Commit-Kurzhash
+  - Branch
+  - Build-Zeitpunkt
+  - `dirty`-Status bei uncommitteten Aenderungen
+
+Anzeigeformat:
+
+```text
+v1.0.0 (2a953e1)
+v1.0.0 (2a953e1, dirty)
+```
+
+Die Build-Metadaten werden vor `dev`, `build`, `build:main`, `build:preload` und `vite:build` automatisch durch `scripts/generate-version.js` erzeugt und in `app/generated/version.ts` geschrieben.
+
+Regel fuer die Pflege:
+- `package.json` nur bei echten Releases erhoehen
+- jeder Build bleibt ueber den Commit-Hash einem konkreten Stand zuordenbar
+- lokale Builds mit offenen Aenderungen werden als `dirty` markiert
 
 Roadmap (MVP → Final)
 

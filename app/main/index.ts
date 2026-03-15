@@ -5,6 +5,7 @@ import { existsSync } from 'fs';
 import AdmZip from 'adm-zip';
 import { logger } from './logger';
 import { LANWebSocketServer } from './websocket-server';
+import versionInfo from '../generated/version';
 
 // Register custom protocol scheme as privileged BEFORE app.ready
 // This is required for the protocol to work with image loading in the renderer
@@ -138,7 +139,7 @@ function createWindow(): void {
         nodeIntegration: false,
         contextIsolation: true,
         sandbox: true,
-        preload: join(__dirname, '../preload/index.js'),
+        preload: join(__dirname, '../../preload/preload/index.js'),
       },
       title: 'Axes-Mundi',
       icon: join(__dirname, '../assets/icon.png'), // Will be added later
@@ -160,7 +161,7 @@ function createWindow(): void {
       mainWindow.webContents.openDevTools();
     } else {
       console.log('📦 Loading production build');
-      mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
+      mainWindow.loadFile(join(__dirname, '../../renderer/index.html'));
     }
 
     // Show window when ready to prevent visual flash
@@ -193,6 +194,14 @@ function setupIPC(): void {
   ipcMain.handle('get-version', () => {
     logger.debug({ scope: 'main/ipc', msg: 'get-version requested' });
     return app.getVersion();
+  });
+
+  ipcMain.handle('get-version-info', () => {
+    logger.debug({ scope: 'main/ipc', msg: 'get-version-info requested' });
+    return {
+      ...versionInfo,
+      appVersion: app.getVersion(),
+    };
   });
 
   // Get app environment

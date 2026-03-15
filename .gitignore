@@ -54,6 +54,8 @@ test-results/
 playwright-report/
 playwright/.cache/
 .playwright-cli/
+output_*.png
+progress.md
 
 # Package artifacts
 *.tgz
@@ -106,3 +108,4 @@ Thumbs.db
 # Uncomment if you want to exclude game assets during development
 # app/renderer/assets/
 # app/renderer/content/decks/*.json
+app/generated/version.ts

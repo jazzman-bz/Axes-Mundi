@@ -1,4 +1,13 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import versionInfo from '../generated/version';
+
+interface AppVersionInfo {
+  appVersion: string;
+  commit: string;
+  branch?: string;
+  dirty?: boolean;
+  buildDate?: string;
+}
 
 /**
  * Expose protected methods that allow the renderer process to use
@@ -6,11 +15,12 @@ import { contextBridge, ipcRenderer } from 'electron';
  */
 contextBridge.exposeInMainWorld('AXM', {
   // App info
-  version: '1.0.0',
+  version: versionInfo.appVersion,
   logLevel: process.env.AXM_LOG_LEVEL || 'info',
 
   // IPC methods
   getVersion: () => ipcRenderer.invoke('get-version'),
+  getVersionInfo: () => ipcRenderer.invoke('get-version-info'),
   getEnvironment: () => ipcRenderer.invoke('get-environment'),
   placeCard: (index: number) => ipcRenderer.invoke('place-card', index),
 
@@ -63,6 +73,7 @@ declare global {
       version: string;
       logLevel: string;
       getVersion: () => Promise<string>;
+      getVersionInfo: () => Promise<AppVersionInfo>;
       getEnvironment: () => Promise<{ env: string; logLevel: string }>;
       placeCard: (index: number) => Promise<{ success: boolean; score: number }>;
       startLANServer: (playerName: string, playerAvatar?: string) => Promise<{ success: boolean; port: number }>;
