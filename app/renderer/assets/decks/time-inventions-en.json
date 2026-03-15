@@ -6,7 +6,7 @@
   "locale": "en",
   "version": "1.0.0",
   "imageFolder": "Time JPG",
-  "description": "A chronological journey through human inventions and discoveries from prehistoric times to modern era",
+  "description": "Journey through human history from prehistory to the modern era.",
   "cards": [
     {
       "id": "fire-taming",

@@ -20,7 +20,10 @@
         "These birds are known for their distinctive red tail feathers and are found across Europe and Asia."
       ],
       "sources": [
-        { "label": "RSPB", "url": "https://www.rspb.org.uk/" }
+        {
+          "label": "RSPB",
+          "url": "https://www.rspb.org.uk/"
+        }
       ],
       "difficulty": "easy"
     },
@@ -37,7 +40,10 @@
         "They are known for their elaborate courtship dances and can live for over 20 years in the wild."
       ],
       "sources": [
-        { "label": "International Crane Foundation", "url": "https://www.savingcranes.org/" }
+        {
+          "label": "International Crane Foundation",
+          "url": "https://www.savingcranes.org/"
+        }
       ],
       "difficulty": "easy"
     },
@@ -54,7 +60,10 @@
         "The first manned hot air balloon flight was conducted by the Montgolfier brothers in 1783 in France."
       ],
       "sources": [
-        { "label": "Fédération Aéronautique Internationale", "url": "https://www.fai.org/" }
+        {
+          "label": "Fédération Aéronautique Internationale",
+          "url": "https://www.fai.org/"
+        }
       ],
       "difficulty": "easy"
     },
@@ -71,7 +80,10 @@
         "These clouds often indicate atmospheric instability and can precede thunderstorms."
       ],
       "sources": [
-        { "label": "National Weather Service", "url": "https://www.weather.gov/" }
+        {
+          "label": "National Weather Service",
+          "url": "https://www.weather.gov/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -88,7 +100,10 @@
         "Biplanes were the dominant aircraft design during World War I due to their superior maneuverability."
       ],
       "sources": [
-        { "label": "Smithsonian National Air and Space Museum", "url": "https://airandspace.si.edu/" }
+        {
+          "label": "Smithsonian National Air and Space Museum",
+          "url": "https://airandspace.si.edu/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -105,7 +120,10 @@
         "These clouds are typically dark gray and cover large areas of the sky."
       ],
       "sources": [
-        { "label": "National Weather Service", "url": "https://www.weather.gov/" }
+        {
+          "label": "National Weather Service",
+          "url": "https://www.weather.gov/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -122,7 +140,10 @@
         "These vultures have specialized hemoglobin that allows them to function at extreme altitudes with low oxygen levels."
       ],
       "sources": [
-        { "label": "National Geographic", "url": "https://www.nationalgeographic.com/" }
+        {
+          "label": "National Geographic",
+          "url": "https://www.nationalgeographic.com/"
+        }
       ],
       "difficulty": "hard"
     },
@@ -139,7 +160,10 @@
         "At this altitude, passengers experience reduced atmospheric pressure, equivalent to being at 2,400 meters above sea level."
       ],
       "sources": [
-        { "label": "Boeing", "url": "https://www.boeing.com/" }
+        {
+          "label": "Boeing",
+          "url": "https://www.boeing.com/"
+        }
       ],
       "difficulty": "easy"
     },
@@ -156,7 +180,10 @@
         "These clouds are associated with severe weather including thunderstorms, hail, and tornadoes."
       ],
       "sources": [
-        { "label": "National Weather Service", "url": "https://www.weather.gov/" }
+        {
+          "label": "National Weather Service",
+          "url": "https://www.weather.gov/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -173,7 +200,10 @@
         "This is where most weather phenomena occur, including clouds, precipitation, and storms."
       ],
       "sources": [
-        { "label": "NASA", "url": "https://www.nasa.gov/" }
+        {
+          "label": "NASA",
+          "url": "https://www.nasa.gov/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -190,7 +220,10 @@
         "This record was set in the 1930s when aviation technology was rapidly advancing."
       ],
       "sources": [
-        { "label": "Fédération Aéronautique Internationale", "url": "https://www.fai.org/" }
+        {
+          "label": "Fédération Aéronautique Internationale",
+          "url": "https://www.fai.org/"
+        }
       ],
       "difficulty": "hard"
     },
@@ -207,7 +240,10 @@
         "Modern gliders can stay airborne for hours by exploiting rising air currents and weather patterns."
       ],
       "sources": [
-        { "label": "Soaring Society of America", "url": "https://www.ssa.org/" }
+        {
+          "label": "Soaring Society of America",
+          "url": "https://www.ssa.org/"
+        }
       ],
       "difficulty": "easy"
     },
@@ -224,7 +260,10 @@
         "This altitude is in the stratosphere, where gliders can ride mountain wave systems for extended flights."
       ],
       "sources": [
-        { "label": "Perlan Project", "url": "https://www.perlanproject.com/" }
+        {
+          "label": "Perlan Project",
+          "url": "https://www.perlanproject.com/"
+        }
       ],
       "difficulty": "hard"
     },
@@ -241,7 +280,10 @@
         "This high-altitude reconnaissance aircraft has been in service since 1956 and can stay airborne for over 12 hours."
       ],
       "sources": [
-        { "label": "Lockheed Martin", "url": "https://www.lockheedmartin.com/" }
+        {
+          "label": "Lockheed Martin",
+          "url": "https://www.lockheedmartin.com/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -258,7 +300,10 @@
         "At this altitude, the balloon operates in the stratosphere where atmospheric pressure is extremely low."
       ],
       "sources": [
-        { "label": "Fédération Aéronautique Internationale", "url": "https://www.fai.org/" }
+        {
+          "label": "Fédération Aéronautique Internationale",
+          "url": "https://www.fai.org/"
+        }
       ],
       "difficulty": "hard"
     },
@@ -275,7 +320,10 @@
         "This reconnaissance aircraft could fly at speeds exceeding Mach 3 and was virtually untouchable by enemy defenses."
       ],
       "sources": [
-        { "label": "National Museum of the US Air Force", "url": "https://www.nationalmuseum.af.mil/" }
+        {
+          "label": "National Museum of the US Air Force",
+          "url": "https://www.nationalmuseum.af.mil/"
+        }
       ],
       "difficulty": "hard"
     },
@@ -292,7 +340,10 @@
         "At this altitude, the atmospheric pressure is less than 1% of sea level, requiring specialized life support systems."
       ],
       "sources": [
-        { "label": "Red Bull Stratos", "url": "https://www.redbullstratos.com/" }
+        {
+          "label": "Red Bull Stratos",
+          "url": "https://www.redbullstratos.com/"
+        }
       ],
       "difficulty": "hard"
     },
@@ -309,7 +360,10 @@
         "This protective layer absorbs 97-99% of the Sun's high-frequency ultraviolet light, making life on Earth possible."
       ],
       "sources": [
-        { "label": "NASA Ozone Watch", "url": "https://ozonewatch.gsfc.nasa.gov/" }
+        {
+          "label": "NASA Ozone Watch",
+          "url": "https://ozonewatch.gsfc.nasa.gov/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -326,7 +380,10 @@
         "This atmospheric layer is characterized by increasing temperature with altitude, unlike the troposphere below."
       ],
       "sources": [
-        { "label": "NASA", "url": "https://www.nasa.gov/" }
+        {
+          "label": "NASA",
+          "url": "https://www.nasa.gov/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -343,7 +400,10 @@
         "This layer has the coldest temperatures in the atmosphere, dropping to as low as -90°C."
       ],
       "sources": [
-        { "label": "NASA", "url": "https://www.nasa.gov/" }
+        {
+          "label": "NASA",
+          "url": "https://www.nasa.gov/"
+        }
       ],
       "difficulty": "hard"
     },
@@ -360,7 +420,10 @@
         "These meteors are usually no larger than a grain of sand but can create brilliant streaks of light as they vaporize."
       ],
       "sources": [
-        { "label": "American Meteor Society", "url": "https://www.amsmeteors.org/" }
+        {
+          "label": "American Meteor Society",
+          "url": "https://www.amsmeteors.org/"
+        }
       ],
       "difficulty": "easy"
     },
@@ -377,7 +440,10 @@
         "This layer experiences extreme temperature variations, from -90°C to over 2000°C depending on solar activity."
       ],
       "sources": [
-        { "label": "NASA", "url": "https://www.nasa.gov/" }
+        {
+          "label": "NASA",
+          "url": "https://www.nasa.gov/"
+        }
       ],
       "difficulty": "hard"
     },
@@ -394,7 +460,10 @@
         "This historic satellite marked the beginning of the Space Age and the start of the space race between the US and USSR."
       ],
       "sources": [
-        { "label": "NASA History", "url": "https://history.nasa.gov/" }
+        {
+          "label": "NASA History",
+          "url": "https://history.nasa.gov/"
+        }
       ],
       "difficulty": "easy"
     },
@@ -411,7 +480,10 @@
         "This multinational space station has been continuously occupied since 2000 and serves as a microgravity laboratory."
       ],
       "sources": [
-        { "label": "NASA ISS", "url": "https://www.nasa.gov/mission_pages/station/" }
+        {
+          "label": "NASA ISS",
+          "url": "https://www.nasa.gov/mission_pages/station/"
+        }
       ],
       "difficulty": "easy"
     },
@@ -428,7 +500,10 @@
         "Since its launch in 1990, Hubble has revolutionized our understanding of the universe with over 1.5 million observations."
       ],
       "sources": [
-        { "label": "NASA Hubble", "url": "https://hubble.nasa.gov/" }
+        {
+          "label": "NASA Hubble",
+          "url": "https://hubble.nasa.gov/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -445,7 +520,10 @@
         "This Soviet space station was the first modular space station and served as a precursor to the International Space Station."
       ],
       "sources": [
-        { "label": "NASA History", "url": "https://history.nasa.gov/" }
+        {
+          "label": "NASA History",
+          "url": "https://history.nasa.gov/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -462,7 +540,10 @@
         "This constellation of thousands of satellites aims to bring high-speed internet to remote areas worldwide."
       ],
       "sources": [
-        { "label": "SpaceX", "url": "https://www.spacex.com/" }
+        {
+          "label": "SpaceX",
+          "url": "https://www.spacex.com/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -479,7 +560,10 @@
         "This German satellite provides hyperspectral imaging data for environmental monitoring and scientific research."
       ],
       "sources": [
-        { "label": "DLR", "url": "https://www.dlr.de/" }
+        {
+          "label": "DLR",
+          "url": "https://www.dlr.de/"
+        }
       ],
       "difficulty": "hard"
     },
@@ -496,7 +580,10 @@
         "The GPS constellation consists of 24 active satellites that enable precise location tracking worldwide."
       ],
       "sources": [
-        { "label": "GPS.gov", "url": "https://www.gps.gov/" }
+        {
+          "label": "GPS.gov",
+          "url": "https://www.gps.gov/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -513,7 +600,10 @@
         "These satellites provide continuous weather monitoring and forecasting for Europe and Africa."
       ],
       "sources": [
-        { "label": "EUMETSAT", "url": "https://www.eumetsat.int/" }
+        {
+          "label": "EUMETSAT",
+          "url": "https://www.eumetsat.int/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -530,7 +620,10 @@
         "This altitude allows satellites to maintain a fixed position relative to Earth's surface."
       ],
       "sources": [
-        { "label": "SES", "url": "https://www.ses.com/" }
+        {
+          "label": "SES",
+          "url": "https://www.ses.com/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -547,7 +640,10 @@
         "This distance is equivalent to about 30 Earth diameters, and light takes 1.3 seconds to travel from Moon to Earth."
       ],
       "sources": [
-        { "label": "NASA Moon", "url": "https://moon.nasa.gov/" }
+        {
+          "label": "NASA Moon",
+          "url": "https://moon.nasa.gov/"
+        }
       ],
       "difficulty": "easy"
     },
@@ -564,7 +660,10 @@
         "Despite being the smallest planet, Mercury has extreme temperature variations from 427°C to -173°C."
       ],
       "sources": [
-        { "label": "NASA Solar System", "url": "https://solarsystem.nasa.gov/" }
+        {
+          "label": "NASA Solar System",
+          "url": "https://solarsystem.nasa.gov/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -581,7 +680,10 @@
         "Known as Earth's twin, Venus has a thick atmosphere of carbon dioxide and surface temperatures hot enough to melt lead."
       ],
       "sources": [
-        { "label": "NASA Solar System", "url": "https://solarsystem.nasa.gov/" }
+        {
+          "label": "NASA Solar System",
+          "url": "https://solarsystem.nasa.gov/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -598,7 +700,10 @@
         "Mars has the largest volcano in the solar system (Olympus Mons) and evidence suggests it once had liquid water on its surface."
       ],
       "sources": [
-        { "label": "NASA Mars", "url": "https://mars.nasa.gov/" }
+        {
+          "label": "NASA Mars",
+          "url": "https://mars.nasa.gov/"
+        }
       ],
       "difficulty": "easy"
     },
@@ -615,7 +720,10 @@
         "This gas giant has over 80 moons and a Great Red Spot storm that has been raging for centuries."
       ],
       "sources": [
-        { "label": "NASA Solar System", "url": "https://solarsystem.nasa.gov/" }
+        {
+          "label": "NASA Solar System",
+          "url": "https://solarsystem.nasa.gov/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -632,7 +740,10 @@
         "This gas giant is less dense than water and has over 80 moons, including the massive Titan."
       ],
       "sources": [
-        { "label": "NASA Solar System", "url": "https://solarsystem.nasa.gov/" }
+        {
+          "label": "NASA Solar System",
+          "url": "https://solarsystem.nasa.gov/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -649,7 +760,10 @@
         "This planet rotates on its side and has faint rings and 27 known moons."
       ],
       "sources": [
-        { "label": "NASA Solar System", "url": "https://solarsystem.nasa.gov/" }
+        {
+          "label": "NASA Solar System",
+          "url": "https://solarsystem.nasa.gov/"
+        }
       ],
       "difficulty": "hard"
     },
@@ -666,7 +780,10 @@
         "This ice giant has the strongest winds in the solar system, reaching speeds of 2,100 km/h."
       ],
       "sources": [
-        { "label": "NASA Solar System", "url": "https://solarsystem.nasa.gov/" }
+        {
+          "label": "NASA Solar System",
+          "url": "https://solarsystem.nasa.gov/"
+        }
       ],
       "difficulty": "hard"
     },
@@ -683,7 +800,10 @@
         "This distant world has a heart-shaped glacier and five moons, including the largest, Charon."
       ],
       "sources": [
-        { "label": "NASA Solar System", "url": "https://solarsystem.nasa.gov/" }
+        {
+          "label": "NASA Solar System",
+          "url": "https://solarsystem.nasa.gov/"
+        }
       ],
       "difficulty": "hard"
     },
@@ -700,7 +820,10 @@
         "This dwarf planet contains more fresh water than Earth and may have a subsurface ocean."
       ],
       "sources": [
-        { "label": "NASA Solar System", "url": "https://solarsystem.nasa.gov/" }
+        {
+          "label": "NASA Solar System",
+          "url": "https://solarsystem.nasa.gov/"
+        }
       ],
       "difficulty": "hard"
     },
@@ -717,7 +840,10 @@
         "This famous comet was last seen in 1986 and will next appear in 2061, leaving a trail of debris that creates meteor showers."
       ],
       "sources": [
-        { "label": "NASA Solar System", "url": "https://solarsystem.nasa.gov/" }
+        {
+          "label": "NASA Solar System",
+          "url": "https://solarsystem.nasa.gov/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -734,7 +860,10 @@
         "Launched in 1977, this spacecraft has entered interstellar space and continues to send data back to Earth."
       ],
       "sources": [
-        { "label": "NASA Voyager", "url": "https://voyager.jpl.nasa.gov/" }
+        {
+          "label": "NASA Voyager",
+          "url": "https://voyager.jpl.nasa.gov/"
+        }
       ],
       "difficulty": "hard"
     },
@@ -751,7 +880,10 @@
         "This revolutionary telescope can see the first galaxies that formed after the Big Bang and study exoplanet atmospheres."
       ],
       "sources": [
-        { "label": "NASA JWST", "url": "https://www.jwst.nasa.gov/" }
+        {
+          "label": "NASA JWST",
+          "url": "https://www.jwst.nasa.gov/"
+        }
       ],
       "difficulty": "hard"
     },
@@ -768,7 +900,10 @@
         "This region contains the geocorona, a cloud of hydrogen atoms that extends far into space."
       ],
       "sources": [
-        { "label": "NASA", "url": "https://www.nasa.gov/" }
+        {
+          "label": "NASA",
+          "url": "https://www.nasa.gov/"
+        }
       ],
       "difficulty": "hard"
     },
@@ -785,7 +920,10 @@
         "These spectacular light displays are most commonly seen near the polar regions and are caused by solar wind particles."
       ],
       "sources": [
-        { "label": "NOAA Space Weather", "url": "https://www.swpc.noaa.gov/" }
+        {
+          "label": "NOAA Space Weather",
+          "url": "https://www.swpc.noaa.gov/"
+        }
       ],
       "difficulty": "medium"
     },
@@ -802,7 +940,10 @@
         "The 1991 Mount Pinatubo eruption injected ash and sulfur dioxide into the stratosphere, causing global temperature drops."
       ],
       "sources": [
-        { "label": "USGS Volcano Hazards", "url": "https://www.usgs.gov/natural-hazards/volcano-hazards" }
+        {
+          "label": "USGS Volcano Hazards",
+          "url": "https://www.usgs.gov/natural-hazards/volcano-hazards"
+        }
       ],
       "difficulty": "hard"
     },
@@ -819,7 +960,10 @@
         "These wispy, high-altitude clouds are often indicators of approaching weather changes."
       ],
       "sources": [
-        { "label": "National Weather Service", "url": "https://www.weather.gov/" }
+        {
+          "label": "National Weather Service",
+          "url": "https://www.weather.gov/"
+        }
       ],
       "difficulty": "easy"
     },
@@ -836,9 +980,13 @@
         "These clouds are associated with stable weather conditions and can persist for long periods."
       ],
       "sources": [
-        { "label": "National Weather Service", "url": "https://www.weather.gov/" }
+        {
+          "label": "National Weather Service",
+          "url": "https://www.weather.gov/"
+        }
       ],
       "difficulty": "easy"
     }
-  ]
+  ],
+  "description": "Explore the distances of objects in the sky from birds to spacecraft and celestial bodies."
 }

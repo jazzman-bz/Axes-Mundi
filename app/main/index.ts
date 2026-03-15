@@ -494,6 +494,7 @@ function setupIPC(): void {
    * ZIP structure expected:
    * - deck.json (required)
    * - images/ folder with card images (optional)
+   * - description in deck.json (optional but recommended for richer deck tiles)
    */
   ipcMain.handle('import-deck', async () => {
     try {
@@ -610,6 +611,7 @@ function setupIPC(): void {
         deck: {
           id: deck.id,
           name: deck.name,
+          description: deck.description,
           axis: deck.axis,
           theme: deck.theme || 'custom',
           locale: deck.locale || 'en',
@@ -650,6 +652,7 @@ function setupIPC(): void {
           decks.push({
             id: deck.id,
             name: deck.name,
+            description: deck.description,
             axis: deck.axis,
             theme: deck.theme || 'custom',
             locale: deck.locale || 'en',

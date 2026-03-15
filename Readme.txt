@@ -69,6 +69,7 @@ Entwickelt mit Electron + Vite + PixiJS + GSAP.
 {
   "id": "buildings-height-de",
   "name": "Gebäude – Höhe",
+  "description": "Ordne berühmte Bauwerke nach ihrer Höhe von kleinen Wahrzeichen bis zu gewaltigen Wolkenkratzern.",
   "axis": "height",
   "theme": "architecture",
   "locale": "de",
@@ -91,6 +92,31 @@ Entwickelt mit Electron + Vite + PixiJS + GSAP.
     }
   ]
 }
+
+Deck-Import (ZIP)
+
+Importierbare Decks werden als ZIP-Paket mit folgendem Aufbau erwartet:
+
+```text
+my-deck.zip
+  deck.json
+  images/
+    image-1.png
+    image-2.jpg
+```
+
+Empfohlene Felder in `deck.json`:
+- `id`
+- `name`
+- `description`
+- `axis`
+- `theme`
+- `locale`
+- `version`
+- `imageFolder`
+- `cards`
+
+`description` ist optional, wird aber empfohlen. Wenn sie fehlt, erzeugt die App fuer importierte Deck-Kacheln einen generischen Fallback-Text.
 
 Roadmap (MVP → Final)
 

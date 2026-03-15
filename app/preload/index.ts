@@ -88,6 +88,7 @@ declare global {
         deck?: {
           id: string;
           name: string;
+          description?: string;
           axis: string;
           theme: string;
           locale: string;
@@ -102,6 +103,7 @@ declare global {
         decks: Array<{
           id: string;
           name: string;
+          description?: string;
           axis: string;
           theme: string;
           locale: string;

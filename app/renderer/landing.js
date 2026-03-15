@@ -5,6 +5,7 @@
 
 // Import sound manager
 import { soundManager, SoundType } from './utils/soundManager.ts';
+import { getDeckDescription, getDeckLocaleLabel, getDeckThemeLabel } from './utils/deckPresentation.ts';
 
 // Silent logger for production
 const logger = {
@@ -1389,19 +1390,15 @@ class LandingPageController {
     deckCard.dataset.deck = deck.id;
     deckCard.dataset.isUserDeck = 'true';
     
-    // Format theme display
-    const themeDisplay = deck.theme ? `${deck.theme.charAt(0).toUpperCase() + deck.theme.slice(1)} & ${deck.axis.charAt(0).toUpperCase() + deck.axis.slice(1)}` : 'Custom Deck';
-    
-    // Format locale display
-    const localeDisplay = deck.locale === 'en' ? 'English' : 
-                          deck.locale === 'de' ? 'German' : 
-                          deck.locale || 'Unknown';
+    const themeDisplay = getDeckThemeLabel(deck);
+    const localeDisplay = getDeckLocaleLabel(deck.locale);
+    const description = getDeckDescription(deck, true);
     
     deckCard.innerHTML = `
       <button class="delete-deck-btn" title="Delete deck" data-deck-id="${deck.id}">✕</button>
-      <div class="deck-theme">📥 ${themeDisplay}</div>
+      <div class="deck-theme">${themeDisplay}</div>
       <h3 class="deck-title">${deck.name}</h3>
-      <p class="deck-description">User-imported deck</p>
+      <p class="deck-description">${description}</p>
       <div class="deck-stats">
         <span>${deck.cardCount} Cards</span>
         <span>${localeDisplay}</span>

@@ -23,6 +23,7 @@ export interface Card {
 export interface Deck {
   id: string;
   name: string;
+  description?: string;
   axis: string;
   theme: string;
   locale: string;
