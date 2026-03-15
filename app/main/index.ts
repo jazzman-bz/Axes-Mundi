@@ -785,9 +785,9 @@ function setupAppEvents(): void {
     
     // Register custom protocol for user deck images BEFORE creating window
     registerUserDeckImageProtocol();
-    
-    createWindow();
+
     setupIPC();
+    createWindow();
   });
 
   // Quit when all windows are closed

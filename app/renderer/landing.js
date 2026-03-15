@@ -7,6 +7,7 @@
 import { soundManager, SoundType } from './utils/soundManager.ts';
 import { getDeckDescription, getDeckLocaleLabel, getDeckThemeLabel } from './utils/deckPresentation.ts';
 import { formatVersionBadge, formatVersionTooltip } from './utils/versionPresentation.ts';
+import versionInfo from '../generated/version.ts';
 
 // Silent logger for production
 const logger = {
@@ -137,27 +138,40 @@ class LandingPageController {
     }
 
     const fallback = {
-      appVersion: window.AXM?.version || 'unknown',
-      commit: 'unknown',
-      dirty: false,
+      ...versionInfo,
+      appVersion: versionInfo.appVersion || window.AXM?.version || 'unknown',
     };
 
-    try {
-      const versionInfo = window.AXM?.getVersionInfo
-        ? await window.AXM.getVersionInfo()
-        : fallback;
+    let resolvedVersionInfo = fallback;
 
-      versionBadge.textContent = formatVersionBadge(versionInfo);
-      versionBadge.title = formatVersionTooltip(versionInfo);
-    } catch (error) {
-      versionBadge.textContent = formatVersionBadge(fallback);
-      versionBadge.title = formatVersionTooltip(fallback);
-      logger.warn({
-        scope: 'landing/version',
-        msg: 'failed to load version info, using fallback',
-        err: { message: error.message }
-      });
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      try {
+        if (window.AXM?.getVersionInfo) {
+          resolvedVersionInfo = await window.AXM.getVersionInfo();
+        } else if (window.AXM?.version) {
+          resolvedVersionInfo = {
+            ...fallback,
+            appVersion: window.AXM.version,
+          };
+        }
+
+        if (resolvedVersionInfo.appVersion !== 'unknown' || resolvedVersionInfo.commit !== 'unknown') {
+          break;
+        }
+      } catch (error) {
+        logger.warn({
+          scope: 'landing/version',
+          msg: 'failed to load version info, retrying',
+          err: { message: error.message },
+          meta: { attempt: attempt + 1 }
+        });
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
     }
+
+    versionBadge.textContent = formatVersionBadge(resolvedVersionInfo);
+    versionBadge.title = formatVersionTooltip(resolvedVersionInfo);
   }
 
   /**
