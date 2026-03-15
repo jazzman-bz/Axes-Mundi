@@ -1,6 +1,10 @@
-import { app, BrowserWindow, ipcMain, dialog, protocol } from 'electron';
+import {
+  app, BrowserWindow, ipcMain, dialog, protocol,
+} from 'electron';
 import { join } from 'path';
-import { readFile, writeFile, mkdir, readdir } from 'fs/promises';
+import {
+  readFile, writeFile, mkdir, readdir,
+} from 'fs/promises';
 import { existsSync } from 'fs';
 import AdmZip from 'adm-zip';
 import { logger } from './logger';
@@ -40,7 +44,7 @@ function registerUserDeckImageProtocol(): void {
       const url = new URL(request.url);
       const imageFolder = decodeURIComponent(url.hostname);
       const imageName = decodeURIComponent(url.pathname.slice(1)); // Remove leading /
-      
+
       const imagePath = join(getUserDeckImagesDir(), imageFolder, imageName);
       let finalPath = imagePath;
       let contentType = 'image/jpeg';
@@ -65,16 +69,21 @@ function registerUserDeckImageProtocol(): void {
       // Read file and serve
       const fileData = await readFile(finalPath);
       const uint8Array = new Uint8Array(fileData);
-      
+
       return new Response(uint8Array, {
         status: 200,
-        headers: { 
+        headers: {
           'Content-Type': contentType,
           'Content-Length': fileData.length.toString(),
         },
       });
     } catch (error: any) {
-      logger.error({ scope: 'main/protocol', msg: 'Failed to serve user deck image', meta: { url: request.url }, err: { message: error.message } });
+      logger.error({
+        scope: 'main/protocol',
+        msg: 'Failed to serve user deck image',
+        meta: { url: request.url },
+        err: { message: error.message },
+      });
       return new Response('Internal Error', { status: 500 });
     }
   });
@@ -101,15 +110,18 @@ function validateDeckStructure(deck: any): { valid: boolean; error?: string } {
   if (!deck.cards || !Array.isArray(deck.cards) || deck.cards.length === 0) {
     return { valid: false, error: 'Missing or empty cards array' };
   }
-  
+
   // Validate each card has required fields
-  for (let i = 0; i < deck.cards.length; i++) {
-    const card = deck.cards[i];
-    if (!card.id || !card.title || card.value === undefined) {
-      return { valid: false, error: `Card at index ${i} missing required fields (id, title, value)` };
-    }
+  const invalidCardIndex = deck.cards.findIndex(
+    (card: any) => !card.id || !card.title || card.value === undefined,
+  );
+  if (invalidCardIndex >= 0) {
+    return {
+      valid: false,
+      error: `Card at index ${invalidCardIndex} missing required fields (id, title, value)`,
+    };
   }
-  
+
   return { valid: true };
 }
 
@@ -117,8 +129,41 @@ function validateDeckStructure(deck: any): { valid: boolean; error?: string } {
 let mainWindow: BrowserWindow | null = null;
 let lanServer: LANWebSocketServer | null = null;
 
+async function tryStartLanServer(
+  ports: number[],
+  playerName: string,
+  playerAvatar: string,
+  index: number = 0,
+): Promise<{ port: number | null; error: Error | null }> {
+  if (index >= ports.length) {
+    return { port: null, error: null };
+  }
+
+  const port = ports[index];
+
+  try {
+    logger.info({ scope: 'main/lan', msg: `Trying port ${port}...` });
+    lanServer = new LANWebSocketServer(port, playerName, playerAvatar);
+    await lanServer.start();
+    logger.info({ scope: 'main/lan', msg: `Successfully started on port ${port}` });
+    return { port, error: null };
+  } catch (error: any) {
+    logger.warn({
+      scope: 'main/lan',
+      msg: `Port ${port} failed: ${error.message}`,
+      err: { message: error.message },
+    });
+
+    const nextAttempt = await tryStartLanServer(ports, playerName, playerAvatar, index + 1);
+    return nextAttempt.port
+      ? nextAttempt
+      : { port: null, error };
+  }
+}
+
 // Make mainWindow globally available for WebSocket server
 declare global {
+  // eslint-disable-next-line no-var, vars-on-top
   var mainWindow: BrowserWindow | null;
 }
 global.mainWindow = mainWindow;
@@ -415,50 +460,29 @@ function setupIPC(): void {
 
       // Try different ports if 8080 is busy
       const ports = [8080, 8081, 8082, 8083, 8084];
-      let startedPort = null;
-      let lastError = null;
-
-      for (const port of ports) {
-        try {
-          logger.info({ scope: 'main/lan', msg: `Trying port ${port}...` });
-          lanServer = new LANWebSocketServer(port, playerName, playerAvatar);
-          await lanServer.start();
-          startedPort = port;
-      logger.info({ scope: 'main/lan', msg: `Successfully started on port ${port}` });
-      
-      // Get server info and send to renderer
-      const serverInfo = lanServer.getServerInfo();
-      logger.info({ 
-        scope: 'main/lan', 
-        msg: 'LAN server info', 
-        meta: serverInfo 
-      });
-      
-      // Send server info to renderer process
-      if (global.mainWindow && global.mainWindow.webContents) {
-        global.mainWindow.webContents.send('lan-status-update', {
-          type: 'serverStarted',
-          serverInfo,
-          message: `Server started on ${serverInfo.ip}:${serverInfo.port}`,
-        });
-        
-        // Also send the server info via IPC for immediate access
-        global.mainWindow.webContents.send('server-info-update', serverInfo);
-      }
-      
-      break;
-        } catch (error: any) {
-          lastError = error;
-          logger.warn({
-            scope: 'main/lan',
-            msg: `Port ${port} failed: ${error.message}`,
-            err: { message: error.message },
-          });
-        }
-      }
+      const { port: startedPort, error: lastError } = await tryStartLanServer(
+        ports,
+        playerName,
+        playerAvatar,
+      );
 
       if (startedPort) {
-        logger.info({ scope: 'main/lan', msg: 'LAN server started successfully', meta: { port: startedPort, playerName } });
+        const serverInfo = lanServer!.getServerInfo();
+        logger.info({
+          scope: 'main/lan',
+          msg: 'LAN server started successfully',
+          meta: { port: startedPort, playerName },
+        });
+
+        if (global.mainWindow && global.mainWindow.webContents) {
+          global.mainWindow.webContents.send('lan-status-update', {
+            type: 'serverStarted',
+            serverInfo,
+            message: `Server started on ${serverInfo.ip}:${serverInfo.port}`,
+          });
+          global.mainWindow.webContents.send('server-info-update', serverInfo);
+        }
+
         return { success: true, port: startedPort };
       }
       const errorMsg = lastError ? lastError.message : 'No available ports';
@@ -531,8 +555,8 @@ function setupIPC(): void {
       const zipEntries = zip.getEntries();
 
       // Find deck.json in the ZIP
-      let deckJsonEntry = zipEntries.find(entry => 
-        entry.entryName === 'deck.json' || entry.entryName.endsWith('/deck.json')
+      const deckJsonEntry = zipEntries.find(
+        (entry) => entry.entryName === 'deck.json' || entry.entryName.endsWith('/deck.json'),
       );
 
       if (!deckJsonEntry) {
@@ -546,14 +570,22 @@ function setupIPC(): void {
       try {
         deck = JSON.parse(deckJsonContent);
       } catch (parseError: any) {
-        logger.error({ scope: 'main/deck', msg: 'Invalid JSON in deck.json', err: { message: parseError.message } });
+        logger.error({
+          scope: 'main/deck',
+          msg: 'Invalid JSON in deck.json',
+          err: { message: parseError.message },
+        });
         return { success: false, error: 'Invalid JSON in deck.json' };
       }
 
       // Validate deck structure
       const validation = validateDeckStructure(deck);
       if (!validation.valid) {
-        logger.error({ scope: 'main/deck', msg: 'Deck validation failed', meta: { error: validation.error } });
+        logger.error({
+          scope: 'main/deck',
+          msg: 'Deck validation failed',
+          meta: { error: validation.error },
+        });
         return { success: false, error: validation.error };
       }
 
@@ -572,16 +604,20 @@ function setupIPC(): void {
       // Extract images if present
       const imageFolder = deck.imageFolder || deck.id;
       const userImagesDir = join(getUserDeckImagesDir(), imageFolder);
-      
+
       // Find image entries (look for images/ folder or image files at root)
       // Note: ZIP entries may use forward or backslashes depending on how they were created
-      const imageEntries = zipEntries.filter(entry => {
+      const imageEntries = zipEntries.filter((entry) => {
         const name = entry.entryName.toLowerCase();
         // Normalize path separators for cross-platform compatibility
         const normalizedName = name.replace(/\\/g, '/');
-        return !entry.isDirectory && 
-               (normalizedName.startsWith('images/') || normalizedName.includes('/images/')) &&
-               (normalizedName.endsWith('.jpg') || normalizedName.endsWith('.jpeg') || normalizedName.endsWith('.png'));
+        return !entry.isDirectory
+          && (normalizedName.startsWith('images/') || normalizedName.includes('/images/'))
+          && (
+            normalizedName.endsWith('.jpg')
+            || normalizedName.endsWith('.jpeg')
+            || normalizedName.endsWith('.png')
+          );
       });
 
       if (imageEntries.length > 0) {
@@ -591,7 +627,7 @@ function setupIPC(): void {
         }
 
         // Extract each image
-        for (const imageEntry of imageEntries) {
+        await Promise.all(imageEntries.map(async (imageEntry) => {
           // Normalize path separators and get just the filename
           const normalizedPath = imageEntry.entryName.replace(/\\/g, '/');
           const imageName = normalizedPath.split('/').pop(); // Get just filename
@@ -600,19 +636,23 @@ function setupIPC(): void {
             const imageData = imageEntry.getData();
             await writeFile(imageTargetPath, imageData);
           }
-        }
-        logger.info({ scope: 'main/deck', msg: 'Images extracted', meta: { count: imageEntries.length, folder: imageFolder } });
+        }));
+        logger.info({
+          scope: 'main/deck',
+          msg: 'Images extracted',
+          meta: { count: imageEntries.length, folder: imageFolder },
+        });
       }
 
-      logger.info({ 
-        scope: 'main/deck', 
-        msg: 'Deck imported successfully', 
-        meta: { 
-          deckId: deck.id, 
-          name: deck.name, 
+      logger.info({
+        scope: 'main/deck',
+        msg: 'Deck imported successfully',
+        meta: {
+          deckId: deck.id,
+          name: deck.name,
           cardCount: deck.cards.length,
-          imageCount: imageEntries.length 
-        } 
+          imageCount: imageEntries.length,
+        },
       });
 
       return {
@@ -625,7 +665,7 @@ function setupIPC(): void {
           theme: deck.theme || 'custom',
           locale: deck.locale || 'en',
           cardCount: deck.cards.length,
-          imageFolder: imageFolder,
+          imageFolder,
           isUserDeck: true,
         },
       };
@@ -645,20 +685,19 @@ function setupIPC(): void {
   ipcMain.handle('get-user-decks', async () => {
     try {
       const userDecksDir = getUserDecksDir();
-      
+
       if (!existsSync(userDecksDir)) {
         return { success: true, decks: [] };
       }
 
       const files = await readdir(userDecksDir);
-      const deckFiles = files.filter(f => f.endsWith('.json'));
-      
-      const decks = [];
-      for (const file of deckFiles) {
+      const deckFiles = files.filter((f) => f.endsWith('.json'));
+
+      const decks = (await Promise.all(deckFiles.map(async (file) => {
         try {
           const content = await readFile(join(userDecksDir, file), 'utf-8');
           const deck = JSON.parse(content);
-          decks.push({
+          return {
             id: deck.id,
             name: deck.name,
             description: deck.description,
@@ -668,11 +707,12 @@ function setupIPC(): void {
             cardCount: deck.cards?.length || 0,
             imageFolder: deck.imageFolder || deck.id,
             isUserDeck: true,
-          });
+          };
         } catch (e) {
           logger.warn({ scope: 'main/deck', msg: 'Failed to read user deck', meta: { file } });
+          return null;
         }
-      }
+      }))).filter(Boolean);
 
       logger.info({ scope: 'main/deck', msg: 'User decks retrieved', meta: { count: decks.length } });
       return { success: true, decks };
@@ -699,7 +739,7 @@ function setupIPC(): void {
 
       const deckPath = join(getUserDecksDir(), `${deckId}.json`);
       console.log('[LoadUserDeck] Looking for deck at:', deckPath);
-      
+
       if (!existsSync(deckPath)) {
         console.log('[LoadUserDeck] ERROR: Deck file not found');
         return { success: false, error: 'Deck not found' };
@@ -708,7 +748,12 @@ function setupIPC(): void {
       const content = await readFile(deckPath, 'utf-8');
       const deck = JSON.parse(content);
 
-      console.log('[LoadUserDeck] SUCCESS: Loaded deck with', deck.cards?.length, 'cards, imageFolder:', deck.imageFolder);
+      console.log(
+        '[LoadUserDeck] SUCCESS: Loaded deck with',
+        deck.cards?.length,
+        'cards, imageFolder:',
+        deck.imageFolder,
+      );
       logger.info({ scope: 'main/deck', msg: 'User deck loaded', meta: { deckId, cardCount: deck.cards?.length } });
       return { success: true, deck };
     } catch (error: any) {
@@ -731,7 +776,7 @@ function setupIPC(): void {
       }
 
       const deckPath = join(getUserDecksDir(), `${deckId}.json`);
-      
+
       if (!existsSync(deckPath)) {
         return { success: false, error: 'Deck not found' };
       }
@@ -766,13 +811,11 @@ function setupIPC(): void {
   /**
    * Get the user data paths (for renderer to construct image URLs)
    */
-  ipcMain.handle('get-user-data-paths', async () => {
-    return {
-      userDataPath: app.getPath('userData'),
-      decksPath: getUserDecksDir(),
-      imagesPath: getUserDeckImagesDir(),
-    };
-  });
+  ipcMain.handle('get-user-data-paths', async () => ({
+    userDataPath: app.getPath('userData'),
+    decksPath: getUserDecksDir(),
+    imagesPath: getUserDeckImagesDir(),
+  }));
 }
 
 /**
@@ -782,7 +825,7 @@ function setupAppEvents(): void {
   // App ready
   app.whenReady().then(() => {
     logger.info({ scope: 'main/app', msg: 'app ready' });
-    
+
     // Register custom protocol for user deck images BEFORE creating window
     registerUserDeckImageProtocol();
 

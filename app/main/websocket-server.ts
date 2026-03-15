@@ -26,7 +26,7 @@ export class LANWebSocketServer {
     this.port = port;
     this.serverPlayerName = serverPlayerName;
     this.serverPlayerAvatar = serverPlayerAvatar;
-    this.serverIP = this.getLocalIPAddress();
+    this.serverIP = LANWebSocketServer.getLocalIPAddress();
   }
 
   start(): Promise<void> {
@@ -73,7 +73,7 @@ export class LANWebSocketServer {
   }
 
   private handleConnection(ws: WebSocket): void {
-    const playerId = this.generatePlayerId();
+    const playerId = LANWebSocketServer.generatePlayerId();
 
     logger.info({
       scope: 'main/websocket',
@@ -123,53 +123,53 @@ export class LANWebSocketServer {
       meta: { playerId, messageType: message.type, message },
     });
 
+    /* eslint-disable indent, @typescript-eslint/indent */
     switch (message.type) {
-    case 'join':
-      this.handleJoin(playerId, ws, message.playerName, message.playerAvatar || 'default');
-      break;
-    case 'ready':
-      this.handleReady(playerId);
-      break;
-    case 'deckSelection':
-      this.handleDeckSelection(playerId, message.deckId);
-      break;
-    case 'deckResponse':
-      this.handleDeckResponse(playerId, message.deckId, message.available);
-      break;
-    case 'currentPlayerSet':
-      this.handleCurrentPlayerSet(playerId, message.currentPlayer);
-      break;
-    case 'playerTurnChanged':
-      this.handlePlayerTurnChanged(playerId, message.currentPlayer);
-      break;
-    case 'cardDistribution':
-      this.handleCardDistribution(playerId, message);
-      break;
-    case 'placeCard':
-      this.handleCardPlacement(playerId, message);
-      break;
-    case 'cardPlacement':
-      this.handleCardPlacement(playerId, message);
-      break;
-    case 'playerSwitch':
-      this.handlePlayerSwitch(playerId, message);
-      break;
-    case 'gameRestart':
-      this.handleGameRestart(playerId, message);
-      break;
-    case 'remainingCardsUpdate':
-      this.handleRemainingCardsUpdate(playerId, message);
-      break;
-    case 'gameStateUpdate':
-      this.handleGameStateUpdate(playerId, message);
-      break;
-    default:
-      logger.warn({
-        scope: 'main/websocket',
-        msg: 'Unknown message type',
-        meta: { playerId, messageType: message.type },
+      case 'join':
+        this.handleJoin(playerId, ws, message.playerName, message.playerAvatar || 'default');
+        break;
+      case 'ready':
+        this.handleReady(playerId);
+        break;
+      case 'deckSelection':
+        this.handleDeckSelection(playerId, message.deckId);
+        break;
+      case 'deckResponse':
+        this.handleDeckResponse(playerId, message.deckId, message.available);
+        break;
+      case 'currentPlayerSet':
+        this.handleCurrentPlayerSet(playerId, message.currentPlayer);
+        break;
+      case 'playerTurnChanged':
+        this.handlePlayerTurnChanged(playerId, message.currentPlayer);
+        break;
+      case 'cardDistribution':
+        this.handleCardDistribution(playerId, message);
+        break;
+      case 'placeCard':
+      case 'cardPlacement':
+        this.handleCardPlacement(playerId, message);
+        break;
+      case 'playerSwitch':
+        this.handlePlayerSwitch(playerId, message);
+        break;
+      case 'gameRestart':
+        this.handleGameRestart(playerId, message);
+        break;
+      case 'remainingCardsUpdate':
+        this.handleRemainingCardsUpdate(playerId, message);
+        break;
+      case 'gameStateUpdate':
+        this.handleGameStateUpdate(playerId, message);
+        break;
+      default:
+        logger.warn({
+          scope: 'main/websocket',
+          msg: 'Unknown message type',
+          meta: { playerId, messageType: message.type },
         });
     }
+    /* eslint-enable indent, @typescript-eslint/indent */
   }
 
   private handleJoin(playerId: string, ws: WebSocket, playerName: string, playerAvatar: string): void {
@@ -336,13 +336,13 @@ export class LANWebSocketServer {
     });
 
     // Send to all connected clients
-    for (const [, player] of this.players) {
+    this.players.forEach((player) => {
       player.ws.send(JSON.stringify({
         type: 'deckSelection',
         deckId,
         message: `Server selected deck: ${deckId}`,
       }));
-    }
+    });
   }
 
   /**
@@ -375,7 +375,7 @@ export class LANWebSocketServer {
     });
 
     // Send to all connected clients
-    for (const [, player] of this.players) {
+    this.players.forEach((player) => {
       const message = {
         type: 'cardDistribution',
         distribution, // Wrap in distribution object for consistency
@@ -397,7 +397,7 @@ export class LANWebSocketServer {
       });
 
       player.ws.send(JSON.stringify(message));
-    }
+    });
 
     // Card distribution sent - no UI update needed
     logger.info({
@@ -419,12 +419,12 @@ export class LANWebSocketServer {
 
     // Debug: Check if we have any connected players
     console.log('🎮 WebSocket Server: Connected players count:', this.players.size);
-    for (const [playerId, player] of this.players) {
+    this.players.forEach((player, playerId) => {
       console.log('🎮 WebSocket Server: Player:', { id: playerId, name: player.name, wsState: player.ws.readyState });
-    }
+    });
 
     // Send to all connected clients
-    for (const [, player] of this.players) {
+    this.players.forEach((player) => {
       const message = {
         type: 'currentPlayerSet',
         currentPlayer,
@@ -436,10 +436,16 @@ export class LANWebSocketServer {
       try {
         player.ws.send(JSON.stringify(message));
         console.log('🎮 WebSocket Server: Message sent successfully to:', player.name);
-      } catch (error) {
+      } catch (error: any) {
         console.error('🎮 WebSocket Server: Failed to send message to:', player.name, 'error:', error);
+        logger.error({
+          scope: 'main/websocket',
+          msg: 'Failed to send current player message to client',
+          meta: { currentPlayer, playerName: player.name },
+          err: { message: error.message, stack: error.stack },
+        });
       }
-    }
+    });
 
     // Send notification to renderer process to update UI
     if (global.mainWindow && global.mainWindow.webContents) {
@@ -461,12 +467,12 @@ export class LANWebSocketServer {
     });
 
     // Send to all connected clients
-    for (const [, player] of this.players) {
+    this.players.forEach((player) => {
       player.ws.send(JSON.stringify({
         type: 'startGame',
         message: 'Game start trigger received from server',
       }));
-    }
+    });
 
     // Send notification to renderer process to update UI
     if (global.mainWindow && global.mainWindow.webContents) {
@@ -635,14 +641,14 @@ export class LANWebSocketServer {
     });
 
     // Send to all connected clients
-    for (const [, player] of this.players) {
+    this.players.forEach((player) => {
       player.ws.send(JSON.stringify({
         type: 'cardPlacement',
         cardId,
         boardPosition,
         playerName,
       }));
-    }
+    });
 
     // Only send UI update for card placement (important game event)
     if (global.mainWindow && global.mainWindow.webContents) {
@@ -699,7 +705,8 @@ export class LANWebSocketServer {
         cardId: message.cardId,
         boardPosition: message.boardPosition,
         playerName: player.name,
-        message: `Karte ${message.cardId} wurde von ${player.name} an Board-Position ${message.boardPosition} platziert`,
+        message: `Karte ${message.cardId} wurde von `
+          + `${player.name} an Board-Position ${message.boardPosition} platziert`,
       };
 
       console.log('🎮 WebSocket Server: Sending lan-status-update to renderer:', statusUpdate);
@@ -958,7 +965,7 @@ export class LANWebSocketServer {
     });
   }
 
-  private generatePlayerId(): string {
+  private static generatePlayerId(): string {
     return Math.random().toString(36).substring(2, 15);
   }
 
@@ -978,20 +985,16 @@ export class LANWebSocketServer {
   /**
    * Get the server's local IP address
    */
-  private getLocalIPAddress(): string {
+  private static getLocalIPAddress(): string {
     const interfaces = networkInterfaces();
-    
-    for (const name of Object.keys(interfaces)) {
-      const iface = interfaces[name];
-      if (!iface) continue;
-      
-      for (const alias of iface) {
-        if (alias.family === 'IPv4' && !alias.internal) {
-          return alias.address;
-        }
-      }
+    const externalAddress = Object.keys(interfaces)
+      .flatMap((name) => interfaces[name] || [])
+      .find((alias) => alias.family === 'IPv4' && !alias.internal)?.address;
+
+    if (externalAddress) {
+      return externalAddress;
     }
-    
+
     // Fallback to localhost if no external IP found
     return '127.0.0.1';
   }
