@@ -20,6 +20,7 @@ import { TurnTimerManager } from '@/utils/turnTimerManager';
 import { UIDialogManager } from '@/utils/uiDialogManager';
 import { LearningModeManager } from '@/utils/learningModeManager';
 import { BoardNavigationManager } from '@/utils/boardNavigationManager';
+import { OptionsMenu } from '@/utils/optionsMenu';
 
 /**
  * Main application class
@@ -1649,15 +1650,43 @@ async function initSoundManagerAsync(): Promise<void> {
   }
 }
 
-function bindBackNavigation(): void {
-  const backButton = document.getElementById('back-button');
-  if (!backButton) {
-    return;
+function navigateToMenu(): Promise<void> {
+  return backgroundMusicManager.fadeOutCurrent(700).finally(() => {
+    window.location.href = './index.html';
+  });
+}
+
+function quitApplication(): Promise<void> {
+  if (window.AXM?.quitApp) {
+    return window.AXM.quitApp().then(() => undefined);
   }
 
-  backButton.addEventListener('click', async () => {
-    await backgroundMusicManager.fadeOutCurrent(700);
-    window.location.href = './index.html';
+  window.close();
+  return Promise.resolve();
+}
+
+function setupOptionsMenu(): void {
+  const optionsMenu = new OptionsMenu({
+    musicVolume: backgroundMusicManager.getVolume(),
+    sfxVolume: soundManager.getVolume(),
+    onMusicVolumeChange: (volume) => {
+      backgroundMusicManager.setVolume(volume);
+      optionsMenu.setMusicVolume(backgroundMusicManager.getVolume());
+    },
+    onSfxVolumeChange: (volume) => {
+      soundManager.setVolume(volume);
+      optionsMenu.setSfxVolume(soundManager.getVolume());
+    },
+    onReturn: () => {},
+    onLeaveToMenu: () => {
+      void navigateToMenu();
+    },
+    leaveToMenuLabel: 'Leave Game to Menu',
+    onLeaveApp: () => {
+      void backgroundMusicManager.fadeOutCurrent(500).finally(() => {
+        void quitApplication();
+      });
+    },
   });
 }
 
@@ -1667,7 +1696,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize sound manager first
     await initSoundManagerAsync();
     await backgroundMusicManager.play('gameplay', { fadeInMs: 1600 });
-    bindBackNavigation();
+    setupOptionsMenu();
     
     new AxesMundiApp();
     logger.info({ scope: 'renderer/app', msg: 'app initialized successfully' });

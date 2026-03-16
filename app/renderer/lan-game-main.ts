@@ -3,6 +3,7 @@ import { logger } from '@/utils/logger';
 import { GameCard } from './game/Card';
 import { soundManager, SoundType } from '@/utils/soundManager';
 import { backgroundMusicManager } from '@/utils/backgroundMusicManager';
+import { OptionsMenu } from '@/utils/optionsMenu';
 
 /**
  * Avatar emoji mapping
@@ -1321,7 +1322,6 @@ class LANGameApp {
     const baseFontSize = 14;
     const basePadding = 10;
     const baseBorderRadius = 5;
-    const baseTop = 20;
     const baseLeft = 20;
     const baseInfoTop = 110;
 
@@ -1329,19 +1329,8 @@ class LANGameApp {
     const fontSize = Math.round(baseFontSize * this.scale);
     const padding = Math.round(basePadding * this.scale);
     const borderRadius = Math.round(baseBorderRadius * this.scale);
-    const top = Math.round(baseTop * this.scale);
     const left = Math.round(baseLeft * this.scale);
     const infoTop = Math.round(baseInfoTop * this.scale);
-
-    // Update back-to-menu button
-    const backButton = document.getElementById('back-to-menu');
-    if (backButton) {
-      backButton.style.fontSize = `${fontSize}px`;
-      backButton.style.padding = `${padding}px ${Math.round(15 * this.scale)}px`;
-      backButton.style.borderRadius = `${borderRadius}px`;
-      backButton.style.top = `${top}px`;
-      backButton.style.left = `${left}px`;
-    }
 
     // Update lan-info box
     const lanInfo = document.getElementById('lan-info');
@@ -2262,15 +2251,6 @@ class LANGameApp {
       if (!this.canvas) {
         console.warn('🎮 Canvas not available for mouse events');
         return;
-      }
-
-      // Add click listener for HTML back button
-      const backButton = document.getElementById('back-to-menu');
-      if (backButton) {
-        backButton.addEventListener('click', () => {
-          console.log('🎮 Back to menu button clicked (HTML)');
-          this.goBackToMainMenu();
-        });
       }
 
       // Add mouse down event listener for drag & drop (on canvas)
@@ -3377,7 +3357,7 @@ class LANGameApp {
   /**
    * Go back to main menu
    */
-  private async goBackToMainMenu(): Promise<void> {
+  async goBackToMainMenu(): Promise<void> {
     try {
       console.log('🎮 Returning to main menu...');
 
@@ -3798,6 +3778,40 @@ class LANGameApp {
   }
 }
 
+function quitApplication(): Promise<void> {
+  if (window.AXM?.quitApp) {
+    return window.AXM.quitApp().then(() => undefined);
+  }
+
+  window.close();
+  return Promise.resolve();
+}
+
+function setupOptionsMenu(lanGameApp: LANGameApp): void {
+  const optionsMenu = new OptionsMenu({
+    musicVolume: backgroundMusicManager.getVolume(),
+    sfxVolume: soundManager.getVolume(),
+    onMusicVolumeChange: (volume) => {
+      backgroundMusicManager.setVolume(volume);
+      optionsMenu.setMusicVolume(backgroundMusicManager.getVolume());
+    },
+    onSfxVolumeChange: (volume) => {
+      soundManager.setVolume(volume);
+      optionsMenu.setSfxVolume(soundManager.getVolume());
+    },
+    onReturn: () => {},
+    onLeaveToMenu: () => {
+      void lanGameApp.goBackToMainMenu();
+    },
+    leaveToMenuLabel: 'Leave Game to Menu',
+    onLeaveApp: () => {
+      void backgroundMusicManager.fadeOutCurrent(500).finally(() => {
+        void quitApplication();
+      });
+    },
+  });
+}
+
 // Initialize LAN game when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   try {
@@ -3839,6 +3853,7 @@ document.addEventListener('DOMContentLoaded', () => {
               });
             });
             const lanGameApp = new LANGameApp();
+            setupOptionsMenu(lanGameApp);
 
             // Add resize event listener
             window.addEventListener('resize', () => {
@@ -3853,6 +3868,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Continue anyway
             backgroundMusicManager.play('gameplay', { fadeInMs: 1600 }).catch(() => {});
             const lanGameApp = new LANGameApp();
+            setupOptionsMenu(lanGameApp);
 
             // Add resize event listener
             window.addEventListener('resize', () => {

@@ -6,6 +6,7 @@
 // Import sound manager
 import { soundManager, SoundType } from './utils/soundManager.ts';
 import { backgroundMusicManager } from './utils/backgroundMusicManager.ts';
+import { OptionsMenu } from './utils/optionsMenu.ts';
 import { getDeckDescription, getDeckLocaleLabel, getDeckThemeLabel } from './utils/deckPresentation.ts';
 import { formatVersionBadge, formatVersionTooltip } from './utils/versionPresentation.ts';
 import versionInfo from '../generated/version.ts';
@@ -37,6 +38,15 @@ const AVATAR_EMOJIS = {
 function getAvatarEmoji(avatarId) {
   if (!avatarId) return '👤';
   return AVATAR_EMOJIS[String(avatarId)] || '👤';
+}
+
+function quitApplication() {
+  if (window.AXM?.quitApp) {
+    return window.AXM.quitApp().then(() => undefined);
+  }
+
+  window.close();
+  return Promise.resolve();
 }
 
 /**
@@ -104,6 +114,9 @@ class LandingPageController {
       
       // Initialize game mode if not set
       this.initializeGameMode();
+
+      // Options menu is shared with game views and also available on landing.
+      this.setupOptionsMenu();
       
       // Hide loading screen after a short delay
       setTimeout(() => {
@@ -191,6 +204,28 @@ class LandingPageController {
         err: { message: error.message } 
       });
     }
+  }
+
+  setupOptionsMenu() {
+    const optionsMenu = new OptionsMenu({
+      musicVolume: backgroundMusicManager.getVolume(),
+      sfxVolume: soundManager.getVolume(),
+      onMusicVolumeChange: (volume) => {
+        backgroundMusicManager.setVolume(volume);
+        optionsMenu.setMusicVolume(backgroundMusicManager.getVolume());
+      },
+      onSfxVolumeChange: (volume) => {
+        soundManager.setVolume(volume);
+        optionsMenu.setSfxVolume(soundManager.getVolume());
+      },
+      onReturn: () => {},
+      onLeaveToMenu: null,
+      onLeaveApp: () => {
+        void backgroundMusicManager.fadeOutCurrent(500).finally(() => {
+          void quitApplication();
+        });
+      }
+    });
   }
 
   /**

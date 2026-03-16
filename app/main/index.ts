@@ -258,6 +258,14 @@ function setupIPC(): void {
     };
   });
 
+  ipcMain.handle('quit-app', () => {
+    logger.info({ scope: 'main/ipc', msg: 'quit-app requested' });
+    setImmediate(() => {
+      app.quit();
+    });
+    return { success: true };
+  });
+
   // Test IPC connection
   ipcMain.handle('test-ipc', () => {
     logger.info({ scope: 'main/ipc', msg: 'test-ipc requested' });

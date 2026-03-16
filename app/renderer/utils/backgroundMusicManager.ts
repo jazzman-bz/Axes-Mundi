@@ -1,4 +1,5 @@
 import { logger } from './logger';
+import { getMusicVolumeSetting, setMusicVolumeSetting } from './audioSettings';
 
 export type BackgroundTrack = 'landing' | 'gameplay';
 
@@ -25,6 +26,10 @@ const TRACKS: Record<BackgroundTrack, TrackConfig> = {
 class BackgroundMusicManager {
   private readonly basePath = './assets/music/';
 
+  private readonly baseVolumes: Record<BackgroundTrack, number> = Object.fromEntries(
+    Object.entries(TRACKS).map(([track, config]) => [track, config.volume]),
+  ) as Record<BackgroundTrack, number>;
+
   private currentAudio: HTMLAudioElement | null = null;
 
   private currentTrack: BackgroundTrack | null = null;
@@ -34,6 +39,8 @@ class BackgroundMusicManager {
   private pendingTrack: { track: BackgroundTrack; options: PlayOptions } | null = null;
 
   private unlockHandlerBound = this.handleUnlock.bind(this);
+
+  private musicVolume = getMusicVolumeSetting();
 
   async play(track: BackgroundTrack, options: PlayOptions = {}): Promise<void> {
     if (this.currentTrack === track && this.currentAudio && !this.currentAudio.paused) {
@@ -49,7 +56,8 @@ class BackgroundMusicManager {
     const audio = new Audio(`${this.basePath}${TRACKS[track].fileName}`);
     audio.loop = true;
     audio.preload = 'auto';
-    audio.volume = options.fadeInMs ? 0 : TRACKS[track].volume;
+    const targetVolume = this.getTrackVolume(track);
+    audio.volume = options.fadeInMs ? 0 : targetVolume;
 
     try {
       await audio.play();
@@ -59,13 +67,13 @@ class BackgroundMusicManager {
       this.removeUnlockListeners();
 
       if (options.fadeInMs) {
-        this.fadeVolume(audio, TRACKS[track].volume, options.fadeInMs);
+        this.fadeVolume(audio, targetVolume, options.fadeInMs);
       }
 
       logger.info({
         scope: 'music/play',
         msg: 'background music started',
-        meta: { track, volume: TRACKS[track].volume },
+        meta: { track, volume: targetVolume },
       });
     } catch (error) {
       this.pendingTrack = { track, options };
@@ -121,6 +129,24 @@ class BackgroundMusicManager {
     this.removeUnlockListeners();
   }
 
+  setVolume(volume: number): void {
+    this.musicVolume = setMusicVolumeSetting(volume);
+
+    if (this.currentAudio && this.currentTrack) {
+      this.currentAudio.volume = this.getTrackVolume(this.currentTrack);
+    }
+
+    logger.info({
+      scope: 'music/config',
+      msg: 'music volume changed',
+      meta: { volume: this.musicVolume },
+    });
+  }
+
+  getVolume(): number {
+    return this.musicVolume;
+  }
+
   private async handleUnlock(): Promise<void> {
     if (!this.pendingTrack) {
       return;
@@ -144,6 +170,10 @@ class BackgroundMusicManager {
 
   private fadeVolume(audio: HTMLAudioElement, targetVolume: number, durationMs: number): void {
     this.animateVolume(audio, audio.volume, targetVolume, durationMs);
+  }
+
+  private getTrackVolume(track: BackgroundTrack): number {
+    return this.baseVolumes[track] * this.musicVolume;
   }
 
   private animateVolume(

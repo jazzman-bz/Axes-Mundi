@@ -5,6 +5,7 @@
  */
 
 import { logger } from './logger';
+import { getSfxVolumeSetting, setSfxVolumeSetting } from './audioSettings';
 
 /**
  * Sound effect types
@@ -42,7 +43,7 @@ export class SoundManager {
     this.sounds = new Map();
     this.config = {
       enabled: true,
-      volume: 0.5,
+      volume: getSfxVolumeSetting(),
       basePath: './assets/sounds/'
     };
     this.isInitialized = false;
@@ -219,7 +220,7 @@ export class SoundManager {
    * Set master volume (0.0 - 1.0)
    */
   setVolume(volume: number): void {
-    this.config.volume = Math.max(0, Math.min(1, volume));
+    this.config.volume = setSfxVolumeSetting(volume);
     
     // Update volume for all loaded sounds
     this.sounds.forEach(sound => {

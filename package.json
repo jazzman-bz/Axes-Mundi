@@ -1,6 +1,6 @@
 {
   "name": "axes-mundi",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Educational sorting game with multiple axes (time, height, mass, etc.)",
   "main": "dist/main/main/index.js",
   "author": "Jochen Hagen",

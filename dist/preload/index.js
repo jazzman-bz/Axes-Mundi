@@ -13,6 +13,7 @@ electron_1.contextBridge.exposeInMainWorld('AXM', {
     getVersion: () => electron_1.ipcRenderer.invoke('get-version'),
     getVersionInfo: () => electron_1.ipcRenderer.invoke('get-version-info'),
     getEnvironment: () => electron_1.ipcRenderer.invoke('get-environment'),
+    quitApp: () => electron_1.ipcRenderer.invoke('quit-app'),
     placeCard: (index) => electron_1.ipcRenderer.invoke('place-card', index),
     // LAN Server management
     startLANServer: (playerName, playerAvatar) => electron_1.ipcRenderer.invoke('start-lan-server', playerName, playerAvatar || 'default'),

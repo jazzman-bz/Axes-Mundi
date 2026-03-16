@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('AXM', {
   getVersion: () => ipcRenderer.invoke('get-version'),
   getVersionInfo: () => ipcRenderer.invoke('get-version-info'),
   getEnvironment: () => ipcRenderer.invoke('get-environment'),
+  quitApp: () => ipcRenderer.invoke('quit-app'),
   placeCard: (index: number) => ipcRenderer.invoke('place-card', index),
 
   // LAN Server management
@@ -74,6 +75,7 @@ declare global {
       getVersion: () => Promise<string>;
       getVersionInfo: () => Promise<AppVersionInfo>;
       getEnvironment: () => Promise<{ env: string; logLevel: string }>;
+      quitApp: () => Promise<{ success: boolean }>;
       placeCard: (index: number) => Promise<{ success: boolean; score: number }>;
       startLANServer: (playerName: string, playerAvatar?: string) => Promise<{ success: boolean; port: number }>;
       stopLANServer: () => Promise<{ success: boolean }>;
