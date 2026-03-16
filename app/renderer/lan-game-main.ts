@@ -2,6 +2,7 @@ import { LANGameManager } from './lan-game';
 import { logger } from '@/utils/logger';
 import { GameCard } from './game/Card';
 import { soundManager, SoundType } from '@/utils/soundManager';
+import { backgroundMusicManager } from '@/utils/backgroundMusicManager';
 
 /**
  * Avatar emoji mapping
@@ -3376,7 +3377,7 @@ class LANGameApp {
   /**
    * Go back to main menu
    */
-  private goBackToMainMenu(): void {
+  private async goBackToMainMenu(): Promise<void> {
     try {
       console.log('🎮 Returning to main menu...');
 
@@ -3393,6 +3394,8 @@ class LANGameApp {
       localStorage.removeItem('clientPlayerName');
       localStorage.removeItem('lanCardDistribution');
       localStorage.removeItem('gameMode');
+
+      await backgroundMusicManager.fadeOutCurrent(700);
 
       // Navigate to main menu (index.html)
       window.location.href = 'index.html';
@@ -3828,6 +3831,13 @@ document.addEventListener('DOMContentLoaded', () => {
           // Initialize sound manager first, then create LANGameApp
           soundManager.init().then(() => {
             logger.info({ scope: 'renderer/lan-game', msg: 'sound manager initialized' });
+            backgroundMusicManager.play('gameplay', { fadeInMs: 1600 }).catch((musicError) => {
+              logger.warn({
+                scope: 'renderer/lan-game',
+                msg: 'failed to start gameplay music',
+                err: { message: musicError.message },
+              });
+            });
             const lanGameApp = new LANGameApp();
 
             // Add resize event listener
@@ -3841,6 +3851,7 @@ document.addEventListener('DOMContentLoaded', () => {
               err: { message: error.message } 
             });
             // Continue anyway
+            backgroundMusicManager.play('gameplay', { fadeInMs: 1600 }).catch(() => {});
             const lanGameApp = new LANGameApp();
 
             // Add resize event listener

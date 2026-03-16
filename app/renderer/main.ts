@@ -3,6 +3,7 @@
 import { GameCard } from '@/game/Card';
 import { Card as CardData } from '@/data/types';
 import { soundManager } from '@/utils/soundManager';
+import { backgroundMusicManager } from '@/utils/backgroundMusicManager';
 // REMOVED: loadImage - Now used in GameInitializer
 import { calculateScale, calculateSnapThreshold } from '@/utils/scaleUtils';
 import { ResizeHandler } from '@/utils/resizeHandler';
@@ -1648,11 +1649,25 @@ async function initSoundManagerAsync(): Promise<void> {
   }
 }
 
+function bindBackNavigation(): void {
+  const backButton = document.getElementById('back-button');
+  if (!backButton) {
+    return;
+  }
+
+  backButton.addEventListener('click', async () => {
+    await backgroundMusicManager.fadeOutCurrent(700);
+    window.location.href = './index.html';
+  });
+}
+
 // Initialize the app when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
   try {
     // Initialize sound manager first
     await initSoundManagerAsync();
+    await backgroundMusicManager.play('gameplay', { fadeInMs: 1600 });
+    bindBackNavigation();
     
     new AxesMundiApp();
     logger.info({ scope: 'renderer/app', msg: 'app initialized successfully' });

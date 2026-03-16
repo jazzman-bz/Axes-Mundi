@@ -5,6 +5,7 @@
 
 // Import sound manager
 import { soundManager, SoundType } from './utils/soundManager.ts';
+import { backgroundMusicManager } from './utils/backgroundMusicManager.ts';
 import { getDeckDescription, getDeckLocaleLabel, getDeckThemeLabel } from './utils/deckPresentation.ts';
 import { formatVersionBadge, formatVersionTooltip } from './utils/versionPresentation.ts';
 import versionInfo from '../generated/version.ts';
@@ -99,6 +100,7 @@ class LandingPageController {
 
       // Initialize sound manager
       await this.initializeSoundManager();
+      await backgroundMusicManager.play('landing', { fadeInMs: 1600 });
       
       // Initialize game mode if not set
       this.initializeGameMode();
@@ -1793,7 +1795,7 @@ class LandingPageController {
   /**
    * Start the game
    */
-  startGame(deckId) {
+  async startGame(deckId) {
     try {
       console.log('🎮 startGame called with deckId:', deckId);
       console.log('🎮 this.isServerClient:', this.isServerClient);
@@ -1810,13 +1812,10 @@ class LandingPageController {
       // Show loading message
       this.showLoadingMessage('Starting game...');
       
-      // Redirect to game page after a short delay
-      setTimeout(() => {
-        // In development mode, use the full URL with Vite dev server
-        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        const gameUrl = isDev ? 'http://localhost:5179/game.html' : './game.html';
-        window.location.href = gameUrl;
-      }, 1000);
+      // Redirect to game page after music fade-out
+      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const gameUrl = isDev ? 'http://localhost:5179/game.html' : './game.html';
+      await this.navigateWithMusicFade(gameUrl, 900);
       
       logger.info({ 
         scope: 'landing/game', 
@@ -1958,14 +1957,9 @@ class LandingPageController {
           console.log('🎮 Server-client: Current player set to:', this.currentPlayer);
         }
         
-        // Redirect to LAN game after 2 seconds
-        setTimeout(() => {
-          console.log('🎮 Redirecting to lan-game.html...');
-          // In development mode, use the full URL with Vite dev server
-          const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-          const lanGameUrl = isDev ? 'http://localhost:5179/lan-game.html' : './lan-game.html';
-          window.location.href = lanGameUrl;
-        }, 2000);
+        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const lanGameUrl = isDev ? 'http://localhost:5179/lan-game.html' : './lan-game.html';
+        await this.navigateWithMusicFade(lanGameUrl, 1200);
       
     } catch (error) {
       console.error('🎮 Failed to start LAN game:', error);
@@ -2010,16 +2004,11 @@ class LandingPageController {
        // Show success message and redirect to LAN game
        this.showConnectionStatus('LAN game started - Switching to game board...', false);
       
-      // Redirect to LAN game after 2 seconds
-      setTimeout(() => {
-        console.log('🎮 Client: Redirecting to lan-game.html...');
-        // In development mode, use the full URL with Vite dev server
-        // In production mode, use the relative path that works in Electron
-        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        const lanGameUrl = isDev ? 'http://localhost:5179/lan-game.html' : 'lan-game.html';
-        console.log('🎮 Client: Redirecting to:', lanGameUrl);
-        window.location.href = lanGameUrl;
-      }, 2000);
+      console.log('🎮 Client: Redirecting to lan-game.html...');
+      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const lanGameUrl = isDev ? 'http://localhost:5179/lan-game.html' : './lan-game.html';
+      console.log('🎮 Client: Redirecting to:', lanGameUrl);
+      await this.navigateWithMusicFade(lanGameUrl, 1200);
       
     } catch (error) {
       console.error('🎮 Client: Failed to start LAN game:', error);
@@ -2071,6 +2060,20 @@ class LandingPageController {
         msg: 'failed to show loading message', 
         err: { message: error.message } 
       });
+    }
+  }
+
+  async navigateWithMusicFade(targetUrl, fadeDuration = 900) {
+    try {
+      await backgroundMusicManager.fadeOutCurrent(fadeDuration);
+    } catch (error) {
+      logger.warn({
+        scope: 'landing/music',
+        msg: 'failed to fade out background music before navigation',
+        err: { message: error.message }
+      });
+    } finally {
+      window.location.href = targetUrl;
     }
   }
 
