@@ -1245,7 +1245,7 @@ class LandingPageController {
                  }, 1000); // Small delay for better UX
                }
              } else {
-               this.showConnectionStatus(`Deck ${data.deckId} nicht vorhanden!`, false);
+               this.showConnectionStatus(`Deck ${data.deckId} is not available!`, false);
              }
              break;
                            case 'currentPlayer':

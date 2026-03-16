@@ -92,7 +92,7 @@ export class UIDialogManager {
    */
   public showLoseDialog(): void {
     const gameState = this.config.callbacks.onGetGameState();
-    const title = '😔 Verloren! 😔';
+    const title = '😔 You Lost! 😔';
     const message = `Your opponent sorted all cards first!\n\nFinal score: ${gameState.score}\nNumber of turns: ${gameState.currentTurn}`;
 
     this.showCustomDialog(title, message);
@@ -112,7 +112,7 @@ export class UIDialogManager {
    */
   public showHotseatWinDialog(winnerName: string): void {
     const title = '🎉 Congratulations! 🎉';
-    const message = `${winnerName} hat das Spiel gewonnen!\n\nAlle Karten wurden erfolgreich sortiert!`;
+    const message = `${winnerName} won the game!\n\nAll cards were sorted successfully!`;
 
     this.showCustomDialog(title, message);
 
@@ -187,9 +187,9 @@ export class UIDialogManager {
         flex-wrap: wrap;
       `;
 
-      // Create "Nochmal spielen" button
+      // Create "Play Again" button
       const playAgainButton = document.createElement('button');
-      playAgainButton.textContent = 'Nochmal spielen';
+      playAgainButton.textContent = 'Play Again';
       playAgainButton.style.cssText = `
         background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
         color: white;
@@ -295,7 +295,7 @@ export class UIDialogManager {
       });
 
       // Fallback to simple confirm
-      const playAgain = confirm(`${title}\n\n${message}\n\nNochmal spielen?`);
+      const playAgain = confirm(`${title}\n\n${message}\n\nPlay again?`);
       if (playAgain) {
         this.config.callbacks.onRestartGame();
       } else {

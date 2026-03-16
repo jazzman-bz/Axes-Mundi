@@ -153,7 +153,7 @@ describe('UIDialogManager', () => {
       const titleElement = mockDocument.createElement.mock.results.find(
         (r: any) => r.value.tagName === 'H2',
       )?.value;
-      expect(titleElement?.textContent).toBe('😔 Verloren! 😔');
+      expect(titleElement?.textContent).toBe('😔 You Lost! 😔');
     });
 
     it('should create dialog with correct message including score and turns', () => {
@@ -202,8 +202,8 @@ describe('UIDialogManager', () => {
       const messageElement = mockDocument.createElement.mock.results.find(
         (r: any) => r.value.tagName === 'P',
       )?.value;
-      expect(messageElement?.textContent).toContain('Bob hat das Spiel gewonnen!');
-      expect(messageElement?.textContent).toContain('Alle Karten wurden erfolgreich sortiert!');
+      expect(messageElement?.textContent).toContain('Bob won the game!');
+      expect(messageElement?.textContent).toContain('All cards were sorted successfully!');
     });
 
     it('should handle empty winner name', () => {
@@ -212,7 +212,7 @@ describe('UIDialogManager', () => {
       const messageElement = mockDocument.createElement.mock.results.find(
         (r: any) => r.value.tagName === 'P',
       )?.value;
-      expect(messageElement?.textContent).toContain('hat das Spiel gewonnen!');
+      expect(messageElement?.textContent).toContain('won the game!');
     });
 
     it('should log info message', async () => {
@@ -254,7 +254,7 @@ describe('UIDialogManager', () => {
         (r: any) => r.value.tagName === 'BUTTON',
       );
       const playAgainButton = buttons[0]?.value;
-      expect(playAgainButton?.textContent).toBe('Nochmal spielen');
+      expect(playAgainButton?.textContent).toBe('Play Again');
     });
 
     it('should create "Main Menu" button with correct text', () => {

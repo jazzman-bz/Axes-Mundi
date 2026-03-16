@@ -405,7 +405,7 @@ class LANGameApp {
             msg: 'distributing cards on canvas',
             meta: { deckId: distribution.deckId },
           });
-          this.updateLANStatus('Karten werden verteilt...');
+          this.updateLANStatus('Distributing cards...');
 
           // Create GameCard objects and distribute them (like Single-Player)
           await this.distributeCardsOnCanvas(distribution);
@@ -428,7 +428,7 @@ class LANGameApp {
           // Start game AFTER client connects (not immediately)
           console.log('🎮 Card distribution ready - waiting for client to connect before starting game...');
 
-          this.updateLANStatus('Kartenverteilung an Client gesendet!');
+          this.updateLANStatus('Card distribution sent to client!');
           console.log('🎮 Card distribution sent to client successfully');
         }
       }
@@ -1115,7 +1115,7 @@ class LANGameApp {
     try {
       console.log('🎮 Handling client flow...');
 
-      this.updateLANStatus('Lade Kartenverteilung...');
+      this.updateLANStatus('Loading card distribution...');
 
       // Client loads card distribution from localStorage (received via WebSocket)
       const cardDistributionStr = localStorage.getItem('lanCardDistribution');
@@ -1227,7 +1227,7 @@ class LANGameApp {
           }
         }, 3000);
 
-        this.updateLANStatus('Kartenverteilung geladen! Spiel bereit.');
+        this.updateLANStatus('Card distribution loaded! Game ready.');
       } else {
         throw new Error('No card distribution found in localStorage');
       }
@@ -1649,7 +1649,7 @@ class LANGameApp {
       console.log('🎮 Client joined - both sides now in waiting mode for game start');
 
       // Update UI to show waiting status
-      this.updateLANStatus('Client verbunden. Warte auf Spielstart...');
+      this.updateLANStatus('Client connected. Waiting for game start...');
 
       // NOW: Start the game after client is connected!
       console.log('🎮 Client connected - now starting game with random player');
@@ -1938,7 +1938,7 @@ class LANGameApp {
       this.updateCurrentPlayerUI(newCurrentPlayer);
 
       // Update status and then hide after a short delay
-      this.updateLANStatus(`Spiel gestartet! ${newCurrentPlayer} beginnt.`);
+      this.updateLANStatus(`Game started! ${newCurrentPlayer} goes first.`);
       this.hideStatusBoxAfterDelay(2000); // Hide after 2 seconds
     } catch (error) {
       console.error('🎮 Failed to update current player from server:', error);
@@ -2060,7 +2060,7 @@ class LANGameApp {
 
           if (result.success) {
             console.log('🎮 Current player sent to client successfully:', currentPlayer);
-            this.updateLANStatus(`Spiel gestartet! ${currentPlayer} beginnt.`);
+            this.updateLANStatus(`Game started! ${currentPlayer} goes first.`);
             this.hideStatusBoxAfterDelay(2000); // Hide after 2 seconds
           } else {
             console.warn('🎮 Failed to send current player to client:', (result as any).error);
@@ -2211,14 +2211,14 @@ class LANGameApp {
         if (playerNameElement) {
           // DISABLED: currentPlayer logic before card distribution
           // Always show waiting mode
-          playerNameElement.textContent = 'Warte auf Spielstart...';
+          playerNameElement.textContent = 'Waiting for game start...';
           playerNameElement.classList.add('waiting-turn');
           playerNameElement.classList.remove('current-turn');
         }
         if (opponentNameElement) {
           // DISABLED: currentPlayer logic before card distribution
           // Always show waiting mode
-          opponentNameElement.textContent = 'Warte auf Spielstart...';
+          opponentNameElement.textContent = 'Waiting for game start...';
           opponentNameElement.classList.add('waiting-turn');
           opponentNameElement.classList.remove('current-turn');
         }
@@ -2227,14 +2227,14 @@ class LANGameApp {
         if (playerNameElement) {
           // DISABLED: currentPlayer logic before card distribution
           // Always show waiting mode
-          playerNameElement.textContent = 'Warte auf Spielstart...';
+          playerNameElement.textContent = 'Waiting for game start...';
           playerNameElement.classList.add('waiting-turn');
           playerNameElement.classList.remove('current-turn');
         }
         if (opponentNameElement) {
           // DISABLED: currentPlayer logic before card distribution
           // Always show waiting mode
-          opponentNameElement.textContent = 'Warte auf Spielstart...';
+          opponentNameElement.textContent = 'Waiting for game start...';
           opponentNameElement.classList.add('waiting-turn');
           opponentNameElement.classList.remove('current-turn');
         }
@@ -2243,7 +2243,7 @@ class LANGameApp {
       if (currentTurnElement) {
         // DISABLED: currentPlayer logic before card distribution
         // Always show waiting mode
-        currentTurnElement.textContent = 'Warte auf Spielstart...';
+        currentTurnElement.textContent = 'Waiting for game start...';
       }
 
       // DISABLED: currentPlayer logging before card distribution
@@ -3493,10 +3493,10 @@ class LANGameApp {
       let message = '';
       if (isWinner) {
         title = '🎉 Congratulations! 🎉';
-        message = `Du hast das Spiel gewonnen!\n\nAlle deine Karten wurden erfolgreich sortiert!\n\nGewinner: ${winnerName}`;
+        message = `You won the game!\n\nAll your cards were sorted successfully!\n\nWinner: ${winnerName}`;
       } else {
-        title = '🎉 Spiel beendet! 🎉';
-        message = `${winnerName} hat das Spiel gewonnen!\n\nAlle Karten wurden erfolgreich sortiert!`;
+        title = '🎉 Game Over! 🎉';
+        message = `${winnerName} won the game!\n\nAll cards were sorted successfully!`;
       }
       
       this.showCustomWinDialog(title, message);

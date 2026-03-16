@@ -428,7 +428,7 @@ export class LANWebSocketServer {
       const message = {
         type: 'currentPlayerSet',
         currentPlayer,
-        message: `Spiel gestartet! ${currentPlayer} beginnt.`,
+        message: `Game started! ${currentPlayer} goes first.`,
       };
 
       console.log('🎮 WebSocket Server: Sending to player:', player.name, 'message:', message);
@@ -452,7 +452,7 @@ export class LANWebSocketServer {
       global.mainWindow.webContents.send('lan-status-update', {
         type: 'currentPlayerSet',
         currentPlayer,
-        message: `Spiel gestartet! ${currentPlayer} beginnt.`,
+        message: `Game started! ${currentPlayer} goes first.`,
       });
     }
   }
@@ -543,8 +543,8 @@ export class LANWebSocketServer {
         available,
         playerName: player.name,
         message: available
-          ? `Deck ${deckId} wurde gewählt und ist vorhanden!`
-          : `Deck ${deckId} nicht vorhanden!`,
+          ? `Deck ${deckId} was selected and is available!`
+          : `Deck ${deckId} is not available!`,
       });
     }
   }
@@ -595,7 +595,7 @@ export class LANWebSocketServer {
       global.mainWindow.webContents.send('lan-status-update', {
         type: 'currentPlayerSet',
         currentPlayer,
-        message: `Spiel gestartet! ${currentPlayer} beginnt.`,
+        message: `Game started! ${currentPlayer} goes first.`,
       });
     }
   }
@@ -764,7 +764,7 @@ export class LANWebSocketServer {
         type: 'playerSwitch',
         nextPlayer: message.nextPlayer,
         playerName: player.name,
-        message: `Spieler gewechselt zu ${message.nextPlayer} von ${player.name}`,
+        message: `Turn switched to ${message.nextPlayer} by ${player.name}`,
       };
 
       global.mainWindow.webContents.send('lan-status-update', statusUpdate);
@@ -814,7 +814,7 @@ export class LANWebSocketServer {
       const statusUpdate = {
         type: 'gameRestart',
         playerName: player.name,
-        message: `Spiel wird von ${player.name} neu gestartet`,
+        message: `Game is being restarted by ${player.name}`,
       };
 
       global.mainWindow.webContents.send('lan-status-update', statusUpdate);
@@ -922,7 +922,7 @@ export class LANWebSocketServer {
       global.mainWindow.webContents.send('lan-status-update', {
         type: 'currentPlayerSet',
         currentPlayer: message.currentPlayer,
-        message: `Spiel gestartet! ${message.currentPlayer} beginnt.`,
+        message: `Game started! ${message.currentPlayer} goes first.`,
       });
     }
   }
