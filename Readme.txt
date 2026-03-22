@@ -139,6 +139,11 @@ v1.0.0 (2a953e1, dirty)
 
 Die Build-Metadaten werden vor `dev`, `build`, `build:main`, `build:preload` und `vite:build` automatisch durch `scripts/generate-version.js` erzeugt und in `app/generated/version.ts` geschrieben.
 
+Wichtig fuer Electron-Packages:
+- `electron:build` muss `build:main` und `build:preload` vor `vite:build` und `electron-builder` ausfuehren
+- sonst landet ein aktueller Renderer-Build zusammen mit veralteten Versionsmetadaten aus `dist/main` oder `dist/preload` im Paket
+- `dirty` ist nur dann `false`, wenn beim Build keine uncommitteten Git-Aenderungen im Arbeitsbaum liegen
+
 Regel fuer die Pflege:
 - `package.json` nur bei echten Releases erhoehen
 - jeder Build bleibt ueber den Commit-Hash einem konkreten Stand zuordenbar

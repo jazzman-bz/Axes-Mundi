@@ -14,7 +14,7 @@
     "electron:dev": "npm run build:version && npm run build:main && npm run build:preload && wait-on tcp:5179 && cross-env NODE_ENV=development electron .",
     "build:main": "npm run build:version && tsc -p tsconfig.main.json",
     "build:preload": "npm run build:version && tsc -p tsconfig.preload.json",
-    "electron:build": "npm run vite:build && electron-builder",
+    "electron:build": "npm run build:main && npm run build:preload && npm run vite:build && electron-builder",
     "build": "npm run build:version && npm run build:main && npm run build:preload && npm run vite:build && electron-builder",
     "preview": "npm run vite:preview",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
