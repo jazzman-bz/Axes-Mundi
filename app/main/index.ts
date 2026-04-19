@@ -10,6 +10,16 @@ import AdmZip from 'adm-zip';
 import { logger } from './logger';
 import { LANWebSocketServer } from './websocket-server';
 import versionInfo from '../generated/version';
+import {
+  assertSafeDeckId,
+  getImageContentType,
+  parseImportedDeck,
+  resolveUserDeckAssetPath,
+} from '../shared/deckSecurity';
+import {
+  parseLanCardDistribution,
+  parseLanGameState,
+} from '../shared/lanProtocol';
 
 // Register custom protocol scheme as privileged BEFORE app.ready
 // This is required for the protocol to work with image loading in the renderer
@@ -22,11 +32,9 @@ protocol.registerSchemesAsPrivileged([
       supportFetchAPI: true,
       corsEnabled: true,
       stream: true,
-      bypassCSP: true,
     },
   },
 ]);
-console.log('[Protocol] Scheme registered as privileged: user-deck-image');
 
 // User data paths for imported decks
 const getUserDecksDir = () => join(app.getPath('userData'), 'decks');
@@ -44,26 +52,9 @@ function registerUserDeckImageProtocol(): void {
       const url = new URL(request.url);
       const imageFolder = decodeURIComponent(url.hostname);
       const imageName = decodeURIComponent(url.pathname.slice(1)); // Remove leading /
-
-      const imagePath = join(getUserDeckImagesDir(), imageFolder, imageName);
-      let finalPath = imagePath;
-      let contentType = 'image/jpeg';
-
-      if (!existsSync(imagePath)) {
-        // Try .png if .jpg was requested
-        if (imagePath.endsWith('.jpg')) {
-          const pngPath = imagePath.replace('.jpg', '.png');
-          if (existsSync(pngPath)) {
-            finalPath = pngPath;
-            contentType = 'image/png';
-          } else {
-            return new Response('Not Found', { status: 404 });
-          }
-        } else {
-          return new Response('Not Found', { status: 404 });
-        }
-      } else if (imagePath.endsWith('.png')) {
-        contentType = 'image/png';
+      const finalPath = resolveUserDeckAssetPath(getUserDeckImagesDir(), imageFolder, imageName);
+      if (!existsSync(finalPath)) {
+        return new Response('Not Found', { status: 404 });
       }
 
       // Read file and serve
@@ -73,7 +64,7 @@ function registerUserDeckImageProtocol(): void {
       return new Response(uint8Array, {
         status: 200,
         headers: {
-          'Content-Type': contentType,
+          'Content-Type': getImageContentType(imageName),
           'Content-Length': fileData.length.toString(),
         },
       });
@@ -87,42 +78,6 @@ function registerUserDeckImageProtocol(): void {
       return new Response('Internal Error', { status: 500 });
     }
   });
-
-  console.log('[Protocol] Registered user-deck-image protocol');
-}
-
-/**
- * Validate deck JSON structure
- */
-function validateDeckStructure(deck: any): { valid: boolean; error?: string } {
-  if (!deck || typeof deck !== 'object') {
-    return { valid: false, error: 'Invalid JSON structure' };
-  }
-  if (!deck.id || typeof deck.id !== 'string') {
-    return { valid: false, error: 'Missing or invalid deck id' };
-  }
-  if (!deck.name || typeof deck.name !== 'string') {
-    return { valid: false, error: 'Missing or invalid deck name' };
-  }
-  if (!deck.axis || typeof deck.axis !== 'string') {
-    return { valid: false, error: 'Missing or invalid axis' };
-  }
-  if (!deck.cards || !Array.isArray(deck.cards) || deck.cards.length === 0) {
-    return { valid: false, error: 'Missing or empty cards array' };
-  }
-
-  // Validate each card has required fields
-  const invalidCardIndex = deck.cards.findIndex(
-    (card: any) => !card.id || !card.title || card.value === undefined,
-  );
-  if (invalidCardIndex >= 0) {
-    return {
-      valid: false,
-      error: `Card at index ${invalidCardIndex} missing required fields (id, title, value)`,
-    };
-  }
-
-  return { valid: true };
 }
 
 // Keep a global reference of the window object
@@ -197,15 +152,10 @@ function createWindow(): void {
     // Load the app
     // Check if we're in development mode
     const isDev = process.env.NODE_ENV === 'development' || process.env.AXM_ENV === 'development';
-    console.log('🔧 NODE_ENV:', process.env.NODE_ENV);
-    console.log('🔧 AXM_ENV:', process.env.AXM_ENV);
-    console.log('🔧 isDev:', isDev);
     if (isDev) {
-      console.log('🚀 Loading dev server: http://localhost:5179');
       mainWindow.loadURL('http://localhost:5179');
       mainWindow.webContents.openDevTools();
     } else {
-      console.log('📦 Loading production build');
       mainWindow.loadFile(join(__dirname, '../../renderer/index.html'));
     }
 
@@ -281,6 +231,7 @@ function setupIPC(): void {
   // Send deck selection to client
   ipcMain.handle('send-deck-selection', async (_, deckId: string) => {
     try {
+      assertSafeDeckId(deckId, 'Deck id');
       logger.info({ scope: 'main/lan', msg: 'Sending deck selection to client', meta: { deckId } });
 
       if (lanServer) {
@@ -302,19 +253,20 @@ function setupIPC(): void {
   // Send card distribution to client
   ipcMain.handle('send-card-distribution', async (_, distribution: any) => {
     try {
+      const parsedDistribution = parseLanCardDistribution(distribution);
       logger.info({
         scope: 'main/lan',
         msg: 'Sending card distribution to client',
         meta: {
-          boardCard: distribution.boardCard?.id,
-          serverHandSize: distribution.serverHand?.length,
-          clientHandSize: distribution.clientHand?.length,
-          deckSize: distribution.deckOrder?.length,
+          boardCard: parsedDistribution.boardCard?.id,
+          serverHandSize: parsedDistribution.serverHand.length,
+          clientHandSize: parsedDistribution.clientHand.length,
+          deckSize: parsedDistribution.deckOrder.length,
         },
       });
 
       if (lanServer) {
-        await lanServer.sendCardDistribution(distribution);
+        await lanServer.sendCardDistribution(parsedDistribution);
         return { success: true };
       }
       logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
@@ -356,14 +308,18 @@ function setupIPC(): void {
   // Send current player update to client
   ipcMain.handle('send-current-player-update', async (_, currentPlayer: string) => {
     try {
+      if (typeof currentPlayer !== 'string' || currentPlayer.trim().length === 0) {
+        throw new Error('Current player name is required');
+      }
+
       logger.info({
         scope: 'main/lan',
         msg: 'Sending current player update to client',
-        meta: { currentPlayer },
+        meta: { currentPlayer: currentPlayer.trim() },
       });
 
       if (lanServer) {
-        await lanServer.sendCurrentPlayerSet(currentPlayer);
+        await lanServer.sendCurrentPlayerSet(currentPlayer.trim());
         return { success: true };
       }
       logger.warn({ scope: 'main/lan', msg: 'No LAN server running' });
@@ -388,11 +344,11 @@ function setupIPC(): void {
       });
 
       // Validate input
-      if (typeof cardId !== 'string' || !cardId) {
+      if (typeof cardId !== 'string' || !cardId.trim()) {
         throw new Error('Invalid card ID');
       }
-      if (typeof boardPosition !== 'number') {
-        throw new Error('Invalid board position - must be a number');
+      if (!Number.isFinite(boardPosition)) {
+        throw new Error('Invalid board position - must be a finite number');
       }
 
       // Send card placement to all connected clients via WebSocket
@@ -425,12 +381,13 @@ function setupIPC(): void {
   // Update LAN game state (local only, no WebSocket)
   ipcMain.handle('update-lan-game-state', async (_, gameState: any) => {
     try {
+      const parsedGameState = parseLanGameState(gameState);
       logger.info({
         scope: 'main/lan',
         msg: 'LAN game state update requested (local only)',
         meta: {
-          currentPlayer: gameState.currentPlayer,
-          placedCardsCount: gameState.placedCards?.length || 0,
+          currentPlayer: parsedGameState.currentPlayer,
+          placedCardsCount: parsedGameState.placedCards.length,
         },
       });
 
@@ -440,8 +397,8 @@ function setupIPC(): void {
         scope: 'main/lan',
         msg: 'game state updated locally',
         meta: {
-          currentPlayer: gameState.currentPlayer,
-          placedCardsCount: gameState.placedCards?.length || 0,
+          currentPlayer: parsedGameState.currentPlayer,
+          placedCardsCount: parsedGameState.placedCards.length,
         },
       });
 
@@ -459,6 +416,10 @@ function setupIPC(): void {
   // LAN Server management
   ipcMain.handle('start-lan-server', async (_, playerName: string, playerAvatar: string = 'default') => {
     try {
+      if (typeof playerName !== 'string' || playerName.trim().length === 0) {
+        throw new Error('Player name is required');
+      }
+
       logger.info({ scope: 'main/lan', msg: 'Starting LAN server...', meta: { playerName, playerAvatar } });
 
       if (lanServer) {
@@ -574,27 +535,16 @@ function setupIPC(): void {
 
       // Parse and validate deck.json
       const deckJsonContent = deckJsonEntry.getData().toString('utf8');
-      let deck: any;
+      let deck;
       try {
-        deck = JSON.parse(deckJsonContent);
+        deck = parseImportedDeck(JSON.parse(deckJsonContent));
       } catch (parseError: any) {
         logger.error({
           scope: 'main/deck',
-          msg: 'Invalid JSON in deck.json',
+          msg: 'Invalid deck.json payload',
           err: { message: parseError.message },
         });
-        return { success: false, error: 'Invalid JSON in deck.json' };
-      }
-
-      // Validate deck structure
-      const validation = validateDeckStructure(deck);
-      if (!validation.valid) {
-        logger.error({
-          scope: 'main/deck',
-          msg: 'Deck validation failed',
-          meta: { error: validation.error },
-        });
-        return { success: false, error: validation.error };
+        return { success: false, error: parseError.message };
       }
 
       // Create user decks directory if it doesn't exist
@@ -605,12 +555,12 @@ function setupIPC(): void {
       }
 
       // Save deck.json to user decks folder
-      const deckTargetPath = join(userDecksDir, `${deck.id}.json`);
+      const deckTargetPath = join(userDecksDir, `${assertSafeDeckId(deck.id)}.json`);
       await writeFile(deckTargetPath, JSON.stringify(deck, null, 2), 'utf-8');
       logger.info({ scope: 'main/deck', msg: 'Deck JSON saved', meta: { path: deckTargetPath } });
 
       // Extract images if present
-      const imageFolder = deck.imageFolder || deck.id;
+      const { imageFolder } = deck;
       const userImagesDir = join(getUserDeckImagesDir(), imageFolder);
 
       // Find image entries (look for images/ folder or image files at root)
@@ -625,6 +575,7 @@ function setupIPC(): void {
             normalizedName.endsWith('.jpg')
             || normalizedName.endsWith('.jpeg')
             || normalizedName.endsWith('.png')
+            || normalizedName.endsWith('.webp')
           );
       });
 
@@ -640,7 +591,7 @@ function setupIPC(): void {
           const normalizedPath = imageEntry.entryName.replace(/\\/g, '/');
           const imageName = normalizedPath.split('/').pop(); // Get just filename
           if (imageName) {
-            const imageTargetPath = join(userImagesDir, imageName);
+            const imageTargetPath = resolveUserDeckAssetPath(getUserDeckImagesDir(), imageFolder, imageName);
             const imageData = imageEntry.getData();
             await writeFile(imageTargetPath, imageData);
           }
@@ -704,16 +655,16 @@ function setupIPC(): void {
       const decks = (await Promise.all(deckFiles.map(async (file) => {
         try {
           const content = await readFile(join(userDecksDir, file), 'utf-8');
-          const deck = JSON.parse(content);
+          const deck = parseImportedDeck(JSON.parse(content));
           return {
             id: deck.id,
             name: deck.name,
             description: deck.description,
             axis: deck.axis,
-            theme: deck.theme || 'custom',
-            locale: deck.locale || 'en',
-            cardCount: deck.cards?.length || 0,
-            imageFolder: deck.imageFolder || deck.id,
+            theme: deck.theme,
+            locale: deck.locale,
+            cardCount: deck.cards.length,
+            imageFolder: deck.imageFolder,
             isUserDeck: true,
           };
         } catch (e) {
@@ -738,31 +689,17 @@ function setupIPC(): void {
    * Load a specific user deck by ID
    */
   ipcMain.handle('load-user-deck', async (_, deckId: string) => {
-    console.log('[LoadUserDeck] ==== CALLED with deckId:', deckId);
     try {
-      if (!deckId || typeof deckId !== 'string') {
-        console.log('[LoadUserDeck] ERROR: Invalid deck ID');
-        return { success: false, error: 'Invalid deck ID' };
-      }
-
-      const deckPath = join(getUserDecksDir(), `${deckId}.json`);
-      console.log('[LoadUserDeck] Looking for deck at:', deckPath);
+      const safeDeckId = assertSafeDeckId(deckId, 'Deck id');
+      const deckPath = join(getUserDecksDir(), `${safeDeckId}.json`);
 
       if (!existsSync(deckPath)) {
-        console.log('[LoadUserDeck] ERROR: Deck file not found');
         return { success: false, error: 'Deck not found' };
       }
 
       const content = await readFile(deckPath, 'utf-8');
-      const deck = JSON.parse(content);
-
-      console.log(
-        '[LoadUserDeck] SUCCESS: Loaded deck with',
-        deck.cards?.length,
-        'cards, imageFolder:',
-        deck.imageFolder,
-      );
-      logger.info({ scope: 'main/deck', msg: 'User deck loaded', meta: { deckId, cardCount: deck.cards?.length } });
+      const deck = parseImportedDeck(JSON.parse(content));
+      logger.info({ scope: 'main/deck', msg: 'User deck loaded', meta: { deckId: safeDeckId, cardCount: deck.cards.length } });
       return { success: true, deck };
     } catch (error: any) {
       logger.error({
@@ -779,11 +716,8 @@ function setupIPC(): void {
    */
   ipcMain.handle('delete-user-deck', async (_, deckId: string) => {
     try {
-      if (!deckId || typeof deckId !== 'string') {
-        return { success: false, error: 'Invalid deck ID' };
-      }
-
-      const deckPath = join(getUserDecksDir(), `${deckId}.json`);
+      const safeDeckId = assertSafeDeckId(deckId, 'Deck id');
+      const deckPath = join(getUserDecksDir(), `${safeDeckId}.json`);
 
       if (!existsSync(deckPath)) {
         return { success: false, error: 'Deck not found' };
@@ -791,8 +725,8 @@ function setupIPC(): void {
 
       // Read deck to get imageFolder before deleting
       const content = await readFile(deckPath, 'utf-8');
-      const deck = JSON.parse(content);
-      const imageFolder = deck.imageFolder || deckId;
+      const deck = parseImportedDeck(JSON.parse(content));
+      const { imageFolder } = deck;
 
       // Delete deck JSON
       const { unlink, rm } = await import('fs/promises');
@@ -804,7 +738,7 @@ function setupIPC(): void {
         await rm(imagesPath, { recursive: true, force: true });
       }
 
-      logger.info({ scope: 'main/deck', msg: 'User deck deleted', meta: { deckId } });
+      logger.info({ scope: 'main/deck', msg: 'User deck deleted', meta: { deckId: safeDeckId } });
       return { success: true };
     } catch (error: any) {
       logger.error({

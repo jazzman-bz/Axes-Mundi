@@ -13,7 +13,8 @@
     "resolveJsonModule": true
   },
   "include": [
-    "app/main/**/*"
+    "app/main/**/*",
+    "app/shared/**/*"
   ],
   "exclude": [
     "node_modules",

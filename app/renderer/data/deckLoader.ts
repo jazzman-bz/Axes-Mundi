@@ -50,8 +50,10 @@ export async function loadDeck(deckId: string): Promise<ExtendedDeck> {
     const result = await window.AXM.loadUserDeck(deckId);
     
     if (result.success && result.deck) {
-      const deck: ExtendedDeck = result.deck;
-      deck.isUserDeck = true;
+      const deck = {
+        ...result.deck,
+        isUserDeck: true,
+      } as ExtendedDeck;
 
       logger.info({
         scope: 'data/deckLoader',

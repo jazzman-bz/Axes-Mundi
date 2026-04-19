@@ -1,4 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type { ImportedDeck } from '../shared/deckSecurity';
+import type { LanCardDistributionPayload, LanGameStateSnapshot } from '../shared/lanProtocol';
 
 interface AppVersionInfo {
   appVersion: string;
@@ -6,6 +8,18 @@ interface AppVersionInfo {
   branch?: string;
   dirty?: boolean;
   buildDate?: string;
+}
+
+interface UserDeckSummary {
+  id: string;
+  name: string;
+  description?: string;
+  axis: string;
+  theme: string;
+  locale: string;
+  cardCount: number;
+  imageFolder: string;
+  isUserDeck: boolean;
 }
 
 /**
@@ -29,12 +43,12 @@ contextBridge.exposeInMainWorld('AXM', {
   stopLANServer: () => ipcRenderer.invoke('stop-lan-server'),
   sendDeckSelection: (deckId: string) => ipcRenderer.invoke('send-deck-selection', deckId),
   sendCurrentPlayerUpdate: (currentPlayer: string) => ipcRenderer.invoke('send-current-player-update', currentPlayer),
-  sendCardDistribution: (distribution: any) => ipcRenderer.invoke('send-card-distribution', distribution),
+  sendCardDistribution: (distribution: LanCardDistributionPayload) => ipcRenderer.invoke('send-card-distribution', distribution),
   sendGameStartTrigger: () => ipcRenderer.invoke('send-game-start-trigger'),
 
   // LAN Game actions
   placeLANCard: (cardId: string, boardPosition: number) => ipcRenderer.invoke('lan-place-card', cardId, boardPosition),
-  updateGameState: (gameState: any) => ipcRenderer.invoke('update-lan-game-state', gameState),
+  updateGameState: (gameState: LanGameStateSnapshot) => ipcRenderer.invoke('update-lan-game-state', gameState),
 
   // Test IPC connection
   testIPC: () => ipcRenderer.invoke('test-ipc'),
@@ -81,12 +95,12 @@ declare global {
       stopLANServer: () => Promise<{ success: boolean }>;
       sendDeckSelection: (deckId: string) => Promise<{ success: boolean }>;
       sendCurrentPlayerUpdate: (currentPlayer: string) => Promise<{ success: boolean }>;
-      sendCardDistribution: (distribution: any) => Promise<{ success: boolean }>;
+      sendCardDistribution: (distribution: LanCardDistributionPayload) => Promise<{ success: boolean; error?: string }>;
       sendGameStartTrigger: () => Promise<{ success: boolean }>;
 
       // LAN Game actions
-      placeLANCard: (cardId: string, boardPosition: number) => Promise<{ success: boolean; message: string }>;
-      updateGameState: (gameState: any) => Promise<{ success: boolean; message: string }>;
+      placeLANCard: (cardId: string, boardPosition: number) => Promise<{ success: boolean; message?: string; error?: string }>;
+      updateGameState: (gameState: LanGameStateSnapshot) => Promise<{ success: boolean; message?: string; error?: string }>;
 
       testIPC: () => Promise<{ success: boolean; message: string }>;
       on: (channel: string, func: (...args: any[]) => void) => void;
@@ -97,37 +111,17 @@ declare global {
         success: boolean;
         cancelled?: boolean;
         error?: string;
-        deck?: {
-          id: string;
-          name: string;
-          description?: string;
-          axis: string;
-          theme: string;
-          locale: string;
-          cardCount: number;
-          imageFolder: string;
-          isUserDeck: boolean;
-        };
+        deck?: UserDeckSummary;
       }>;
       getUserDecks: () => Promise<{
         success: boolean;
         error?: string;
-        decks: Array<{
-          id: string;
-          name: string;
-          description?: string;
-          axis: string;
-          theme: string;
-          locale: string;
-          cardCount: number;
-          imageFolder: string;
-          isUserDeck: boolean;
-        }>;
+        decks: UserDeckSummary[];
       }>;
       loadUserDeck: (deckId: string) => Promise<{
         success: boolean;
         error?: string;
-        deck?: any;
+        deck?: ImportedDeck;
       }>;
       deleteUserDeck: (deckId: string) => Promise<{
         success: boolean;

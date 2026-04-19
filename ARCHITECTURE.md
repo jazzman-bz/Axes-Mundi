@@ -1,7 +1,7 @@
 # Axes-Mundi Architecture Documentation
 
-**Last Updated:** 2025-01-12  
-**Status:** Steps 1-16 completed (All refactoring steps done!)
+**Last Updated:** 2026-04-19  
+**Status:** Core module refactor completed; security and LAN state hardening started
 
 ## Overview
 
@@ -129,6 +129,24 @@ The `AxesMundiApp` class now serves as the orchestrator that:
 
 **Current Size**: ~1,900 lines (reduced from ~4,400 lines)
 
+## Shared Hardening Layer
+
+To reduce duplicated validation and fragile string-based state access, the project now also uses a small shared layer outside the renderer utilities:
+
+### `app/shared/deckSecurity.ts`
+- Validates imported deck payloads with Zod
+- Enforces safe deck IDs, image folder names, and image asset names
+- Resolves imported asset paths defensively to prevent directory traversal
+
+### `app/shared/lanProtocol.ts`
+- Defines shared schemas for LAN card distribution, LAN game state snapshots, and inbound WebSocket messages
+- Keeps IPC and WebSocket payload validation aligned between main/preload/renderer
+
+### `app/renderer/utils/sessionStore.ts`
+- Centralizes the most important LAN/session `localStorage` keys
+- Provides typed helpers for current player, server/client identities, selected mode/difficulty, and LAN card distribution
+- Reduces cross-file key drift and makes future LAN refactors easier
+
 ## Callback Pattern
 
 All modules use a callback-based architecture for communication:
@@ -229,3 +247,5 @@ Each module has corresponding unit tests in `tests/unit/`:
 3. **State Management**: Centralized in GameStateManager, accessed via callbacks
 4. **Rendering**: Separated into GameRenderer for all drawing operations
 5. **Input Handling**: Isolated in InputHandler with configurable callbacks
+6. **Validation at Boundaries**: Deck import, IPC payloads, and LAN messages are validated before entering the game flow
+7. **Session State Consolidation**: Renderer session persistence is being moved behind focused helpers instead of ad-hoc `localStorage` access

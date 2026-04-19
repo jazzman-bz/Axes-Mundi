@@ -4,6 +4,7 @@ import { GameCard } from './game/Card';
 import { soundManager, SoundType } from '@/utils/soundManager';
 import { backgroundMusicManager } from '@/utils/backgroundMusicManager';
 import { OptionsMenu } from '@/utils/optionsMenu';
+import { clearLanSessionState, getLanCardDistribution, getLanSessionState, getSelectedGameType, setLanServerPlayer } from '@/utils/sessionStore';
 
 /**
  * Avatar emoji mapping
@@ -91,8 +92,9 @@ class LANGameApp {
       this.setupWebSocketEventListeners();
 
       // Check if we're in LAN mode
-      const isLANMode = localStorage.getItem('selectedGameType') === 'lan';
-      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      const lanSession = getLanSessionState();
+      const isLANMode = getSelectedGameType() === 'lan';
+      const isServerClient = lanSession.isServerClient;
 
       logger.debug({
         scope: 'renderer/lan-game',
@@ -304,11 +306,12 @@ class LANGameApp {
       this.lanGame = new LANGameManager();
 
       // Get isServerClient from localStorage
-      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      const lanSession = getLanSessionState();
+      const isServerClient = lanSession.isServerClient;
 
       // For Server-Client (Electron): Set server player name from localStorage
       // Client player name will come via WebSocket from the browser client
-      const serverPlayerName = localStorage.getItem('serverPlayerName');
+      const serverPlayerName = lanSession.serverPlayerName;
 
       if (serverPlayerName) {
         // Set server player name immediately
@@ -331,7 +334,7 @@ class LANGameApp {
         });
         const defaultServerName = 'Server';
         this.lanGame.setPlayerNames(defaultServerName, 'Waiting for client...');
-        localStorage.setItem('serverPlayerName', defaultServerName);
+        setLanServerPlayer(defaultServerName, lanSession.serverPlayerAvatar || 'default', isServerClient);
         this.updateLANInfo();
         
         // Initialize current player display
@@ -915,13 +918,14 @@ class LANGameApp {
     ctx.stroke();
 
     // Get player data
-    const serverPlayerName = localStorage.getItem('serverPlayerName') || 'Server';
-    const clientPlayerName = localStorage.getItem('clientPlayerName') || 'Client';
-    const isServerClient = localStorage.getItem('isServerClient') === 'true';
+    const lanSession = getLanSessionState();
+    const serverPlayerName = lanSession.serverPlayerName || 'Server';
+    const clientPlayerName = lanSession.clientPlayerName || 'Client';
+    const isServerClient = lanSession.isServerClient;
 
     // Get server and client avatars from localStorage
-    const serverPlayerAvatar = localStorage.getItem('serverPlayerAvatar') || 'default';
-    const clientPlayerAvatar = localStorage.getItem('clientPlayerAvatar') || 'default';
+    const serverPlayerAvatar = lanSession.serverPlayerAvatar || 'default';
+    const clientPlayerAvatar = lanSession.clientPlayerAvatar || 'default';
 
     // Determine player and opponent avatars based on perspective
     let playerAvatar: string;
@@ -1120,9 +1124,8 @@ class LANGameApp {
       this.updateLANStatus('Loading card distribution...');
 
       // Client loads card distribution from localStorage (received via WebSocket)
-      const cardDistributionStr = localStorage.getItem('lanCardDistribution');
-      if (cardDistributionStr) {
-        const distribution = JSON.parse(cardDistributionStr);
+      const distribution = getLanCardDistribution();
+      if (distribution) {
         console.log('🎮 Client: Loaded card distribution from localStorage:', distribution);
 
         // Load deck for image folder reference
@@ -1138,6 +1141,7 @@ class LANGameApp {
         // Store remaining cards for deck visualization
         // IMPORTANT: Use the deckOrder from the distribution, not the full deck
         // This ensures both players have the same remaining cards
+        const boardCardId = distribution.boardCard?.id;
         if (distribution.deckOrder && distribution.deckOrder.length > 0) {
           // Use the deckOrder from server (correct remaining cards)
           this.remainingCards = distribution.deckOrder.map((cardRef: any) => 
@@ -1149,9 +1153,9 @@ class LANGameApp {
           this.remainingCards = [...deck.cards];
           
           // Remove board card if it exists
-          if (distribution.boardCard) {
-            this.remainingCards = this.remainingCards.filter(card => card.id !== distribution.boardCard.id);
-            console.log('🎮 Client: Removed board card from remainingCards:', distribution.boardCard.id);
+          if (boardCardId) {
+            this.remainingCards = this.remainingCards.filter(card => card.id !== boardCardId);
+            console.log('🎮 Client: Removed board card from remainingCards:', boardCardId);
           }
           
           // Remove server hand cards
@@ -1177,8 +1181,8 @@ class LANGameApp {
         // - Board card is in the center
 
         // Create board card (zentrale Karte)
-        if (distribution.boardCard) {
-          const boardCardData = deck.cards.find((card) => card.id === distribution.boardCard.id);
+        if (boardCardId) {
+          const boardCardData = deck.cards.find((card) => card.id === boardCardId);
           if (boardCardData) {
             console.log('🎮 Client: Creating central board card:', boardCardData.title);
             const centralCard = new GameCard(
@@ -3368,11 +3372,7 @@ class LANGameApp {
       }
 
       // Clear LAN-specific localStorage items
-      localStorage.removeItem('currentPlayer');
-      localStorage.removeItem('isServerClient');
-      localStorage.removeItem('serverPlayerName');
-      localStorage.removeItem('clientPlayerName');
-      localStorage.removeItem('lanCardDistribution');
+      clearLanSessionState();
       localStorage.removeItem('gameMode');
 
       await backgroundMusicManager.fadeOutCurrent(700);

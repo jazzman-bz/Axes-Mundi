@@ -9,6 +9,23 @@ import { backgroundMusicManager } from './utils/backgroundMusicManager.ts';
 import { OptionsMenu } from './utils/optionsMenu.ts';
 import { getDeckDescription, getDeckLocaleLabel, getDeckThemeLabel } from './utils/deckPresentation.ts';
 import { formatVersionBadge, formatVersionTooltip } from './utils/versionPresentation.ts';
+import {
+  clearLanSessionState,
+  getLanCardDistribution,
+  getLanServerInfo,
+  getLanSessionState,
+  getLastServerIP,
+  getSelectedGameType,
+  setCurrentPlayer,
+  setLanCardDistribution,
+  setLanClientPlayer,
+  setLanServerInfo,
+  setLanServerPlayer,
+  setLanServerUrl,
+  setLastServerIP,
+  setSelectedDifficulty,
+  setSelectedGameType,
+} from './utils/sessionStore.ts';
 import versionInfo from '../generated/version.ts';
 
 // Silent logger for production
@@ -83,10 +100,11 @@ class LandingPageController {
       };
       
                      // LAN connection state
-        this.isServerClient = localStorage.getItem('isServerClient') === 'true';
-        this.serverPlayerName = localStorage.getItem('serverPlayerName');
-        this.clientPlayerName = localStorage.getItem('clientPlayerName'); // Store client player name for server-client
-        this.currentPlayer = localStorage.getItem('currentPlayer') || this.playerData.name; // Current player (starts with local player)
+        const lanSession = getLanSessionState();
+        this.isServerClient = lanSession.isServerClient;
+        this.serverPlayerName = lanSession.serverPlayerName;
+        this.clientPlayerName = lanSession.clientPlayerName; // Store client player name for server-client
+        this.currentPlayer = lanSession.currentPlayer || this.playerData.name; // Current player (starts with local player)
         this.lanClient = null;
        
                console.log('🎮 Landing page initialized with LAN state:', {
@@ -530,7 +548,7 @@ class LandingPageController {
       }
       
       // Save game type to localStorage immediately
-      localStorage.setItem('selectedGameType', option);
+      setSelectedGameType(option);
       console.log('🎮 Game type saved to localStorage:', option);
       
       if (option === 'ai') {
@@ -555,7 +573,7 @@ class LandingPageController {
           const inputField = document.getElementById('server-ip');
           if (inputField) {
             // Load previously saved IP address from localStorage
-            const savedIP = localStorage.getItem('lastServerIP');
+            const savedIP = getLastServerIP();
             if (savedIP) {
               inputField.value = savedIP;
               logger.info({ scope: 'landing/lan', msg: 'Loaded saved server IP', meta: { ip: savedIP } });
@@ -596,7 +614,7 @@ class LandingPageController {
       this.gameConfig.difficulty = difficulty;
       
       // Save difficulty to localStorage for game access
-      localStorage.setItem('selectedDifficulty', difficulty);
+      setSelectedDifficulty(difficulty);
       
       // Navigate to deck selection
       this.navigateToSection('deck-selection');
@@ -718,9 +736,7 @@ class LandingPageController {
          console.log('🎮 Server-client flag set to true');
          
          // Store in localStorage for persistence
-         localStorage.setItem('isServerClient', 'true');
-         localStorage.setItem('serverPlayerName', this.playerData.name);
-         localStorage.setItem('serverPlayerAvatar', this.playerData.avatar || 'default');
+         setLanServerPlayer(this.playerData.name, this.playerData.avatar || 'default', true);
          console.log('🎮 isServerClient saved to localStorage');
          console.log('🎮 serverPlayerName saved to localStorage:', this.playerData.name);
          console.log('🎮 serverPlayerAvatar saved to localStorage:', this.playerData.avatar);
@@ -753,13 +769,12 @@ class LandingPageController {
    */
   getServerIP() {
     // Try to get the real server IP from the server info
-    const serverInfo = localStorage.getItem('lanServerInfo');
+    const serverInfo = getLanServerInfo();
     if (serverInfo) {
       try {
-        const info = JSON.parse(serverInfo);
-        if (info.ip && info.ip !== '127.0.0.1') {
-          console.log('🎮 Using server IP from server info:', info.ip);
-          return info.ip;
+        if (serverInfo.ip && serverInfo.ip !== '127.0.0.1') {
+          console.log('🎮 Using server IP from server info:', serverInfo.ip);
+          return serverInfo.ip;
         }
       } catch (e) {
         console.warn('🎮 Failed to parse server info:', e);
@@ -791,8 +806,8 @@ class LandingPageController {
       console.log(`🔍 Connecting to server: ${serverUrl}`);
       
       // Store server IP and URL in localStorage for later use
-      localStorage.setItem('lastServerIP', serverIP);
-      localStorage.setItem('lanServerUrl', serverUrl);
+      setLastServerIP(serverIP);
+      setLanServerUrl(serverUrl);
       console.log(`🔍 Stored server IP and URL in localStorage: ${serverIP}`);
       logger.info({ scope: 'landing/lan', msg: 'Saved server IP to localStorage', meta: { ip: serverIP } });
       
@@ -936,10 +951,10 @@ class LandingPageController {
         // Listen for client player joined events to store avatar early
         window.AXM.on('client-player-joined', (data) => {
           if (data.clientPlayerAvatar) {
-            localStorage.setItem('clientPlayerAvatar', data.clientPlayerAvatar);
+            setLanClientPlayer(data.clientPlayerName || this.clientPlayerName || 'Client', data.clientPlayerAvatar);
           }
           if (data.clientPlayerName) {
-            localStorage.setItem('clientPlayerName', data.clientPlayerName);
+            setLanClientPlayer(data.clientPlayerName, data.clientPlayerAvatar || 'default');
           }
         });
       }
@@ -1016,7 +1031,7 @@ class LandingPageController {
         
         // Update local state
         this.currentPlayer = currentPlayer;
-        localStorage.setItem('currentPlayer', currentPlayer);
+        setCurrentPlayer(currentPlayer);
         
         console.log('🎲 Current player update result:', { 
           currentPlayer, 
@@ -1069,13 +1084,13 @@ class LandingPageController {
                      console.log('🎴 Client: Current Player:', distribution.currentPlayer);
           
                      // Store card distribution for later use
-           localStorage.setItem('lanCardDistribution', JSON.stringify(distribution));
+           setLanCardDistribution(distribution);
            console.log('🎴 Client: Card distribution saved to localStorage');
            
            // Store current player
            if (distribution.currentPlayer) {
              this.currentPlayer = distribution.currentPlayer;
-             localStorage.setItem('currentPlayer', this.currentPlayer);
+             setCurrentPlayer(this.currentPlayer);
              console.log('🎴 Client: Current player set to:', this.currentPlayer);
            }
            
@@ -1197,7 +1212,7 @@ class LandingPageController {
       console.log('🎮 Handling server info update:', serverInfo);
       
       // Store server info in localStorage for later use
-      localStorage.setItem('lanServerInfo', JSON.stringify(serverInfo));
+      setLanServerInfo(serverInfo);
       
       // Update the displayed server IP
       this.updateServerDisplay(serverInfo);
@@ -1257,7 +1272,7 @@ class LandingPageController {
              // Store client player name for server-client
              if (this.isServerClient && data.clientPlayerName) {
                this.clientPlayerName = data.clientPlayerName;
-               localStorage.setItem('clientPlayerName', this.clientPlayerName);
+               setLanClientPlayer(this.clientPlayerName, 'default');
                console.log('🎯 Server-client: Stored client player name:', this.clientPlayerName);
                console.log('🎯 Server-client: Saved to localStorage');
              }
@@ -1289,7 +1304,7 @@ class LandingPageController {
           this.showConnectionStatus(`Player ${data.currentPlayer}'s turn!`, false);
           // Update current player in localStorage
           this.currentPlayer = data.currentPlayer;
-          localStorage.setItem('currentPlayer', this.currentPlayer);
+          setCurrentPlayer(this.currentPlayer);
           console.log('🎲 Current player updated from LAN status:', this.currentPlayer);
           break;
           default:
@@ -1982,13 +1997,13 @@ class LandingPageController {
        this.showConnectionStatus('LAN game started - Switching to game board...', false);
        
                // Set LAN mode flag in localStorage
-        localStorage.setItem('selectedGameType', 'lan');
+        setSelectedGameType('lan');
         
         // Store current player from LANGameManager
         const currentPlayer = lanGame.getCurrentPlayer();
         if (currentPlayer) {
           this.currentPlayer = currentPlayer;
-          localStorage.setItem('currentPlayer', this.currentPlayer);
+          setCurrentPlayer(this.currentPlayer);
           console.log('🎮 Server-client: Current player set to:', this.currentPlayer);
         }
         
@@ -2019,16 +2034,16 @@ class LandingPageController {
       console.log('🎮 Selected deck saved to localStorage:', deckId);
       
              // Set LAN mode flag in localStorage
-       localStorage.setItem('selectedGameType', 'lan');
+       setSelectedGameType('lan');
        
        // Store current player from card distribution
-       const lanCardDistribution = localStorage.getItem('lanCardDistribution');
+       const lanCardDistribution = getLanCardDistribution();
        if (lanCardDistribution) {
          try {
-           const distribution = JSON.parse(lanCardDistribution);
+           const distribution = lanCardDistribution;
            if (distribution.currentPlayer) {
              this.currentPlayer = distribution.currentPlayer;
-             localStorage.setItem('currentPlayer', this.currentPlayer);
+             setCurrentPlayer(this.currentPlayer);
              console.log('🎮 Client: Current player set to:', this.currentPlayer);
            }
          } catch (error) {
@@ -2117,11 +2132,11 @@ class LandingPageController {
    */
   initializeGameMode() {
     try {
-      const currentGameType = localStorage.getItem('selectedGameType');
+      const currentGameType = getSelectedGameType();
       
       if (!currentGameType) {
         // Set default game type if none exists
-        localStorage.setItem('selectedGameType', 'singleplayer');
+        setSelectedGameType('singleplayer');
         console.log('🎮 Default game type set to singleplayer');
         
         logger.info({
@@ -2151,22 +2166,7 @@ class LandingPageController {
       console.log('🧹 Cleaning up LAN-specific variables...');
       
       // Remove LAN-specific variables but preserve player data
-      const variablesToRemove = [
-        'isServerClient',
-        'serverPlayerName', 
-        'clientPlayerName',
-        'currentPlayer',
-        'lanCardDistribution',
-        'lanPlayerName',
-        'lanOpponentName'
-      ];
-      
-      variablesToRemove.forEach(variable => {
-        if (localStorage.getItem(variable)) {
-          localStorage.removeItem(variable);
-          console.log('🧹 Removed from localStorage:', variable);
-        }
-      });
+      clearLanSessionState();
       
       // Reset instance variables
       this.isServerClient = false;

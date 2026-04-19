@@ -13,7 +13,8 @@
     "resolveJsonModule": true
   },
   "include": [
-    "app/preload/**/*"
+    "app/preload/**/*",
+    "app/shared/**/*"
   ],
   "exclude": [
     "node_modules",

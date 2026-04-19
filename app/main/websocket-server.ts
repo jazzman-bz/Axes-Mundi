@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { networkInterfaces } from 'os';
 import { logger } from './logger';
+import { parseLanMessage } from '../shared/lanProtocol';
 
 interface Player {
   id: string;
@@ -83,12 +84,13 @@ export class LANWebSocketServer {
 
     ws.on('message', (data: Buffer) => {
       try {
-        const message = JSON.parse(data.toString());
+        const message = parseLanMessage(JSON.parse(data.toString()));
         this.handleMessage(playerId, ws, message);
       } catch (error: any) {
         logger.error({
           scope: 'main/websocket',
-          msg: 'Failed to parse message',
+          msg: 'Failed to parse LAN message',
+          meta: { playerId },
           err: { message: error.message },
         });
       }
@@ -109,14 +111,7 @@ export class LANWebSocketServer {
     });
   }
 
-  private handleMessage(playerId: string, ws: WebSocket, message: any): void {
-    // Add console.log for debugging
-    console.log('🎮 WebSocket Server: Received message from client:', {
-      playerId,
-      messageType: message.type,
-      message,
-    });
-
+  private handleMessage(playerId: string, ws: WebSocket, message: ReturnType<typeof parseLanMessage>): void {
     logger.info({
       scope: 'main/websocket',
       msg: 'Received message from client',
@@ -163,11 +158,7 @@ export class LANWebSocketServer {
         this.handleGameStateUpdate(playerId, message);
         break;
       default:
-        logger.warn({
-          scope: 'main/websocket',
-          msg: 'Unknown message type',
-          meta: { playerId, messageType: message.type },
-        });
+        return;
     }
     /* eslint-enable indent, @typescript-eslint/indent */
   }

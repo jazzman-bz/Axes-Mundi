@@ -21,6 +21,7 @@ import { UIDialogManager } from '@/utils/uiDialogManager';
 import { LearningModeManager } from '@/utils/learningModeManager';
 import { BoardNavigationManager } from '@/utils/boardNavigationManager';
 import { OptionsMenu } from '@/utils/optionsMenu';
+import { getLanSessionState, getSelectedDifficulty, getSelectedGameType } from '@/utils/sessionStore';
 
 /**
  * Main application class
@@ -905,20 +906,21 @@ class AxesMundiApp {
     });
 
     // Initialize game difficulty from localStorage or default to medium
-    const savedDifficulty = localStorage.getItem('selectedDifficulty') as 'easy' | 'medium' | 'hard';
+    const savedDifficulty = getSelectedDifficulty();
     this.gameDifficulty = savedDifficulty || 'medium';
 
     // Initialize learning mode and hotseat mode from localStorage
-    const savedGameType = localStorage.getItem('selectedGameType');
+    const savedGameType = getSelectedGameType();
     this.isLearningMode = savedGameType === 'educational';
     this.isHotseatMode = savedGameType === 'hotseat';
 
     // Initialize LAN mode from localStorage
     this.isLANMode = savedGameType === 'lan';
     if (this.isLANMode) {
+      const lanSession = getLanSessionState();
       this.lanPlayerName = localStorage.getItem('axesMundiPlayer') ? JSON.parse(localStorage.getItem('axesMundiPlayer')!).name : 'Player';
-      this.lanOpponentName = localStorage.getItem('clientPlayerName') || 'Opponent';
-      this.isLANServerClient = localStorage.getItem('isServerClient') === 'true';
+      this.lanOpponentName = lanSession.clientPlayerName || 'Opponent';
+      this.isLANServerClient = lanSession.isServerClient;
 
       console.log('ðŸŽ® LAN mode initialized:', {
         isLANMode: this.isLANMode,

@@ -30,9 +30,9 @@ Entwickelt mit Electron + Vite + PixiJS + GSAP.
 - PixiJS – 2D WebGL Renderer für Spielbrett, Karten & Animationen  
 - GSAP – Tweening & Animationen (z. B. Karten-Flip, Einfügen, Shake bei Fehlern)  
 - TypeScript – Striktes Typensystem  
-- State Machine (XState) – sauberer Spielfluss  
+- Zod – Validierung für Deck-Import, IPC und LAN-Protokoll  
 - WS (WebSockets) – LAN-Multiplayer  
-- Vitest + Playwright – Testing  
+- Vitest – Unit-Tests für Rendering, State, Scoring und neue Sicherheits-/Protokoll-Helfer  
 
 ## Projektstruktur
 
@@ -46,6 +46,7 @@ Entwickelt mit Electron + Vite + PixiJS + GSAP.
     /content   # Decks (JSON), Lokalisierungen  
     /net       # Multiplayer-Client  
     /utils  
+  /shared      # gemeinsame Schemas und Sicherheits-Helfer  
 /tests         # Vitest + Playwright  
 
 
@@ -62,6 +63,13 @@ Entwickelt mit Electron + Vite + PixiJS + GSAP.
   - Decks als JSON, Schema-Validierung
   - Jede Karte mit Quelle(n)
   - Fakten-Check im Review-Prozess  
+
+## Aktueller Fokus
+
+- Deck-Importe werden jetzt über Zod validiert und auf sichere IDs/Pfade begrenzt.
+- LAN-Nachrichten und IPC-Payloads werden zentral über gemeinsame Schemas geprüft.
+- Ein zentraler `sessionStore` bündelt den wichtigsten Renderer-Session-State fuer LAN.
+- Aktuell abgesichert durch `npm run typecheck` und `npm test` mit 24 Testdateien / 468 Tests.
 
 ## Beispiel-Deck (JSON)
 
