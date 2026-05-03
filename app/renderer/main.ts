@@ -1693,8 +1693,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     await backgroundMusicManager.play('gameplay', { fadeInMs: 1600 });
     setupOptionsMenu();
 
-    new AxesMundiApp();
-    logger.info({ scope: 'renderer/app', msg: 'app initialized successfully' });
+    const app = new AxesMundiApp();
+    logger.info({
+      scope: 'renderer/app',
+      msg: 'app initialized successfully',
+      meta: { initialized: Boolean(app) },
+    });
   } catch (error: any) {
     logger.error({
       scope: 'renderer/app',

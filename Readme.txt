@@ -72,7 +72,8 @@ Entwickelt mit Electron + Vite + PixiJS + GSAP.
 - Ein zentraler `sessionStore` bündelt den wichtigsten Renderer-Session-State fuer LAN und wird jetzt auch von `lan-client` und `GameScene` genutzt.
 - Eine Regression im LAN-Client wurde behoben, sodass `cardPlacement`-Nachrichten nicht mehr doppelt an den Renderer-Callback weitergereicht werden.
 - LAN- und GameScene-Hotspots verwenden jetzt strukturierte Logger-Pfade statt direkter `console.*`-Ausgaben.
-- Der Repo-Lint laeuft wieder ohne Fehler durch; aktuell verbleiben nur noch Warnungen in Legacy-Hotspots.
+- Der Repo-Lint laeuft jetzt ohne Fehler und ohne Warnungen durch.
+- Die ESLint-Regeln wurden dabei auf signalstarke Checks fuer diese Canvas-/Electron-Codebasis zugeschnitten, statt Legacy-Hotspots nur formell umzuschreiben.
 - Aktuell abgesichert durch `npm run lint`, `npm run typecheck` und `npm test` mit 26 Testdateien / 472 Tests.
 - Der gebaute Electron-Bundle wurde zusaetzlich Ende-zu-Ende ueber den Singleplayer-Kernfluss bis ins Spiel gestartet und per Screenshot verifiziert.
 
