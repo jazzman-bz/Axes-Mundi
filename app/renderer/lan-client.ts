@@ -219,11 +219,6 @@ export class LANGameClient {
    */
   private handleRemoteCardPlacement(message: any): void {
     try {
-      // IMPORTANT: Forward this message to the main callback so lan-game-main.ts can process it
-      if (this.onMessageCallback) {
-        this.onMessageCallback(message);
-      }
-
       // Also update local game state for consistency
       const { cardId, boardPosition, playerName } = message;
 

@@ -8,6 +8,7 @@ import { soundManager, SoundType } from './utils/soundManager.ts';
 import { backgroundMusicManager } from './utils/backgroundMusicManager.ts';
 import { OptionsMenu } from './utils/optionsMenu.ts';
 import { getDeckDescription, getDeckLocaleLabel, getDeckThemeLabel } from './utils/deckPresentation.ts';
+import { createUserDeckCard } from './utils/userDeckCard.ts';
 import { formatVersionBadge, formatVersionTooltip } from './utils/versionPresentation.ts';
 import {
   clearLanSessionState,
@@ -1483,44 +1484,20 @@ class LandingPageController {
       return;
     }
     
-    // Create deck card element
-    const deckCard = document.createElement('div');
-    deckCard.className = 'deck-card user-deck';
-    deckCard.dataset.deck = deck.id;
-    deckCard.dataset.isUserDeck = 'true';
-    
     const themeDisplay = getDeckThemeLabel(deck);
     const localeDisplay = getDeckLocaleLabel(deck.locale);
     const description = getDeckDescription(deck, true);
-    
-    deckCard.innerHTML = `
-      <button class="delete-deck-btn" title="Delete deck" data-deck-id="${deck.id}">✕</button>
-      <div class="deck-theme">${themeDisplay}</div>
-      <h3 class="deck-title">${deck.name}</h3>
-      <p class="deck-description">${description}</p>
-      <div class="deck-stats">
-        <span>${deck.cardCount} Cards</span>
-        <span>${localeDisplay}</span>
-      </div>
-    `;
-    
-    // Add click handler for deck selection
-    deckCard.addEventListener('click', (e) => {
-      // Don't trigger deck selection if delete button was clicked
-      if (e.target.classList.contains('delete-deck-btn')) {
-        return;
-      }
-      this.handleDeckSelection(e);
-    });
-    
-    // Add click handler for delete button
-    const deleteBtn = deckCard.querySelector('.delete-deck-btn');
-    if (deleteBtn) {
-      deleteBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
+    const deckCard = createUserDeckCard(deck, {
+      themeLabel: themeDisplay,
+      localeLabel: localeDisplay,
+      description,
+      onSelect: (event) => {
+        this.handleDeckSelection(event);
+      },
+      onDelete: () => {
         this.handleDeleteDeck(deck.id, deck.name);
-      });
-    }
+      },
+    });
     
     // Add to deck grid
     deckGrid.appendChild(deckCard);

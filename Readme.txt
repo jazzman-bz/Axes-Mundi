@@ -65,11 +65,13 @@ Entwickelt mit Electron + Vite + PixiJS + GSAP.
   - Fakten-Check im Review-Prozess  
 
 ## Aktueller Fokus
-
+	
 - Deck-Importe werden jetzt über Zod validiert und auf sichere IDs/Pfade begrenzt.
+- Importierte Deck-Kacheln werden im Renderer jetzt über sichere DOM-Erzeugung statt HTML-Interpolation aufgebaut.
 - LAN-Nachrichten und IPC-Payloads werden zentral über gemeinsame Schemas geprüft.
 - Ein zentraler `sessionStore` bündelt den wichtigsten Renderer-Session-State fuer LAN.
-- Aktuell abgesichert durch `npm run typecheck` und `npm test` mit 24 Testdateien / 468 Tests.
+- Eine Regression im LAN-Client wurde behoben, sodass `cardPlacement`-Nachrichten nicht mehr doppelt an den Renderer-Callback weitergereicht werden.
+- Aktuell abgesichert durch `npm run typecheck` und `npm test` mit 26 Testdateien / 471 Tests.
 
 ## Beispiel-Deck (JSON)
 
