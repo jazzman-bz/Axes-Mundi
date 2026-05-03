@@ -64,22 +64,27 @@ export class GameScene {
     try {
       logger.info({ scope: 'renderer/game/scene', msg: 'initializing LAN mode' });
 
-      // Debug: Log all localStorage keys
-      console.log('🎮 GameScene: All localStorage keys:', Object.keys(localStorage));
       const cardDistribution = getLanCardDistribution();
-      console.log('🎮 GameScene: selectedGameType:', getSelectedGameType());
-      console.log('🎮 GameScene: lanCardDistribution exists:', !!cardDistribution);
+      logger.debug({
+        scope: 'renderer/game/scene',
+        msg: 'evaluated LAN session state',
+        meta: {
+          selectedGameType: getSelectedGameType(),
+          hasLanCardDistribution: !!cardDistribution,
+        },
+      });
 
       if (cardDistribution) {
-        console.log('🎮 GameScene: Found lanCardDistribution in sessionStore');
-        console.log('🎮 GameScene: Parsed card distribution:', cardDistribution);
+        logger.debug({
+          scope: 'renderer/game/scene',
+          msg: 'found LAN card distribution',
+          meta: { deckId: cardDistribution.deckId, currentPlayer: cardDistribution.currentPlayer },
+        });
         this.setupLANCards(cardDistribution);
       } else {
-        console.warn('🎮 GameScene: No lanCardDistribution found in sessionStore');
         logger.warn({ scope: 'renderer/game/scene', msg: 'no LAN card distribution found' });
       }
     } catch (error: any) {
-      console.error('🎮 GameScene: Error in initLANMode:', error);
       logger.error({
         scope: 'renderer/game/scene',
         msg: 'failed to initialize LAN mode',
@@ -93,22 +98,27 @@ export class GameScene {
    */
   private setupLANCards(distribution: any): void {
     try {
-      console.log('🎮 GameScene: setupLANCards called with distribution:', distribution);
       logger.info({ scope: 'renderer/game/scene', msg: 'setting up LAN cards', meta: { deckId: distribution.deckId } });
 
       // Load deck for image folder reference
       this.loadDeckForLAN(distribution.deckId).then((deck) => {
-        console.log('🎮 GameScene: Deck loaded:', deck);
         if (deck) {
           this.createLANCards(distribution, deck);
         } else {
-          console.error('🎮 GameScene: Failed to load deck');
+          logger.warn({
+            scope: 'renderer/game/scene',
+            msg: 'deck could not be loaded for LAN setup',
+            meta: { deckId: distribution.deckId },
+          });
         }
       }).catch((error: any) => {
-        console.error('🎮 GameScene: Error loading deck:', error);
+        logger.error({
+          scope: 'renderer/game/scene',
+          msg: 'failed while loading deck for LAN setup',
+          err: { message: error.message, stack: error.stack },
+        });
       });
     } catch (error: any) {
-      console.error('🎮 GameScene: Error in setupLANCards:', error);
       logger.error({
         scope: 'renderer/game/scene',
         msg: 'failed to setup LAN cards',
@@ -140,20 +150,23 @@ export class GameScene {
    */
   private createLANCards(distribution: any, deck: any): void {
     try {
-      console.log('🎮 GameScene: createLANCards called');
-      logger.info({ scope: 'renderer/game/scene', msg: 'creating LAN cards with animations' });
-
-      console.log('🎮 GameScene: App screen dimensions:', this.app.screen.width, 'x', this.app.screen.height);
-      console.log('🎮 GameScene: Distribution boardCard:', distribution.boardCard);
-      console.log('🎮 GameScene: Distribution serverHand:', distribution.serverHand?.length);
-      console.log('🎮 GameScene: Distribution clientHand:', distribution.clientHand?.length);
+      logger.info({
+        scope: 'renderer/game/scene',
+        msg: 'creating LAN cards with animations',
+        meta: {
+          width: this.app.screen.width,
+          height: this.app.screen.height,
+          boardCard: distribution.boardCard?.id,
+          serverHandSize: distribution.serverHand?.length,
+          clientHandSize: distribution.clientHand?.length,
+        },
+      });
 
       // Create board card with sound
       soundManager.play(SoundType.CARD_SHUFFLE);
 
       // Create board card
       if (distribution.boardCard) {
-        console.log('🎮 GameScene: Creating board card:', distribution.boardCard.title);
         this.lanBoardCard = new GameCard(
           distribution.boardCard,
           deck,
@@ -168,8 +181,6 @@ export class GameScene {
         // Add card to scene (GameCard uses canvas, not PixiJS container)
         const pixiCard = this.createPixiCardRepresentation(this.lanBoardCard);
         this.container.addChild(pixiCard);
-        console.log('🎮 GameScene: Board card added to scene');
-        console.log('🎮 GameScene: Board card isInHand set to false for measurement display');
 
         // Animate board card appearance
         this.animateCardAppearance(this.lanBoardCard, 0);
@@ -177,7 +188,6 @@ export class GameScene {
 
       // Create player hand cards with synchronized sounds
       if (distribution.serverHand && distribution.serverHand.length > 0) {
-        console.log('🎮 GameScene: Creating', distribution.serverHand.length, 'player hand cards');
         distribution.serverHand.forEach((cardData: any, index: number) => {
           setTimeout(() => {
             soundManager.play(SoundType.CARD_SHUFFLE); // Play sound exactly when card animates
@@ -198,12 +208,10 @@ export class GameScene {
             this.animateCardAppearance(card, 0);
           }, index * 200);
         });
-        console.log('🎮 GameScene: Player hand cards created');
       }
 
       // Create opponent hand cards (show card backs) with synchronized sounds
       if (distribution.clientHand && distribution.clientHand.length > 0) {
-        console.log('🎮 GameScene: Creating', distribution.clientHand.length, 'opponent hand cards');
         distribution.clientHand.forEach((cardData: any, index: number) => {
           setTimeout(() => {
             soundManager.play(SoundType.CARD_SHUFFLE); // Play sound exactly when card animates
@@ -227,16 +235,13 @@ export class GameScene {
             this.animateCardAppearance(card, 0);
           }, 1200 + index * 200);
         });
-        console.log('🎮 GameScene: Opponent hand cards created');
       }
 
       // Layout hands after all cards are created
       setTimeout(() => {
-        console.log('🎮 GameScene: Starting layout of hands');
         this.layoutLANHands();
       }, 2000);
     } catch (error: any) {
-      console.error('🎮 GameScene: Error in createLANCards:', error);
       logger.error({
         scope: 'renderer/game/scene',
         msg: 'failed to create LAN cards',
@@ -250,10 +255,6 @@ export class GameScene {
    */
   private createPixiCardRepresentation(card: GameCard): Container {
     try {
-      console.log('🎮 GameScene: Creating PixiJS representation for card:', card.card.title);
-      console.log('🎮 GameScene: Card dimensions:', card.width, 'x', card.height);
-      console.log('🎮 GameScene: Card position:', card.x, ',', card.y);
-
       const container = new Container() as PixiCardContainer;
 
       // Create card background
@@ -298,10 +299,13 @@ export class GameScene {
       // Store reference to GameCard for later use
       container.userData = { gameCard: card };
 
-      console.log('🎮 GameScene: PixiJS card representation created successfully');
       return container;
     } catch (error: any) {
-      console.error('🎮 GameScene: Error creating PixiJS card representation:', error);
+      logger.error({
+        scope: 'renderer/game/scene',
+        msg: 'failed to create Pixi card representation',
+        err: { message: error.message, stack: error.stack },
+      });
       throw error;
     }
   }
@@ -565,8 +569,6 @@ export class GameScene {
    */
   public handleResize(width: number, height: number): void {
     try {
-      console.log('🎮 GameScene: handleResize called with dimensions:', width, 'x', height);
-
       // Update axis line
       this.axisLine.clear();
       this.axisLine.lineStyle(4, 0xffffff, 0.8);
@@ -585,7 +587,6 @@ export class GameScene {
         meta: { width, height },
       });
     } catch (error: any) {
-      console.error('🎮 GameScene: Error in handleResize:', error);
       logger.error({
         scope: 'renderer/game/scene',
         msg: 'resize failed',

@@ -71,6 +71,7 @@ Entwickelt mit Electron + Vite + PixiJS + GSAP.
 - LAN-Nachrichten und IPC-Payloads werden zentral über gemeinsame Schemas geprüft.
 - Ein zentraler `sessionStore` bündelt den wichtigsten Renderer-Session-State fuer LAN und wird jetzt auch von `lan-client` und `GameScene` genutzt.
 - Eine Regression im LAN-Client wurde behoben, sodass `cardPlacement`-Nachrichten nicht mehr doppelt an den Renderer-Callback weitergereicht werden.
+- LAN- und GameScene-Hotspots verwenden jetzt strukturierte Logger-Pfade statt direkter `console.*`-Ausgaben.
 - Aktuell abgesichert durch `npm run typecheck` und `npm test` mit 26 Testdateien / 472 Tests.
 
 ## Beispiel-Deck (JSON)

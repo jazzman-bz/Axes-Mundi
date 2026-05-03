@@ -401,17 +401,23 @@ export class LANWebSocketServer {
    * Send current player set event to all connected clients
    */
   async sendCurrentPlayerSet(currentPlayer: string): Promise<void> {
-    console.log('🎮 WebSocket Server: Sending currentPlayerSet to clients:', currentPlayer);
     logger.info({
       scope: 'main/websocket',
       msg: 'Sending current player set event to clients',
       meta: { currentPlayer },
     });
 
-    // Debug: Check if we have any connected players
-    console.log('🎮 WebSocket Server: Connected players count:', this.players.size);
-    this.players.forEach((player, playerId) => {
-      console.log('🎮 WebSocket Server: Player:', { id: playerId, name: player.name, wsState: player.ws.readyState });
+    logger.debug({
+      scope: 'main/websocket',
+      msg: 'broadcasting current player set to connected players',
+      meta: {
+        playerCount: this.players.size,
+        players: Array.from(this.players.entries()).map(([playerId, player]) => ({
+          playerId,
+          name: player.name,
+          wsState: player.ws.readyState,
+        })),
+      },
     });
 
     // Send to all connected clients
@@ -422,13 +428,14 @@ export class LANWebSocketServer {
         message: `Game started! ${currentPlayer} goes first.`,
       };
 
-      console.log('🎮 WebSocket Server: Sending to player:', player.name, 'message:', message);
-
       try {
         player.ws.send(JSON.stringify(message));
-        console.log('🎮 WebSocket Server: Message sent successfully to:', player.name);
+        logger.debug({
+          scope: 'main/websocket',
+          msg: 'current player set sent to client',
+          meta: { playerName: player.name, currentPlayer },
+        });
       } catch (error: any) {
-        console.error('🎮 WebSocket Server: Failed to send message to:', player.name, 'error:', error);
         logger.error({
           scope: 'main/websocket',
           msg: 'Failed to send current player message to client',
@@ -659,16 +666,13 @@ export class LANWebSocketServer {
   private handleCardPlacement(playerId: string, message: any): void {
     const player = this.players.get(playerId);
     if (!player) {
-      console.error('🎮 WebSocket Server: Player not found for cardPlacement:', playerId);
+      logger.warn({
+        scope: 'main/websocket',
+        msg: 'player not found for card placement',
+        meta: { playerId },
+      });
       return;
     }
-
-    console.log('🎮 WebSocket Server: Received cardPlacement from client:', {
-      playerId,
-      playerName: player.name,
-      cardId: message.cardId,
-      boardPosition: message.boardPosition,
-    });
 
     logger.info({
       scope: 'main/websocket',
@@ -700,19 +704,26 @@ export class LANWebSocketServer {
           + `${player.name} an Board-Position ${message.boardPosition} platziert`,
       };
 
-      console.log('🎮 WebSocket Server: Sending lan-status-update to renderer:', statusUpdate);
-      console.log('🎮 WebSocket Server: mainWindow available:', !!global.mainWindow);
-      console.log('🎮 WebSocket Server: webContents available:', !!(global.mainWindow && global.mainWindow.webContents));
-
       global.mainWindow.webContents.send('lan-status-update', statusUpdate);
-      console.log('🎮 WebSocket Server: lan-status-update sent to renderer successfully');
-
-      // Also log the broadcast to other WebSocket clients
-      console.log('🎮 WebSocket Server: Broadcasting cardPlacement to other WebSocket clients');
+      logger.debug({
+        scope: 'main/websocket',
+        msg: 'card placement forwarded to renderer and peers',
+        meta: {
+          playerId,
+          playerName: player.name,
+          cardId: message.cardId,
+          boardPosition: message.boardPosition,
+        },
+      });
     } else {
-      console.error('🎮 WebSocket Server: Cannot send lan-status-update - mainWindow not available');
-      console.error('🎮 WebSocket Server: mainWindow:', !!global.mainWindow);
-      console.error('🎮 WebSocket Server: webContents:', !!(global.mainWindow && global.mainWindow.webContents));
+      logger.warn({
+        scope: 'main/websocket',
+        msg: 'cannot forward card placement to renderer because main window is unavailable',
+        meta: {
+          hasMainWindow: !!global.mainWindow,
+          hasWebContents: !!(global.mainWindow && global.mainWindow.webContents),
+        },
+      });
     }
   }
 
@@ -722,15 +733,13 @@ export class LANWebSocketServer {
   private handlePlayerSwitch(playerId: string, message: any): void {
     const player = this.players.get(playerId);
     if (!player) {
-      console.error('🎮 WebSocket Server: Player not found for playerSwitch:', playerId);
+      logger.warn({
+        scope: 'main/websocket',
+        msg: 'player not found for player switch',
+        meta: { playerId },
+      });
       return;
     }
-
-    console.log('🎮 WebSocket Server: Received playerSwitch from client:', {
-      playerId,
-      playerName: player.name,
-      nextPlayer: message.nextPlayer,
-    });
 
     logger.info({
       scope: 'main/websocket',
@@ -759,14 +768,20 @@ export class LANWebSocketServer {
       };
 
       global.mainWindow.webContents.send('lan-status-update', statusUpdate);
-      console.log('🎮 WebSocket Server: lan-status-update sent to renderer successfully');
-
-      // Also log the broadcast to other WebSocket clients
-      console.log('🎮 WebSocket Server: Broadcasting playerSwitch to other WebSocket clients');
+      logger.debug({
+        scope: 'main/websocket',
+        msg: 'player switch forwarded to renderer and peers',
+        meta: { playerId, playerName: player.name, nextPlayer: message.nextPlayer },
+      });
     } else {
-      console.error('🎮 WebSocket Server: Cannot send lan-status-update - mainWindow not available');
-      console.error('🎮 WebSocket Server: mainWindow:', !!global.mainWindow);
-      console.error('🎮 WebSocket Server: webContents:', !!(global.mainWindow && global.mainWindow.webContents));
+      logger.warn({
+        scope: 'main/websocket',
+        msg: 'cannot forward player switch to renderer because main window is unavailable',
+        meta: {
+          hasMainWindow: !!global.mainWindow,
+          hasWebContents: !!(global.mainWindow && global.mainWindow.webContents),
+        },
+      });
     }
   }
 
@@ -776,14 +791,13 @@ export class LANWebSocketServer {
   private handleGameRestart(playerId: string, _message: any): void {
     const player = this.players.get(playerId);
     if (!player) {
-      console.error('🎮 WebSocket Server: Player not found for gameRestart:', playerId);
+      logger.warn({
+        scope: 'main/websocket',
+        msg: 'player not found for game restart',
+        meta: { playerId },
+      });
       return;
     }
-
-    console.log('🎮 WebSocket Server: Received gameRestart from client:', {
-      playerId,
-      playerName: player.name,
-    });
 
     logger.info({
       scope: 'main/websocket',
@@ -809,14 +823,20 @@ export class LANWebSocketServer {
       };
 
       global.mainWindow.webContents.send('lan-status-update', statusUpdate);
-      console.log('🎮 WebSocket Server: lan-status-update sent to renderer successfully');
-
-      // Also log the broadcast to other WebSocket clients
-      console.log('🎮 WebSocket Server: Broadcasting gameRestart to other WebSocket clients');
+      logger.debug({
+        scope: 'main/websocket',
+        msg: 'game restart forwarded to renderer and peers',
+        meta: { playerId, playerName: player.name },
+      });
     } else {
-      console.error('🎮 WebSocket Server: Cannot send lan-status-update - mainWindow not available');
-      console.error('🎮 WebSocket Server: mainWindow:', !!global.mainWindow);
-      console.error('🎮 WebSocket Server: webContents:', !!(global.mainWindow && global.mainWindow.webContents));
+      logger.warn({
+        scope: 'main/websocket',
+        msg: 'cannot forward game restart to renderer because main window is unavailable',
+        meta: {
+          hasMainWindow: !!global.mainWindow,
+          hasWebContents: !!(global.mainWindow && global.mainWindow.webContents),
+        },
+      });
     }
   }
 
@@ -826,15 +846,13 @@ export class LANWebSocketServer {
   private handleRemainingCardsUpdate(playerId: string, message: any): void {
     const player = this.players.get(playerId);
     if (!player) {
-      console.error('🎮 WebSocket Server: Player not found for remainingCardsUpdate:', playerId);
+      logger.warn({
+        scope: 'main/websocket',
+        msg: 'player not found for remaining cards update',
+        meta: { playerId },
+      });
       return;
     }
-
-    console.log('🎮 WebSocket Server: Received remainingCardsUpdate from client:', {
-      playerId,
-      playerName: player.name,
-      remainingCardsCount: message.remainingCardsCount,
-    });
 
     logger.info({
       scope: 'main/websocket',
@@ -863,14 +881,24 @@ export class LANWebSocketServer {
       };
 
       global.mainWindow.webContents.send('lan-status-update', statusUpdate);
-      console.log('🎮 WebSocket Server: lan-status-update sent to renderer successfully');
-
-      // Also log the broadcast to other WebSocket clients
-      console.log('🎮 WebSocket Server: Broadcasting remainingCardsUpdate to other WebSocket clients');
+      logger.debug({
+        scope: 'main/websocket',
+        msg: 'remaining cards update forwarded to renderer and peers',
+        meta: {
+          playerId,
+          playerName: player.name,
+          remainingCardsCount: message.remainingCardsCount,
+        },
+      });
     } else {
-      console.error('🎮 WebSocket Server: Cannot send lan-status-update - mainWindow not available');
-      console.error('🎮 WebSocket Server: mainWindow:', !!global.mainWindow);
-      console.error('🎮 WebSocket Server: webContents:', !!(global.mainWindow && global.mainWindow.webContents));
+      logger.warn({
+        scope: 'main/websocket',
+        msg: 'cannot forward remaining cards update to renderer because main window is unavailable',
+        meta: {
+          hasMainWindow: !!global.mainWindow,
+          hasWebContents: !!(global.mainWindow && global.mainWindow.webContents),
+        },
+      });
     }
   }
 
