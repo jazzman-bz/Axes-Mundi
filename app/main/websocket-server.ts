@@ -158,7 +158,6 @@ export class LANWebSocketServer {
         this.handleGameStateUpdate(playerId, message);
         break;
       default:
-        return;
     }
     /* eslint-enable indent, @typescript-eslint/indent */
   }

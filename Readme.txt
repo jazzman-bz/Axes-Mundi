@@ -72,6 +72,7 @@ Entwickelt mit Electron + Vite + PixiJS + GSAP.
 - Ein zentraler `sessionStore` bündelt den wichtigsten Renderer-Session-State fuer LAN und wird jetzt auch von `lan-client` und `GameScene` genutzt.
 - Eine Regression im LAN-Client wurde behoben, sodass `cardPlacement`-Nachrichten nicht mehr doppelt an den Renderer-Callback weitergereicht werden.
 - LAN- und GameScene-Hotspots verwenden jetzt strukturierte Logger-Pfade statt direkter `console.*`-Ausgaben.
+- Die aktiven Lint-Hotspots in `app/main/websocket-server.ts` und `app/renderer/lan-client.ts` wurden bereinigt; dort verbleiben aktuell nur noch wenige Warnungen statt blockierender Fehler.
 - Aktuell abgesichert durch `npm run typecheck` und `npm test` mit 26 Testdateien / 472 Tests.
 
 ## Beispiel-Deck (JSON)

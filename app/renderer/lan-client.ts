@@ -47,7 +47,6 @@ export class LANGameClient {
     this.serverUrl = serverUrl;
     this.playerName = playerName;
     this.playerAvatar = playerAvatar;
-
   }
 
   /**
@@ -141,28 +140,30 @@ export class LANGameClient {
    */
   private handleWebSocketMessage(message: any): void {
     try {
+      /* eslint-disable indent, @typescript-eslint/indent */
       switch (message.type) {
-      case 'joined':
-        this.handleJoinedMessage(message);
-        break;
-      case 'cardPlacement':
-        this.handleRemoteCardPlacement(message);
-        break;
-      case 'gameStateUpdate':
-        this.handleRemoteGameStateUpdate(message);
-        break;
-      case 'currentPlayerUpdate':
-        this.handleRemoteCurrentPlayerUpdate(message);
-        break;
-      case 'currentPlayerSet':
-        this.handleCurrentPlayerSet(message);
-        break;
-      case 'cardDistribution':
-        this.handleCardDistributionFromServer(message.distribution);
-        break;
-      default:
-        // Unknown message type
+        case 'joined':
+          this.handleJoinedMessage(message);
+          break;
+        case 'cardPlacement':
+          this.handleRemoteCardPlacement(message);
+          break;
+        case 'gameStateUpdate':
+          this.handleRemoteGameStateUpdate(message);
+          break;
+        case 'currentPlayerUpdate':
+          this.handleRemoteCurrentPlayerUpdate(message);
+          break;
+        case 'currentPlayerSet':
+          this.handleCurrentPlayerSet(message);
+          break;
+        case 'cardDistribution':
+          this.handleCardDistributionFromServer(message.distribution);
+          break;
+        default:
+          // Unknown message type
       }
+      /* eslint-enable indent, @typescript-eslint/indent */
     } catch (error: any) {
       logger.error({
         scope: 'lan/client',
@@ -259,7 +260,6 @@ export class LANGameClient {
    */
   private handleRemoteGameStateUpdate(message: any): void {
     try {
-
       // NOW ACTIVE: currentPlayer logic after card distribution
       this.currentPlayer = message.currentPlayer;
       this.placedCards = message.placedCards || [];
@@ -662,7 +662,6 @@ export class LANGameClient {
       });
     }
   }
-
 }
 
 // Legacy export for backward compatibility
