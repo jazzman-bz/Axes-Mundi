@@ -107,7 +107,7 @@ export function convertImageToWhite(image: HTMLImageElement): Promise<HTMLImageE
       for (let i = 0; i < data.length; i += 4) {
         const alpha = data[i + 3];
         if (alpha > 0) {
-          data[i] = 255;     // Red
+          data[i] = 255; // Red
           data[i + 1] = 255; // Green
           data[i + 2] = 255; // Blue
         }

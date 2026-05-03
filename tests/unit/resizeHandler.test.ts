@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  describe, it, expect, vi, beforeEach, afterEach,
+} from 'vitest';
 import { ResizeHandler, ResizeCallback } from '@/utils/resizeHandler';
 
 // Mock the logger
@@ -13,13 +15,11 @@ vi.mock('@/utils/logger', () => ({
 
 // Mock scaleUtils
 vi.mock('@/utils/scaleUtils', () => ({
-  calculateScale: vi.fn((width: number, height: number) => {
+  calculateScale: vi.fn((width: number, height: number) => (
     // Simple mock: return width/1920 for testing
-    return Math.min(width / 1920, height / 1080, 1.5);
-  }),
-  calculateScaleFromWindow: vi.fn((win: Window) => {
-    return Math.min(win.innerWidth / 1920, win.innerHeight / 1080, 1.5);
-  }),
+    Math.min(width / 1920, height / 1080, 1.5)
+  )),
+  calculateScaleFromWindow: vi.fn((win: Window) => Math.min(win.innerWidth / 1920, win.innerHeight / 1080, 1.5)),
 }));
 
 describe('ResizeHandler', () => {

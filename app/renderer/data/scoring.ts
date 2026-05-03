@@ -105,33 +105,33 @@ export function evaluatePlacement(
  */
 export function convertToComparable(value: number, unit: string): number {
   switch (unit.toLowerCase()) {
-  // Height units
-  case 'm':
-    return value;
-  case 'km':
-    return value * 1000;
-  case 'cm':
-    return value / 100;
-  case 'mm':
-    return value / 1000;
+    // Height units
+    case 'm':
+      return value;
+    case 'km':
+      return value * 1000;
+    case 'cm':
+      return value / 100;
+    case 'mm':
+      return value / 1000;
 
     // Time units
-  case 'bc':
-    // BC values are already negative, so they sort correctly (older = smaller)
-    return value;
-  case 'ad':
-    // AD values are positive, so they sort correctly (newer = larger)
-    return value;
+    case 'bc':
+      // BC values are already negative, so they sort correctly (older = smaller)
+      return value;
+    case 'ad':
+      // AD values are positive, so they sort correctly (newer = larger)
+      return value;
 
     // Temperature units
-  case '°c':
-  case 'c':
-    // Celsius values are already comparable (colder = smaller, hotter = larger)
-    return value;
+    case '°c':
+    case 'c':
+      // Celsius values are already comparable (colder = smaller, hotter = larger)
+      return value;
 
-  default:
-    // For unknown units, assume they're already in comparable format
-    return value;
+    default:
+      // For unknown units, assume they're already in comparable format
+      return value;
   }
 }
 
@@ -140,13 +140,13 @@ export function convertToComparable(value: number, unit: string): number {
  */
 export function getScore(card: Card): number {
   switch (card.difficulty) {
-  case 'easy':
-    return 10;
-  case 'medium':
-    return 20;
-  case 'hard':
-    return 30;
-  default:
-    return 10;
+    case 'easy':
+      return 10;
+    case 'medium':
+      return 20;
+    case 'hard':
+      return 30;
+    default:
+      return 10;
   }
 }

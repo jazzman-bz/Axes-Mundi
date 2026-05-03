@@ -76,14 +76,14 @@ export function parseImportedDeck(input: unknown): NormalizedImportedDeck {
 
 export function getImageContentType(assetName: string): string {
   switch (extname(assetName).toLowerCase()) {
-  case '.png':
-    return 'image/png';
-  case '.webp':
-    return 'image/webp';
-  case '.jpg':
-  case '.jpeg':
-  default:
-    return 'image/jpeg';
+    case '.png':
+      return 'image/png';
+    case '.webp':
+      return 'image/webp';
+    case '.jpg':
+    case '.jpeg':
+    default:
+      return 'image/jpeg';
   }
 }
 

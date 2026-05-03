@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import {
+  describe, it, expect, beforeEach, afterEach, vi,
+} from 'vitest';
 import { GameStateManager, GameStateManagerCallbacks } from '@/utils/gameStateManager';
 import { GameCard } from '@/game/Card';
 import { Card as CardData } from '@/data/types';
@@ -380,7 +382,7 @@ describe('GameStateManager', () => {
       manager.checkForWin();
 
       expect(mockCallbacks.onSetGameWon).toHaveBeenCalledWith(true);
-      
+
       // Dialog is shown after 4 seconds delay
       vi.advanceTimersByTime(4000);
       expect(mockCallbacks.onShowWinDialog).toHaveBeenCalled();
@@ -410,7 +412,7 @@ describe('GameStateManager', () => {
       manager.checkForWin();
 
       expect(mockCallbacks.onSetGameLost).toHaveBeenCalledWith(true);
-      
+
       // Dialog is shown after 4 seconds delay
       vi.advanceTimersByTime(4000);
       expect(mockCallbacks.onShowLoseDialog).toHaveBeenCalled();
@@ -441,7 +443,7 @@ describe('GameStateManager', () => {
 
       expect(mockCallbacks.onSetGameWon).toHaveBeenCalledWith(true);
       expect(mockCallbacks.onUpdateInputHandlerConfig).toHaveBeenCalled();
-      
+
       // Dialog is shown after 4 seconds delay
       vi.advanceTimersByTime(4000);
       expect(mockCallbacks.onShowHotseatWinDialog).toHaveBeenCalledWith('Player 1');
@@ -452,7 +454,7 @@ describe('GameStateManager', () => {
     it('should update configuration', () => {
       const newScale = 2;
       manager.updateConfig({ scale: newScale });
-      
+
       // Config is private, but we can verify it doesn't throw
       expect(() => manager.updateConfig({ scale: newScale })).not.toThrow();
     });

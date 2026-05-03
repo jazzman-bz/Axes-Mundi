@@ -48,7 +48,7 @@ export async function loadDeck(deckId: string): Promise<ExtendedDeck> {
   // Check if AXM API is available (running in Electron)
   if (window.AXM && window.AXM.loadUserDeck) {
     const result = await window.AXM.loadUserDeck(deckId);
-    
+
     if (result.success && result.deck) {
       const deck = {
         ...result.deck,

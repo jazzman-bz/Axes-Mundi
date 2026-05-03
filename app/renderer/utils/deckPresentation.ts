@@ -19,12 +19,12 @@ export function getDeckThemeLabel(deck: Pick<Deck, 'theme' | 'axis'>): string {
 
 export function getDeckLocaleLabel(locale?: string): string {
   switch (locale) {
-  case 'en':
-    return 'English';
-  case 'de':
-    return 'German';
-  default:
-    return locale || 'Unknown';
+    case 'en':
+      return 'English';
+    case 'de':
+      return 'German';
+    default:
+      return locale || 'Unknown';
   }
 }
 

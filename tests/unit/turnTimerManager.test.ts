@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  describe, it, expect, vi, beforeEach, afterEach,
+} from 'vitest';
 import { TurnTimerManager, TurnTimerManagerCallbacks } from '@/utils/turnTimerManager';
 import { GameCard } from '@/game/Card';
 

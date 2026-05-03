@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  describe, it, expect, vi, beforeEach, afterEach,
+} from 'vitest';
 import { BoardNavigationManager, BoardNavigationManagerCallbacks } from '@/utils/boardNavigationManager';
 import { GameCard } from '@/game/Card';
 

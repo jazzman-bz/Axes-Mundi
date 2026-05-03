@@ -191,7 +191,7 @@ export class GameScene {
         distribution.serverHand.forEach((cardData: any, index: number) => {
           setTimeout(() => {
             soundManager.play(SoundType.CARD_SHUFFLE); // Play sound exactly when card animates
-            
+
             const card = new GameCard(
               cardData,
               deck,
@@ -215,7 +215,7 @@ export class GameScene {
         distribution.clientHand.forEach((cardData: any, index: number) => {
           setTimeout(() => {
             soundManager.play(SoundType.CARD_SHUFFLE); // Play sound exactly when card animates
-            
+
             const card = new GameCard(
               cardData,
               deck,

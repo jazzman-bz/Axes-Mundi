@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  describe, it, expect, vi, beforeEach, afterEach,
+} from 'vitest';
 import { InputHandler, InputHandlerConfig, InputHandlerCallbacks } from '@/utils/inputHandler';
 import { GameCard } from '@/game/Card';
 import { Card } from '@/data/types';
@@ -41,9 +43,7 @@ function createMockGameCard(card: Card, x: number = 100, y: number = 100): GameC
     y,
     width: 200,
     height: 300,
-    containsPoint: vi.fn((px: number, py: number) => {
-      return px >= x && px <= x + 200 && py >= y && py <= y + 300;
-    }),
+    containsPoint: vi.fn((px: number, py: number) => px >= x && px <= x + 200 && py >= y && py <= y + 300),
     startDrag: vi.fn(),
     updateDrag: vi.fn(),
     stopDrag: vi.fn(),
@@ -499,7 +499,9 @@ describe('InputHandler', () => {
       handler.updateConfig({ isLearningMode: true });
       callbacks.onHasIncorrectCard = vi.fn(() => true);
       callbacks.onGetButtonBounds = vi.fn(() => ({
-        weiterButtonBounds: { x: 100, y: 100, width: 200, height: 50 },
+        weiterButtonBounds: {
+          x: 100, y: 100, width: 200, height: 50,
+        },
         clearBoardButtonBounds: null,
         resetGameButtonBounds: null,
         playerSwitchOverlayBounds: null,
@@ -522,7 +524,9 @@ describe('InputHandler', () => {
       callbacks.onHasIncorrectCard = vi.fn(() => false);
       callbacks.onGetButtonBounds = vi.fn(() => ({
         weiterButtonBounds: null,
-        clearBoardButtonBounds: { x: 100, y: 100, width: 200, height: 50 },
+        clearBoardButtonBounds: {
+          x: 100, y: 100, width: 200, height: 50,
+        },
         resetGameButtonBounds: null,
         playerSwitchOverlayBounds: null,
       }));

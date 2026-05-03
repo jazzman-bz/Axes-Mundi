@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  describe, it, expect, vi, beforeEach, afterEach,
+} from 'vitest';
 import { LearningModeManager, LearningModeManagerCallbacks } from '@/utils/learningModeManager';
 import { GameCard } from '@/game/Card';
 import { Card as CardData } from '@/data/types';
@@ -61,7 +63,7 @@ function createMockCallbacks(): LearningModeManagerCallbacks {
   let placedRight: GameCard[] = [];
   let graveyard: GameCard[] = [];
   let playerHand: GameCard[] = [];
-  let remainingCards: CardData[] = [];
+  const remainingCards: CardData[] = [];
   let score = 0;
   let currentTurn = 0;
   let tooltipCard: GameCard | null = null;
@@ -239,8 +241,12 @@ describe('LearningModeManager', () => {
       }));
       callbacks.onGetPlayerHand = vi.fn(() => []);
       callbacks.onGetRemainingCards = vi.fn(() => [
-        { id: '2', title: 'Card 2', axis: 'height', value: 100, unit: 'm', displayValue: '100 m', image: 'test.jpg', facts: [], sources: [], difficulty: 'medium' },
-        { id: '3', title: 'Card 3', axis: 'height', value: 100, unit: 'm', displayValue: '100 m', image: 'test.jpg', facts: [], sources: [], difficulty: 'medium' },
+        {
+          id: '2', title: 'Card 2', axis: 'height', value: 100, unit: 'm', displayValue: '100 m', image: 'test.jpg', facts: [], sources: [], difficulty: 'medium',
+        },
+        {
+          id: '3', title: 'Card 3', axis: 'height', value: 100, unit: 'm', displayValue: '100 m', image: 'test.jpg', facts: [], sources: [], difficulty: 'medium',
+        },
       ]);
 
       manager.clearBoard();

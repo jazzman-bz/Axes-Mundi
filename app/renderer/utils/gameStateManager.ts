@@ -76,7 +76,7 @@ export interface GameStateManagerCallbacks {
   onShowLoseDialog: () => void;
 }
 
-  /**
+/**
    * Configuration for GameStateManager
    */
 export interface GameStateManagerConfig {
@@ -240,7 +240,7 @@ export class GameStateManager {
         });
         return; // Can't give card if we skip recycling and deck is empty
       }
-      
+
       // Normal case: recycle graveyard when deck is empty
       logger.info({
         scope: 'renderer/gamestate',

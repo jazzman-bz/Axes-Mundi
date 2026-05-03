@@ -107,7 +107,7 @@ export class GameCard {
   private async responseToDataUrl(response: Response): Promise<string> {
     const arrayBuffer = await response.arrayBuffer();
     const contentType = response.headers.get('content-type') || 'image/png';
-    
+
     // Convert to base64 data URL (more reliable than blob URLs in Electron canvas)
     const uint8Array = new Uint8Array(arrayBuffer);
     let binary = '';
@@ -154,7 +154,7 @@ export class GameCard {
           meta: { cardId: this.card.id, image: this.card.image },
         });
       };
-      
+
       // Handle errors
       this.imageElement.onerror = () => {
         this.imageLoading = false;
@@ -183,7 +183,7 @@ export class GameCard {
         const fileName = hasExtension ? imageName : `${imageName}.jpg`;
         const encodedFileName = encodeURIComponent(fileName);
         imagePath = `user-deck-image://${imageFolder}/${encodedFileName}`;
-        
+
         logger.debug({
           scope: 'game/card',
           msg: 'loading user deck image via custom protocol',
@@ -224,7 +224,7 @@ export class GameCard {
 
       // Set the image source
       this.imageElement.src = imagePath;
-      
+
       // Note: PNG fallback is already handled via fetch() for user decks
       // For bundled decks, add fallback
       if (!this.deck.isUserDeck) {

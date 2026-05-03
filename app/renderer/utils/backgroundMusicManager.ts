@@ -152,7 +152,7 @@ class BackgroundMusicManager {
       return;
     }
 
-    const pendingTrack = this.pendingTrack;
+    const { pendingTrack } = this;
     this.pendingTrack = null;
     await this.play(pendingTrack.track, pendingTrack.options);
   }

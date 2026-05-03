@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  describe, it, expect, vi, beforeEach, afterEach,
+} from 'vitest';
 import { UIDialogManager, UIDialogManagerCallbacks } from '@/utils/uiDialogManager';
 
 // Mock the logger

@@ -1,4 +1,4 @@
-﻿import { logger } from '@/utils/logger';
+import { logger } from '@/utils/logger';
 // REMOVED: loadDeck, shuffleCardsInPlace - Now used in GameInitializer
 import { GameCard } from '@/game/Card';
 import { Card as CardData } from '@/data/types';
@@ -1117,13 +1117,13 @@ class AxesMundiApp {
                 },
                 onStartTurnTimer: () => {
                   if (this.turnTimerManager) {
-            this.turnTimerManager.startTurnTimer();
-          }
+                    this.turnTimerManager.startTurnTimer();
+                  }
                 },
                 onUpdateTurnText: () => {
                   if (this.turnTimerManager) {
-            this.turnTimerManager.updateTurnText();
-          }
+                    this.turnTimerManager.updateTurnText();
+                  }
                 },
                 onPlaySound: (soundType) => {
                   soundManager.play(soundType);
@@ -1200,8 +1200,6 @@ class AxesMundiApp {
 
   // REMOVED: Initialization methods - Now handled by GameInitializer
 
-
-
   // REMOVED: loadGame() - Now handled by GameInitializer
 
   // REMOVED: Card dealing methods - Now handled by CardDealerManager
@@ -1273,7 +1271,6 @@ class AxesMundiApp {
   }
 
   // REMOVED: Timer methods - Now handled by TurnTimerManager
-
 
   /**
    * Show tooltip for incorrect card automatically
@@ -1465,9 +1462,6 @@ class AxesMundiApp {
     this.gameRenderer.render(renderState);
   }
 
-
-
-
   /**
    * Layout remaining hand cards nicely along bottom
    */
@@ -1524,7 +1518,6 @@ class AxesMundiApp {
     // Use layout manager to layout axis cards (will sort by value)
     this.layoutManager.layoutAxis(allCards);
   }
-
 
   /**
    * Update scale for all existing cards
@@ -1681,12 +1674,12 @@ function setupOptionsMenu(): void {
     },
     onReturn: () => {},
     onLeaveToMenu: () => {
-      void navigateToMenu();
+      navigateToMenu();
     },
     leaveToMenuLabel: 'Leave Game to Menu',
     onLeaveApp: () => {
-      void backgroundMusicManager.fadeOutCurrent(500).finally(() => {
-        void quitApplication();
+      backgroundMusicManager.fadeOutCurrent(500).finally(() => {
+        quitApplication();
       });
     },
   });
@@ -1699,7 +1692,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await initSoundManagerAsync();
     await backgroundMusicManager.play('gameplay', { fadeInMs: 1600 });
     setupOptionsMenu();
-    
+
     new AxesMundiApp();
     logger.info({ scope: 'renderer/app', msg: 'app initialized successfully' });
   } catch (error: any) {

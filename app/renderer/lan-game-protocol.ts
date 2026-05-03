@@ -307,19 +307,19 @@ export class LANGameProtocol {
 
       // Log additional fields based on message type
       switch (message.type) {
-      case LANGameProtocol.MESSAGE_TYPES.PLACE_CARD:
-        logData.meta.cardId = message.cardId;
-        logData.meta.position = message.position;
-        break;
-      case LANGameProtocol.MESSAGE_TYPES.GAME_STATE_UPDATE:
-        logData.meta.currentPlayer = message.currentPlayer;
-        logData.meta.placedCardsCount = message.placedCards?.length || 0;
-        break;
-      case LANGameProtocol.MESSAGE_TYPES.CARD_DISTRIBUTION:
-        logData.meta.boardCard = message.distribution?.boardCard?.id;
-        logData.meta.serverHandSize = message.distribution?.serverHand?.length;
-        logData.meta.clientHandSize = message.distribution?.clientHand?.length;
-        break;
+        case LANGameProtocol.MESSAGE_TYPES.PLACE_CARD:
+          logData.meta.cardId = message.cardId;
+          logData.meta.position = message.position;
+          break;
+        case LANGameProtocol.MESSAGE_TYPES.GAME_STATE_UPDATE:
+          logData.meta.currentPlayer = message.currentPlayer;
+          logData.meta.placedCardsCount = message.placedCards?.length || 0;
+          break;
+        case LANGameProtocol.MESSAGE_TYPES.CARD_DISTRIBUTION:
+          logData.meta.boardCard = message.distribution?.boardCard?.id;
+          logData.meta.serverHandSize = message.distribution?.serverHand?.length;
+          logData.meta.clientHandSize = message.distribution?.clientHand?.length;
+          break;
       }
 
       logger.debug(logData);

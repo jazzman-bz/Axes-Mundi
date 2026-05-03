@@ -430,24 +430,24 @@ export class CardDealerManager {
       }, 1200 + i * 200); // Start after player cards, 200ms delay between each
     }
 
-      // Set player turn after all cards are dealt
-      const totalDealTime = 1200 + 5 * 200 + opponentCardCount * 200; // Player cards + opponent cards
-      setTimeout(() => {
-        this.config.callbacks.onSetIsPlayerTurn(true);
-        this.config.callbacks.onUpdateInputHandlerConfig();
-        this.config.callbacks.onStartTurnTimer();
+    // Set player turn after all cards are dealt
+    const totalDealTime = 1200 + 5 * 200 + opponentCardCount * 200; // Player cards + opponent cards
+    setTimeout(() => {
+      this.config.callbacks.onSetIsPlayerTurn(true);
+      this.config.callbacks.onUpdateInputHandlerConfig();
+      this.config.callbacks.onStartTurnTimer();
 
-        logger.info({
-          scope: 'renderer/dealer',
-          msg: 'game started, player turn',
-          meta: {
-            turn: gameState.currentTurn,
-            remainingCards: this.config.callbacks.onGetRemainingCards().length,
-            difficulty: gameState.gameDifficulty,
-            opponentCardCount,
-          },
-        });
-      }, totalDealTime);
+      logger.info({
+        scope: 'renderer/dealer',
+        msg: 'game started, player turn',
+        meta: {
+          turn: gameState.currentTurn,
+          remainingCards: this.config.callbacks.onGetRemainingCards().length,
+          difficulty: gameState.gameDifficulty,
+          opponentCardCount,
+        },
+      });
+    }, totalDealTime);
   }
 
   /**

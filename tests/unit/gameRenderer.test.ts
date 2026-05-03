@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import {
+  describe, it, expect, beforeEach, vi,
+} from 'vitest';
 import { GameRenderer, RenderState } from '@/utils/gameRenderer';
 import { GameCard } from '@/game/Card';
 import type { Card } from '@/data/types';
@@ -24,7 +26,7 @@ describe('GameRenderer', () => {
     canvas = document.createElement('canvas');
     canvas.width = 1920;
     canvas.height = 1080;
-    
+
     // Mock canvas context
     ctx = {
       fillStyle: '',
@@ -62,7 +64,7 @@ describe('GameRenderer', () => {
         addColorStop: vi.fn(),
       })),
     } as any;
-    
+
     // Mock getContext to return our mock context
     vi.spyOn(canvas, 'getContext').mockReturnValue(ctx);
 

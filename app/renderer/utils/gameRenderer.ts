@@ -8,12 +8,12 @@ import { logger } from '@/utils/logger';
  */
 function getAvatarEmoji(avatarId: string | number | null | undefined): string {
   const AVATAR_EMOJIS: Record<string, string> = {
-    '1': '👨‍🚀', // Astronaut
-    '2': '🧙‍♂️', // Magier
-    '3': '🏴‍☠️', // Pirat
-    '4': '🦄', // Einhorn
-    '5': '🤖', // Roboter
-    '6': '🐉', // Drache
+    1: '👨‍🚀', // Astronaut
+    2: '🧙‍♂️', // Magier
+    3: '🏴‍☠️', // Pirat
+    4: '🦄', // Einhorn
+    5: '🤖', // Roboter
+    6: '🐉', // Drache
   };
   if (!avatarId) return '👤';
   return AVATAR_EMOJIS[String(avatarId)] || '👤';

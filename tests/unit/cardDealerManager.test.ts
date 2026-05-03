@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  describe, it, expect, vi, beforeEach, afterEach,
+} from 'vitest';
 import { CardDealerManager, CardDealerManagerCallbacks } from '@/utils/cardDealerManager';
 import { GameCard } from '@/game/Card';
 import { Card as CardData } from '@/data/types';

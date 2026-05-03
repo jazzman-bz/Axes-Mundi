@@ -1,4 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import {
+  describe, it, expect, vi,
+} from 'vitest';
 import {
   calculateScale,
   calculateScaleFromWindow,
@@ -6,8 +8,6 @@ import {
   ScaleConfig,
 } from '@/utils/scaleUtils';
 
-// Mock the logger
-import { vi } from 'vitest';
 vi.mock('@/utils/logger', () => ({
   logger: {
     debug: vi.fn(),

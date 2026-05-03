@@ -17,7 +17,7 @@ export enum SoundType {
   CARD_PLACE = 'card-place',
   SUCCESS = 'success',
   ERROR = 'error',
-  HOVER = 'hover'
+  HOVER = 'hover',
 }
 
 /**
@@ -35,8 +35,11 @@ interface SoundManagerConfig {
  */
 export class SoundManager {
   private sounds: Map<SoundType, HTMLAudioElement>;
+
   private config: SoundManagerConfig;
+
   private isInitialized: boolean;
+
   private volumeMultipliers: Map<SoundType, number>;
 
   constructor() {
@@ -44,14 +47,14 @@ export class SoundManager {
     this.config = {
       enabled: true,
       volume: getSfxVolumeSetting(),
-      basePath: './assets/sounds/'
+      basePath: './assets/sounds/',
     };
     this.isInitialized = false;
 
     // Sound-specific volume multipliers (relative to base volume)
     this.volumeMultipliers = new Map([
-      [SoundType.SUCCESS, 0.4],   // Success sound - 20% volume
-      [SoundType.ERROR, 0.2],     // Error sound - 10% volume
+      [SoundType.SUCCESS, 0.4], // Success sound - 20% volume
+      [SoundType.ERROR, 0.2], // Error sound - 10% volume
       [SoundType.CARD_PLACE, 1.0],
       [SoundType.CARD_SHUFFLE, 1.0],
       [SoundType.BUTTON_CLICK, 1.0],
@@ -73,23 +76,22 @@ export class SoundManager {
       await this.loadSound(SoundType.CARD_PLACE, 'a_single_card_placed.wav');
       await this.loadSound(SoundType.SUCCESS, 'card_placed_right.wav');
       await this.loadSound(SoundType.ERROR, 'card_placed_wrong.wav');
-      
+
       // Additional sounds can be loaded here in the future:
       // await this.loadSound(SoundType.CARD_FLIP, 'card_flip.wav');
       // await this.loadSound(SoundType.HOVER, 'hover.wav');
 
       this.isInitialized = true;
-      logger.info({ 
-        scope: 'sound/init', 
+      logger.info({
+        scope: 'sound/init',
         msg: 'Sound manager initialized successfully',
-        meta: { loadedSounds: this.sounds.size }
+        meta: { loadedSounds: this.sounds.size },
       });
-
     } catch (error) {
-      logger.error({ 
-        scope: 'sound/init', 
-        msg: 'Failed to initialize sound manager', 
-        err: { message: (error as Error).message } 
+      logger.error({
+        scope: 'sound/init',
+        msg: 'Failed to initialize sound manager',
+        err: { message: (error as Error).message },
       });
     }
   }
@@ -107,19 +109,19 @@ export class SoundManager {
       // Wait for audio to be loaded
       await new Promise<void>((resolve, reject) => {
         audio.addEventListener('canplaythrough', () => {
-          logger.debug({ 
-            scope: 'sound/load', 
-            msg: 'Sound loaded', 
-            meta: { type, filename } 
+          logger.debug({
+            scope: 'sound/load',
+            msg: 'Sound loaded',
+            meta: { type, filename },
           });
           resolve();
         }, { once: true });
 
         audio.addEventListener('error', (e) => {
-          logger.warn({ 
-            scope: 'sound/load', 
-            msg: 'Failed to load sound', 
-            meta: { type, filename, error: e } 
+          logger.warn({
+            scope: 'sound/load',
+            msg: 'Failed to load sound',
+            meta: { type, filename, error: e },
           });
           reject(new Error(`Failed to load sound: ${filename}`));
         }, { once: true });
@@ -129,12 +131,11 @@ export class SoundManager {
       });
 
       this.sounds.set(type, audio);
-
     } catch (error) {
-      logger.error({ 
-        scope: 'sound/load', 
-        msg: 'Error loading sound', 
-        err: { message: (error as Error).message, type, filename } 
+      logger.error({
+        scope: 'sound/load',
+        msg: 'Error loading sound',
+        err: { message: (error as Error).message, type, filename },
       });
       throw error;
     }
@@ -146,60 +147,59 @@ export class SoundManager {
   play(type: SoundType): void {
     try {
       if (!this.config.enabled) {
-        logger.debug({ 
-          scope: 'sound/play', 
+        logger.debug({
+          scope: 'sound/play',
           msg: 'Sound disabled, skipping playback',
-          meta: { type }
+          meta: { type },
         });
         return;
       }
 
       if (!this.isInitialized) {
-        logger.warn({ 
-          scope: 'sound/play', 
+        logger.warn({
+          scope: 'sound/play',
           msg: 'Sound manager not initialized',
-          meta: { type }
+          meta: { type },
         });
         return;
       }
 
       const sound = this.sounds.get(type);
-      
+
       if (!sound) {
-        logger.warn({ 
-          scope: 'sound/play', 
+        logger.warn({
+          scope: 'sound/play',
           msg: 'Sound not found',
-          meta: { type }
+          meta: { type },
         });
         return;
       }
 
       // Clone and play to allow overlapping sounds
       const soundClone = sound.cloneNode(true) as HTMLAudioElement;
-      
+
       // Apply sound-specific volume multiplier
       const multiplier = this.volumeMultipliers.get(type) || 1.0;
       soundClone.volume = Math.min(1.0, this.config.volume * multiplier);
-      
-      soundClone.play().catch(error => {
-        logger.error({ 
-          scope: 'sound/play', 
-          msg: 'Failed to play sound', 
-          err: { message: error.message, type } 
+
+      soundClone.play().catch((error) => {
+        logger.error({
+          scope: 'sound/play',
+          msg: 'Failed to play sound',
+          err: { message: error.message, type },
         });
       });
 
-      logger.debug({ 
-        scope: 'sound/play', 
+      logger.debug({
+        scope: 'sound/play',
         msg: 'Sound played',
-        meta: { type, volume: soundClone.volume, multiplier }
+        meta: { type, volume: soundClone.volume, multiplier },
       });
-
     } catch (error) {
-      logger.error({ 
-        scope: 'sound/play', 
-        msg: 'Error playing sound', 
-        err: { message: (error as Error).message, type } 
+      logger.error({
+        scope: 'sound/play',
+        msg: 'Error playing sound',
+        err: { message: (error as Error).message, type },
       });
     }
   }
@@ -209,10 +209,10 @@ export class SoundManager {
    */
   setEnabled(enabled: boolean): void {
     this.config.enabled = enabled;
-    logger.info({ 
-      scope: 'sound/config', 
+    logger.info({
+      scope: 'sound/config',
       msg: 'Sound enabled state changed',
-      meta: { enabled }
+      meta: { enabled },
     });
   }
 
@@ -221,16 +221,16 @@ export class SoundManager {
    */
   setVolume(volume: number): void {
     this.config.volume = setSfxVolumeSetting(volume);
-    
+
     // Update volume for all loaded sounds
-    this.sounds.forEach(sound => {
+    this.sounds.forEach((sound) => {
       sound.volume = this.config.volume;
     });
 
-    logger.info({ 
-      scope: 'sound/config', 
+    logger.info({
+      scope: 'sound/config',
       msg: 'Volume changed',
-      meta: { volume: this.config.volume }
+      meta: { volume: this.config.volume },
     });
   }
 
@@ -267,17 +267,16 @@ export class SoundManager {
         }, i * delayMs);
       }
 
-      logger.debug({ 
-        scope: 'sound/sequence', 
+      logger.debug({
+        scope: 'sound/sequence',
         msg: 'Sound sequence started',
-        meta: { type, count, delayMs }
+        meta: { type, count, delayMs },
       });
-
     } catch (error) {
-      logger.error({ 
-        scope: 'sound/sequence', 
-        msg: 'Failed to play sound sequence', 
-        err: { message: (error as Error).message } 
+      logger.error({
+        scope: 'sound/sequence',
+        msg: 'Failed to play sound sequence',
+        err: { message: (error as Error).message },
       });
     }
   }

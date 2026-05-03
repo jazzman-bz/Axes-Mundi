@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  describe, it, expect, vi, beforeEach,
+} from 'vitest';
 import {
   isAxisCorrectlySorted,
   evaluatePlacement,
@@ -193,17 +195,17 @@ describe('scoring', () => {
 
     it('should handle mixed units correctly', () => {
       const cards = [
-        createCard({ value: 50, unit: 'cm', title: '50cm' }),   // 0.5m
-        createCard({ value: 1, unit: 'm', title: '1m' }),        // 1m
-        createCard({ value: 0.002, unit: 'km', title: '2m' }),   // 2m
+        createCard({ value: 50, unit: 'cm', title: '50cm' }), // 0.5m
+        createCard({ value: 1, unit: 'm', title: '1m' }), // 1m
+        createCard({ value: 0.002, unit: 'km', title: '2m' }), // 2m
       ];
       expect(isAxisCorrectlySorted(cards)).toBe(true);
     });
 
     it('should return false for mixed units in wrong order', () => {
       const cards = [
-        createCard({ value: 1, unit: 'km', title: '1km' }),      // 1000m
-        createCard({ value: 100, unit: 'm', title: '100m' }),    // 100m (smaller!)
+        createCard({ value: 1, unit: 'km', title: '1km' }), // 1000m
+        createCard({ value: 100, unit: 'm', title: '100m' }), // 100m (smaller!)
       ];
       expect(isAxisCorrectlySorted(cards)).toBe(false);
     });
@@ -217,9 +219,7 @@ describe('scoring', () => {
     });
 
     it('should handle many cards', () => {
-      const cards = Array.from({ length: 10 }, (_, i) =>
-        createCard({ value: i * 10, title: `Card ${i}` }),
-      );
+      const cards = Array.from({ length: 10 }, (_, i) => createCard({ value: i * 10, title: `Card ${i}` }));
       expect(isAxisCorrectlySorted(cards)).toBe(true);
     });
 
@@ -286,7 +286,7 @@ describe('scoring', () => {
         const smallInM = createCard({ value: 500, unit: 'm', title: '500m' }); // 500m
         const largeInM = createCard({ value: 2000, unit: 'm', title: '2000m' }); // 2000m
 
-        expect(evaluatePlacement(smallInM, centerInKm, true)).toBe(true);  // 500m < 1000m
+        expect(evaluatePlacement(smallInM, centerInKm, true)).toBe(true); // 500m < 1000m
         expect(evaluatePlacement(largeInM, centerInKm, false)).toBe(true); // 2000m > 1000m
         expect(evaluatePlacement(largeInM, centerInKm, true)).toBe(false); // 2000m !< 1000m
       });
@@ -296,8 +296,8 @@ describe('scoring', () => {
         const earlierBC = createCard({ value: -500, unit: 'bc', title: '500 BC' });
         const laterAD = createCard({ value: 2000, unit: 'ad', title: '2000 AD' });
 
-        expect(evaluatePlacement(earlierBC, centerAD, true)).toBe(true);   // -500 < 1000
-        expect(evaluatePlacement(laterAD, centerAD, false)).toBe(true);    // 2000 > 1000
+        expect(evaluatePlacement(earlierBC, centerAD, true)).toBe(true); // -500 < 1000
+        expect(evaluatePlacement(laterAD, centerAD, false)).toBe(true); // 2000 > 1000
       });
     });
 

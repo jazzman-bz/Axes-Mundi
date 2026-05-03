@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import {
+  describe, it, expect, beforeEach, afterEach, vi,
+} from 'vitest';
 import { CardPlacementHandler, CardPlacementHandlerCallbacks } from '@/utils/cardPlacementHandler';
 import { GameCard } from '@/game/Card';
 import { Card as CardData } from '@/data/types';
@@ -384,8 +386,12 @@ describe('CardPlacementHandler', () => {
         player2Hand: [],
       }));
       mockCallbacks.onGetRemainingCards = vi.fn(() => [
-        { id: 'card4', title: 'Card 4', axis: 'time', value: 400 } as CardData,
-        { id: 'card5', title: 'Card 5', axis: 'time', value: 500 } as CardData,
+        {
+          id: 'card4', title: 'Card 4', axis: 'time', value: 400,
+        } as CardData,
+        {
+          id: 'card5', title: 'Card 5', axis: 'time', value: 500,
+        } as CardData,
       ]);
       mockCallbacks.onGetBoardCards = vi.fn(() => ({
         boardCard: mockCard1,

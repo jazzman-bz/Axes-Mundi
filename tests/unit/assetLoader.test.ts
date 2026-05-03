@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  describe, it, expect, vi, beforeEach, afterEach,
+} from 'vitest';
 import {
   loadImage,
   loadImages,
@@ -34,13 +36,17 @@ describe('assetLoader', () => {
   // Mock Image class
   class MockImage {
     onload: (() => void) | null = null;
+
     onerror: (() => void) | null = null;
-    _src = '';
+
+    srcValue = '';
+
     width = 100;
+
     height = 100;
 
     set src(value: string) {
-      this._src = value;
+      this.srcValue = value;
       // Simulate async image loading
       if (value.includes('fail')) {
         setTimeout(() => this.onerror?.(), 10);
@@ -52,7 +58,7 @@ describe('assetLoader', () => {
     }
 
     get src() {
-      return this._src;
+      return this.srcValue;
     }
   }
 

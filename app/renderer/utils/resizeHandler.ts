@@ -83,14 +83,14 @@ export class ResizeHandler {
     }
 
     this.debounceTimer = setTimeout(() => {
-      this._performResize();
+      this.performResize();
     }, this.config.debounceMs);
   }
 
   /**
    * Perform actual resize operation
    */
-  private _performResize(): void {
+  private performResize(): void {
     try {
       const width = window.innerWidth;
       const height = window.innerHeight;
@@ -167,7 +167,7 @@ export class ResizeHandler {
     this.isAttached = true;
 
     // Perform initial resize
-    this._performResize();
+    this.performResize();
 
     logger.debug({
       scope: this.config.scope,

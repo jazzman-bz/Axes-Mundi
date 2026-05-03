@@ -128,9 +128,7 @@ export async function loadImages(
   sources: Array<{ src: string; options?: AssetLoadOptions }>,
   defaultOptions: AssetLoadOptions = {},
 ): Promise<Array<LoadedAsset | null>> {
-  const promises = sources.map(({ src, options }) =>
-    loadImage(src, { ...defaultOptions, ...options }),
-  );
+  const promises = sources.map(({ src, options }) => loadImage(src, { ...defaultOptions, ...options }));
 
   return Promise.all(promises);
 }
@@ -162,7 +160,9 @@ export async function preloadImages(
  */
 export class AssetManager {
   private cache: Map<string, LoadedAsset> = new Map();
+
   private loading: Map<string, Promise<LoadedAsset | null>> = new Map();
+
   private scope: string;
 
   constructor(scope = 'utils/assetManager') {
