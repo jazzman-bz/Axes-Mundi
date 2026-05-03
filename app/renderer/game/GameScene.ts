@@ -3,6 +3,10 @@ import {
 } from 'pixi.js';
 import { logger } from '@/utils/logger';
 import { soundManager, SoundType } from '@/utils/soundManager';
+import {
+  getLanCardDistribution,
+  getSelectedGameType,
+} from '@/utils/sessionStore';
 import { GameCard } from './Card';
 
 type PixiCardContainer = Container & {
@@ -39,7 +43,7 @@ export class GameScene {
     this.container = new Container();
 
     // Check if we're in LAN mode
-    this.isLANMode = localStorage.getItem('selectedGameType') === 'lan';
+    this.isLANMode = getSelectedGameType() === 'lan';
 
     this.initAxis();
     this.initTestCard();
@@ -62,18 +66,16 @@ export class GameScene {
 
       // Debug: Log all localStorage keys
       console.log('🎮 GameScene: All localStorage keys:', Object.keys(localStorage));
-      console.log('🎮 GameScene: selectedGameType:', localStorage.getItem('selectedGameType'));
-      console.log('🎮 GameScene: lanCardDistribution exists:', !!localStorage.getItem('lanCardDistribution'));
+      const cardDistribution = getLanCardDistribution();
+      console.log('🎮 GameScene: selectedGameType:', getSelectedGameType());
+      console.log('🎮 GameScene: lanCardDistribution exists:', !!cardDistribution);
 
-      // Load card distribution from localStorage
-      const cardDistributionStr = localStorage.getItem('lanCardDistribution');
-      if (cardDistributionStr) {
-        console.log('🎮 GameScene: Found lanCardDistribution in localStorage');
-        const cardDistribution = JSON.parse(cardDistributionStr);
+      if (cardDistribution) {
+        console.log('🎮 GameScene: Found lanCardDistribution in sessionStore');
         console.log('🎮 GameScene: Parsed card distribution:', cardDistribution);
         this.setupLANCards(cardDistribution);
       } else {
-        console.warn('🎮 GameScene: No lanCardDistribution found in localStorage');
+        console.warn('🎮 GameScene: No lanCardDistribution found in sessionStore');
         logger.warn({ scope: 'renderer/game/scene', msg: 'no LAN card distribution found' });
       }
     } catch (error: any) {

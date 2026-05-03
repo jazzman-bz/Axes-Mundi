@@ -67,4 +67,41 @@ describe('LANGameClient', () => {
       playerName: 'Server',
     });
   });
+
+  it('persists joined players and LAN distribution through session storage helpers', async () => {
+    const client = new LANGameClient('ws://127.0.0.1:8080', 'Client', '2');
+    await client.connect();
+
+    const socket = (client as any).ws as MockWebSocket;
+
+    socket.onmessage?.({
+      data: JSON.stringify({
+        type: 'joined',
+        playerName: 'Server',
+        playerAvatar: '1',
+        clientPlayerName: 'Client',
+      }),
+    });
+
+    expect(localStorage.getItem('serverPlayerName')).toBe('Server');
+    expect(localStorage.getItem('serverPlayerAvatar')).toBe('1');
+    expect(localStorage.getItem('clientPlayerName')).toBe('Client');
+    expect(localStorage.getItem('clientPlayerAvatar')).toBe('2');
+
+    socket.onmessage?.({
+      data: JSON.stringify({
+        type: 'cardDistribution',
+        distribution: {
+          deckId: 'biology-mass-en',
+          currentPlayer: 'Server',
+          boardCard: { id: 'b1' },
+          serverHand: [],
+          clientHand: [],
+        },
+      }),
+    });
+
+    expect(localStorage.getItem('currentPlayer')).toBe('Server');
+    expect(localStorage.getItem('lanCardDistribution')).toContain('biology-mass-en');
+  });
 });

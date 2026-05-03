@@ -1,5 +1,12 @@
 import { logger } from '@/utils/logger';
 import { Card as CardData } from '@/data/types';
+import {
+  getLanSessionState,
+  setCurrentPlayer,
+  setLanCardDistribution,
+  setLanClientPlayer,
+  setLanServerPlayer,
+} from '@/utils/sessionStore';
 
 interface LANMessage {
   type: string;
@@ -170,28 +177,12 @@ export class LANGameClient {
    */
   private handleJoinedMessage(message: any): void {
     try {
-      // Store server player name from the joined message
-      if (message.playerName) {
-        localStorage.setItem('serverPlayerName', message.playerName);
-      }
+      const serverPlayerName = message.playerName || 'Server';
+      const serverPlayerAvatar = message.playerAvatar || 'default';
+      const clientPlayerName = message.clientPlayerName || this.playerName;
 
-      // Store server player avatar from the joined message
-      if (message.playerAvatar) {
-        localStorage.setItem('serverPlayerAvatar', message.playerAvatar);
-      } else {
-        localStorage.setItem('serverPlayerAvatar', 'default');
-      }
-
-      // Store client player name from the joined message (server confirms our name)
-      if (message.clientPlayerName) {
-        localStorage.setItem('clientPlayerName', message.clientPlayerName);
-      } else {
-        // Fallback to our own name if server doesn't send it
-        localStorage.setItem('clientPlayerName', this.playerName);
-      }
-
-      // Store client player avatar (our own)
-      localStorage.setItem('clientPlayerAvatar', this.playerAvatar);
+      setLanServerPlayer(serverPlayerName, serverPlayerAvatar, false);
+      setLanClientPlayer(clientPlayerName, this.playerAvatar);
 
       // Update UI immediately with player names (no current player yet)
       this.updatePlayerNamesUI();
@@ -221,10 +212,11 @@ export class LANGameClient {
     try {
       // Also update local game state for consistency
       const { cardId, boardPosition, playerName } = message;
+      const { serverPlayerName } = getLanSessionState();
 
       // Find the card in the appropriate hand
       let card: CardData | undefined;
-      if (playerName === localStorage.getItem('serverPlayerName')) {
+      if (playerName === serverPlayerName) {
         card = this.serverHand.find((c) => c.id === cardId);
       } else {
         card = this.clientHand.find((c) => c.id === cardId);
@@ -232,7 +224,7 @@ export class LANGameClient {
 
       if (card) {
         // Remove from hand and add to placed cards
-        if (playerName === localStorage.getItem('serverPlayerName')) {
+        if (playerName === serverPlayerName) {
           this.serverHand = this.serverHand.filter((c) => c.id !== cardId);
         } else {
           this.clientHand = this.clientHand.filter((c) => c.id !== cardId);
@@ -273,7 +265,7 @@ export class LANGameClient {
       this.placedCards = message.placedCards || [];
 
       // Store current player
-      localStorage.setItem('currentPlayer', this.currentPlayer);
+      setCurrentPlayer(this.currentPlayer);
 
       logger.info({
         scope: 'lan/client',
@@ -304,7 +296,7 @@ export class LANGameClient {
     try {
       // NOW ACTIVE: currentPlayer logic after card distribution
       this.currentPlayer = message.currentPlayer;
-      localStorage.setItem('currentPlayer', this.currentPlayer);
+      setCurrentPlayer(this.currentPlayer);
 
       // Update UI
       this.updateCurrentPlayerUI(this.currentPlayer);
@@ -338,11 +330,8 @@ export class LANGameClient {
       this.placedCards = distribution.placedCards || [];
       this.gameStarted = distribution.gameStarted || false;
 
-      // Store card distribution in localStorage for UI rendering
-      localStorage.setItem('lanCardDistribution', JSON.stringify(distribution));
-
-      // Store current player in localStorage
-      localStorage.setItem('currentPlayer', this.currentPlayer);
+      setLanCardDistribution(distribution);
+      setCurrentPlayer(this.currentPlayer);
 
       logger.info({
         scope: 'lan/client',
@@ -536,7 +525,7 @@ export class LANGameClient {
       const { currentPlayer } = message;
 
       if (currentPlayer) {
-        localStorage.setItem('currentPlayer', currentPlayer);
+        setCurrentPlayer(currentPlayer);
 
         // Update UI to show current player
         this.updateCurrentPlayerUI(currentPlayer);
@@ -561,8 +550,9 @@ export class LANGameClient {
    */
   private updatePlayerNamesUI(): void {
     try {
-      const serverPlayerName = localStorage.getItem('serverPlayerName') || 'Server';
-      const clientPlayerName = localStorage.getItem('clientPlayerName') || this.playerName;
+      const lanSession = getLanSessionState();
+      const serverPlayerName = lanSession.serverPlayerName || 'Server';
+      const clientPlayerName = lanSession.clientPlayerName || this.playerName;
 
       // Update UI elements to show player names
       const playerNameElement = document.getElementById('playerName');
@@ -598,8 +588,9 @@ export class LANGameClient {
    */
   private updateCurrentPlayerUI(currentPlayer: string): void {
     try {
-      const serverPlayerName = localStorage.getItem('serverPlayerName') || 'Server';
-      const clientPlayerName = localStorage.getItem('clientPlayerName') || this.playerName;
+      const lanSession = getLanSessionState();
+      const serverPlayerName = lanSession.serverPlayerName || 'Server';
+      const clientPlayerName = lanSession.clientPlayerName || this.playerName;
 
       // Update UI elements to show current player
       const playerNameElement = document.getElementById('playerName');
