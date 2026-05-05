@@ -18,6 +18,7 @@ app/renderer/dist/
 .next/
 .nuxt/
 .npm
+.pnpm-store/
 .eslintcache
 .stylelintcache
 .rpt2_cache/
@@ -27,6 +28,8 @@ app/renderer/dist/
 
 # Environment variables
 .env
+.env.*
+!.env.example
 .env.local
 .env.development.local
 .env.test.local
@@ -55,6 +58,7 @@ playwright-report/
 playwright/.cache/
 .playwright-cli/
 output_*.png
+output/
 progress.md
 
 # Package artifacts

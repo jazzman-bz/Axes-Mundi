@@ -1,5 +1,0 @@
-- generic [ref=e2]:
-  - generic:
-    - generic [ref=e4]: Loading Axes-Mundi...
-    - button "Back to Deck Selection" [ref=e5] [cursor=pointer]:
-      - img [ref=e6]
