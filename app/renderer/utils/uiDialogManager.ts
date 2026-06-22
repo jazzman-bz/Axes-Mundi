@@ -1,6 +1,12 @@
 import { logger } from '@/utils/logger';
 import { soundManager, SoundType } from '@/utils/soundManager';
 
+interface PlayerData {
+  id?: string | null;
+  name: string;
+  avatar: string | null;
+}
+
 /**
  * Callbacks for UIDialogManager to interact with game state
  */
@@ -14,8 +20,8 @@ export interface UIDialogManagerCallbacks {
 
   /** Get player data for hotseat mode */
   onGetPlayerData: () => {
-    player1Data: { name: string; avatar: string } | null;
-    player2Data: { name: string; avatar: string } | null;
+    player1Data: PlayerData | null;
+    player2Data: PlayerData | null;
   };
 
   /** Get hands for player switching */

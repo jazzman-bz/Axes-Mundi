@@ -1,6 +1,12 @@
 import { GameCard } from '@/game/Card';
 import { logger } from '@/utils/logger';
 
+interface PlayerData {
+  id?: string | null;
+  name: string;
+  avatar: string | null;
+}
+
 /**
  * Callbacks for TurnTimerManager to interact with game state
  */
@@ -22,8 +28,8 @@ export interface TurnTimerManagerCallbacks {
 
   /** Get player data for hotseat mode */
   onGetPlayerData: () => {
-    player1Data: { name: string; avatar: string } | null;
-    player2Data: { name: string; avatar: string } | null;
+    player1Data: PlayerData | null;
+    player2Data: PlayerData | null;
     currentPlayerIndex: number;
   };
 

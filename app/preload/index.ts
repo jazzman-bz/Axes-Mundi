@@ -1,6 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { ImportedDeck } from '../shared/deckSecurity';
 import type { LanCardDistributionPayload, LanGameStateSnapshot } from '../shared/lanProtocol';
+import type {
+  CreatePlayerAccountInput,
+  MatchScoreTransaction,
+  PlayerAccount,
+  UpdatePlayerAccountInput,
+} from '../shared/playerAccounts';
 
 interface AppVersionInfo {
   appVersion: string;
@@ -59,6 +65,12 @@ contextBridge.exposeInMainWorld('AXM', {
   loadUserDeck: (deckId: string) => ipcRenderer.invoke('load-user-deck', deckId),
   deleteUserDeck: (deckId: string) => ipcRenderer.invoke('delete-user-deck', deckId),
   getUserDataPaths: () => ipcRenderer.invoke('get-user-data-paths'),
+
+  // Player account methods
+  getPlayerAccounts: () => ipcRenderer.invoke('get-player-accounts'),
+  createPlayerAccount: (input: CreatePlayerAccountInput) => ipcRenderer.invoke('create-player-account', input),
+  updatePlayerAccount: (accountId: string, input: UpdatePlayerAccountInput) => ipcRenderer.invoke('update-player-account', accountId, input),
+  commitMatchScore: (transaction: MatchScoreTransaction) => ipcRenderer.invoke('commit-match-score', transaction),
 
   // Debug method to log from renderer to main process terminal
   debugLog: (message: string, data?: any) => ipcRenderer.invoke('debug-log', message, data),
@@ -131,6 +143,30 @@ declare global {
         userDataPath: string;
         decksPath: string;
         imagesPath: string;
+        accountsPath: string;
+      }>;
+
+      // Player account methods
+      getPlayerAccounts: () => Promise<{
+        success: boolean;
+        error?: string;
+        accounts: PlayerAccount[];
+      }>;
+      createPlayerAccount: (input: CreatePlayerAccountInput) => Promise<{
+        success: boolean;
+        error?: string;
+        account?: PlayerAccount;
+      }>;
+      updatePlayerAccount: (accountId: string, input: UpdatePlayerAccountInput) => Promise<{
+        success: boolean;
+        error?: string;
+        account?: PlayerAccount;
+      }>;
+      commitMatchScore: (transaction: MatchScoreTransaction) => Promise<{
+        success: boolean;
+        error?: string;
+        account?: PlayerAccount;
+        applied?: boolean;
       }>;
     };
   }

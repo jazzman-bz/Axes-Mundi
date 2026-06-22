@@ -215,12 +215,80 @@ body {
   margin-right: auto;
 }
 
+/* ===== ACCOUNTS ===== */
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin: 0 auto 2rem;
+  max-width: 720px;
+}
+
+.account-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--background-card);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  cursor: pointer;
+  transition: all var(--transition-medium);
+  backdrop-filter: blur(10px);
+  text-align: left;
+}
+
+.account-card:hover {
+  background: var(--background-secondary);
+  border-color: var(--accent-color);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-medium);
+}
+
+.account-card.selected {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(240, 147, 251, 0.25);
+}
+
+.account-card-avatar {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.account-card-name {
+  font-weight: 700;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.account-card-score {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
+.empty-state {
+  margin: 0 auto 2rem;
+  padding: 1rem;
+  max-width: 500px;
+  color: var(--text-secondary);
+  background: var(--background-card);
+  border: 2px dashed var(--border-color);
+  border-radius: var(--border-radius-small);
+}
+
 /* ===== FORMS ===== */
 .player-form {
   max-width: 500px;
   margin: 0 auto;
   position: relative;
   z-index: 5;
+}
+
+.form-title {
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
 }
 
 .form-group {

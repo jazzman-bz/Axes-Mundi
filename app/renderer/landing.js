@@ -50,6 +50,11 @@ const AVATAR_EMOJIS = {
   '6': '🐉', // Dragon
 };
 
+const ACCOUNT_KEYS = {
+  selectedAccountId: 'selectedAccountId',
+  selectedSecondAccountId: 'selectedSecondAccountId',
+};
+
 /**
  * Get avatar emoji from avatar ID
  */
@@ -72,8 +77,9 @@ function quitApplication() {
  */
 class LandingPageController {
       constructor() {
-      this.currentSection = 'player-setup';
+      this.currentSection = 'account-selection';
       this.sections = [
+        'account-selection',
         'player-setup',
         'game-mode-selection', 
         'singleplayer-options',
@@ -85,14 +91,18 @@ class LandingPageController {
       ];
       
       this.playerData = {
+        id: null,
         name: '',
         avatar: null
       };
       
       this.secondPlayerData = {
+        id: null,
         name: '',
         avatar: null
       };
+
+      this.accounts = [];
       
            this.gameConfig = {
         mode: null,
@@ -147,6 +157,9 @@ class LandingPageController {
       
       // Set up IPC listeners for LAN status updates
       this.setupIPCListeners();
+
+      // Load persistent accounts before restoring the selected player.
+      await this.loadAccounts();
       
       // Load saved data if available
       this.loadSavedData();
@@ -262,6 +275,179 @@ class LandingPageController {
     }
   }
 
+  async loadAccounts() {
+    try {
+      if (!window.AXM?.getPlayerAccounts) {
+        this.accounts = [];
+        this.renderAccountLists();
+        return;
+      }
+
+      const result = await window.AXM.getPlayerAccounts();
+      this.accounts = result.success ? result.accounts : [];
+
+      await this.migrateLegacyAccounts();
+      this.restoreSelectedAccounts();
+      this.renderAccountLists();
+    } catch (error) {
+      logger.error({
+        scope: 'landing/accounts',
+        msg: 'failed to load accounts',
+        err: { message: error.message }
+      });
+      this.accounts = [];
+      this.renderAccountLists();
+    }
+  }
+
+  async migrateLegacyAccounts() {
+    if (this.accounts.length > 0 || !window.AXM?.createPlayerAccount) {
+      return;
+    }
+
+    const legacyPlayerData = this.readJsonFromStorage('axesMundiPlayer');
+    const legacySecondPlayerData = this.readJsonFromStorage('axesMundiSecondPlayerData');
+    const legacyAccounts = [legacyPlayerData, legacySecondPlayerData]
+      .filter((player) => player?.name && player?.avatar);
+
+    for (const legacyAccount of legacyAccounts) {
+      const result = await window.AXM.createPlayerAccount({
+        name: legacyAccount.name,
+        avatar: legacyAccount.avatar,
+      });
+
+      if (result.success && result.account) {
+        this.accounts.push(result.account);
+      }
+    }
+
+    if (this.accounts[0]) {
+      localStorage.setItem(ACCOUNT_KEYS.selectedAccountId, this.accounts[0].id);
+    }
+
+    if (this.accounts[1]) {
+      localStorage.setItem(ACCOUNT_KEYS.selectedSecondAccountId, this.accounts[1].id);
+    }
+  }
+
+  readJsonFromStorage(key) {
+    try {
+      const rawValue = localStorage.getItem(key);
+      return rawValue ? JSON.parse(rawValue) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  restoreSelectedAccounts() {
+    const selectedAccountId = localStorage.getItem(ACCOUNT_KEYS.selectedAccountId);
+    const selectedSecondAccountId = localStorage.getItem(ACCOUNT_KEYS.selectedSecondAccountId);
+    const selectedAccount = this.accounts.find((account) => account.id === selectedAccountId);
+    const selectedSecondAccount = this.accounts.find((account) => account.id === selectedSecondAccountId);
+
+    if (selectedAccount) {
+      this.setPrimaryAccount(selectedAccount);
+    }
+
+    if (selectedSecondAccount) {
+      this.setSecondAccount(selectedSecondAccount);
+    }
+  }
+
+  renderAccountLists() {
+    this.renderAccountList({
+      containerId: 'account-list',
+      emptyStateId: 'account-empty-state',
+      selectedAccountId: this.playerData.id,
+      excludedAccountId: null,
+      onSelect: (account) => {
+        this.playButtonSound();
+        this.setPrimaryAccount(account);
+        this.navigateToSection('game-mode-selection');
+      },
+    });
+
+    this.renderAccountList({
+      containerId: 'second-account-list',
+      emptyStateId: 'second-account-empty-state',
+      selectedAccountId: this.secondPlayerData.id,
+      excludedAccountId: this.playerData.id,
+      onSelect: (account) => {
+        this.playButtonSound();
+        this.setSecondAccount(account);
+        this.navigateToSection('deck-selection');
+      },
+    });
+  }
+
+  renderAccountList({
+    containerId,
+    emptyStateId,
+    selectedAccountId,
+    excludedAccountId,
+    onSelect,
+  }) {
+    const container = document.getElementById(containerId);
+    const emptyState = document.getElementById(emptyStateId);
+    if (!container) {
+      return;
+    }
+
+    container.replaceChildren();
+    const visibleAccounts = this.accounts.filter((account) => account.id !== excludedAccountId);
+
+    if (emptyState) {
+      emptyState.style.display = visibleAccounts.length === 0 ? 'block' : 'none';
+    }
+
+    visibleAccounts.forEach((account) => {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = account.id === selectedAccountId ? 'account-card selected' : 'account-card';
+
+      const avatar = document.createElement('div');
+      avatar.className = 'account-card-avatar';
+      avatar.textContent = getAvatarEmoji(account.avatar);
+
+      const details = document.createElement('div');
+      const name = document.createElement('div');
+      name.className = 'account-card-name';
+      name.textContent = account.name;
+
+      const score = document.createElement('div');
+      score.className = 'account-card-score';
+      score.textContent = `${account.stats.totalScore} points`;
+
+      details.append(name, score);
+      card.append(avatar, details);
+      card.addEventListener('click', () => onSelect(account));
+      container.appendChild(card);
+    });
+  }
+
+  setPrimaryAccount(account) {
+    this.playerData = {
+      id: account.id,
+      name: account.name,
+      avatar: account.avatar,
+    };
+    localStorage.setItem(ACCOUNT_KEYS.selectedAccountId, account.id);
+    this.savePlayerData();
+    this.updatePlayerInfoDisplay();
+    this.renderAccountLists();
+  }
+
+  setSecondAccount(account) {
+    this.secondPlayerData = {
+      id: account.id,
+      name: account.name,
+      avatar: account.avatar,
+    };
+    localStorage.setItem(ACCOUNT_KEYS.selectedSecondAccountId, account.id);
+    this.saveSecondPlayerData();
+    this.renderAccountLists();
+  }
+
   /**
    * Hide loading screen and show main app
    */
@@ -294,6 +480,14 @@ class LandingPageController {
       const playerForm = document.getElementById('player-form');
       if (playerForm) {
         playerForm.addEventListener('submit', this.handlePlayerFormSubmit.bind(this));
+      }
+
+      const createNewAccountBtn = document.getElementById('create-new-account-btn');
+      if (createNewAccountBtn) {
+        createNewAccountBtn.addEventListener('click', () => {
+          this.playButtonSound();
+          this.navigateToSection('player-setup');
+        });
       }
 
       // Player name input - update header display on input change
@@ -386,7 +580,7 @@ class LandingPageController {
   /**
    * Handle player form submission
    */
-  handlePlayerFormSubmit(event) {
+  async handlePlayerFormSubmit(event) {
     event.preventDefault();
     
     try {
@@ -406,14 +600,26 @@ class LandingPageController {
         return;
       }
       
-      // Save player data
-      this.playerData.name = playerName;
-      this.savePlayerData();
-      
-      // Show player info in header
-      this.updatePlayerInfoDisplay();
-      
-      // Navigate to next section
+      if (!window.AXM?.createPlayerAccount) {
+        this.playerData.name = playerName;
+        this.savePlayerData();
+        this.updatePlayerInfoDisplay();
+        this.navigateToSection('game-mode-selection');
+        return;
+      }
+
+      const result = await window.AXM.createPlayerAccount({
+        name: playerName,
+        avatar: this.playerData.avatar,
+      });
+
+      if (!result.success || !result.account) {
+        this.showError(result.error || 'Error creating account.');
+        return;
+      }
+
+      this.accounts.push(result.account);
+      this.setPrimaryAccount(result.account);
       this.navigateToSection('game-mode-selection');
       
       logger.info({ 
@@ -559,6 +765,7 @@ class LandingPageController {
         this.navigateToSection('deck-selection');
       } else if (option === 'hotseat') {
         // Hotseat mode - go to second player setup
+        this.renderAccountLists();
         this.navigateToSection('second-player-setup');
       } else if (option === 'lan') {
         // LAN mode - go to LAN options
@@ -638,7 +845,7 @@ class LandingPageController {
   /**
    * Handle second player form submission
    */
-  handleSecondPlayerFormSubmit(event) {
+  async handleSecondPlayerFormSubmit(event) {
     event.preventDefault();
     
     try {
@@ -658,11 +865,25 @@ class LandingPageController {
         return;
       }
       
-      // Save second player data
-      this.secondPlayerData.name = playerName;
-      this.saveSecondPlayerData();
-      
-      // Navigate to deck selection
+      if (!window.AXM?.createPlayerAccount) {
+        this.secondPlayerData.name = playerName;
+        this.saveSecondPlayerData();
+        this.navigateToSection('deck-selection');
+        return;
+      }
+
+      const result = await window.AXM.createPlayerAccount({
+        name: playerName,
+        avatar: this.secondPlayerData.avatar,
+      });
+
+      if (!result.success || !result.account) {
+        this.showError(result.error || 'Error creating account.');
+        return;
+      }
+
+      this.accounts.push(result.account);
+      this.setSecondAccount(result.account);
       this.navigateToSection('deck-selection');
       
       logger.info({ 
@@ -1638,7 +1859,9 @@ class LandingPageController {
       
       const currentIndex = this.sections.indexOf(this.currentSection);
       if (currentIndex > 0) {
-        const previousSection = this.sections[currentIndex - 1];
+        const previousSection = this.currentSection === 'game-mode-selection'
+          ? 'account-selection'
+          : this.sections[currentIndex - 1];
         this.navigateToSection(previousSection);
       }
       
@@ -1699,7 +1922,7 @@ class LandingPageController {
       const savedPlayerData = localStorage.getItem('axesMundiPlayer');
       const savedGameConfig = localStorage.getItem('axesMundiGameConfig');
       
-      if (savedPlayerData) {
+      if (savedPlayerData && !this.playerData.id) {
         this.playerData = { ...this.playerData, ...JSON.parse(savedPlayerData) };
         
         // Restore avatar selection
@@ -1791,6 +2014,8 @@ class LandingPageController {
       const fullConfig = {
         ...this.gameConfig,
         deckId,
+        playerAccountId: this.playerData.id,
+        secondPlayerAccountId: this.secondPlayerData.id,
         timestamp: Date.now()
       };
       

@@ -22,6 +22,13 @@ import { LearningModeManager } from '@/utils/learningModeManager';
 import { BoardNavigationManager } from '@/utils/boardNavigationManager';
 import { OptionsMenu } from '@/utils/optionsMenu';
 import { getLanSessionState, getSelectedDifficulty, getSelectedGameType } from '@/utils/sessionStore';
+import type { MatchScoreTransaction } from '../shared/playerAccounts';
+
+interface PlayerData {
+  id?: string | null;
+  name: string;
+  avatar: string | null;
+}
 
 /**
  * Main application class
@@ -59,6 +66,10 @@ class AxesMundiApp {
   private graveyard: GameCard[] = []; // Cards that were placed incorrectly
 
   private score: number = 0;
+
+  private player1Score: number = 0;
+
+  private player2Score: number = 0;
 
   private remainingCards: CardData[] = [];
 
@@ -128,9 +139,9 @@ class AxesMundiApp {
   // Hotseat mode state
   private isHotseatMode: boolean = false; // Track if we're in hotseat mode
 
-  private player1Data: { name: string; avatar: string } | null = null; // First player data
+  private player1Data: PlayerData | null = null; // First player data
 
-  private player2Data: { name: string; avatar: string } | null = null; // Second player data
+  private player2Data: PlayerData | null = null; // Second player data
 
   private currentPlayerIndex: number = 0; // 0 = player1, 1 = player2
 
@@ -154,6 +165,96 @@ class AxesMundiApp {
   private lanOpponentName: string = ''; // Opponent player name in LAN mode
 
   private isLANServerClient: boolean = false; // True if this is the server-client
+
+  private scoreCommitted: boolean = false;
+
+  private matchId: string = AxesMundiApp.createMatchId();
+
+  private static createMatchId(): string {
+    if (window.crypto?.randomUUID) {
+      return window.crypto.randomUUID();
+    }
+
+    return `match-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+
+  private updateScore(newScore: number): void {
+    const scoreDelta = newScore - this.score;
+    this.score = newScore;
+
+    if (this.isHotseatMode && scoreDelta > 0) {
+      if (this.currentPlayerIndex === 0) {
+        this.player1Score += scoreDelta;
+      } else {
+        this.player2Score += scoreDelta;
+      }
+      return;
+    }
+
+    if (!this.isLearningMode) {
+      this.player1Score = newScore;
+    }
+  }
+
+  private commitMatchResult(didWin: boolean, winnerPlayerIndex?: number): void {
+    if (this.scoreCommitted || !window.AXM?.commitMatchScore) {
+      return;
+    }
+
+    const { commitMatchScore } = window.AXM;
+    this.scoreCommitted = true;
+    const deckId = this.deck?.id || localStorage.getItem('selectedDeck') || 'unknown';
+    const createdAt = new Date().toISOString();
+
+    const transactions: MatchScoreTransaction[] = [];
+    if (this.isHotseatMode) {
+      if (this.player1Data?.id) {
+        transactions.push({
+          matchId: this.matchId,
+          accountId: this.player1Data.id,
+          scoreDelta: this.player1Score,
+          didWin: winnerPlayerIndex === 0,
+          mode: 'hotseat',
+          deckId,
+          createdAt,
+        });
+      }
+
+      if (this.player2Data?.id) {
+        transactions.push({
+          matchId: this.matchId,
+          accountId: this.player2Data.id,
+          scoreDelta: this.player2Score,
+          didWin: winnerPlayerIndex === 1,
+          mode: 'hotseat',
+          deckId,
+          createdAt,
+        });
+      }
+    } else if (this.player1Data?.id) {
+      transactions.push({
+        matchId: this.matchId,
+        accountId: this.player1Data.id,
+        scoreDelta: this.score,
+        didWin,
+        mode: 'ai',
+        difficulty: this.gameDifficulty,
+        deckId,
+        createdAt,
+      });
+    }
+
+    transactions.forEach((transaction) => {
+      commitMatchScore(transaction).catch((error: Error) => {
+        logger.error({
+          scope: 'renderer/accounts',
+          msg: 'failed to commit match score',
+          meta: { accountId: transaction.accountId, matchId: transaction.matchId },
+          err: { message: error.message },
+        });
+      });
+    });
+  }
 
   constructor() {
     this.loadingElement = document.getElementById('loading') as HTMLElement;
@@ -439,7 +540,7 @@ class AxesMundiApp {
           this.player2Hand = cards;
         },
         onSetScore: (score) => {
-          this.score = score;
+          this.updateScore(score);
         },
         onSetGameWon: (won) => {
           this.gameWon = won;
@@ -525,6 +626,9 @@ class AxesMundiApp {
             this.uiDialogManager.showLoseDialog();
           }
         },
+        onCommitMatchResult: (didWin, winnerPlayerIndex) => {
+          this.commitMatchResult(didWin, winnerPlayerIndex);
+        },
       },
     });
 
@@ -560,7 +664,7 @@ class AxesMundiApp {
         onSetPlayerHand: (cards) => { this.playerHand = cards; },
         onSetPlayer1Hand: (cards) => { this.player1Hand = cards; },
         onSetPlayer2Hand: (cards) => { this.player2Hand = cards; },
-        onSetScore: (score) => { this.score = score; },
+        onSetScore: (score) => { this.updateScore(score); },
         onSetIsPlayerTurn: (isPlayerTurn) => {
           this.isPlayerTurn = isPlayerTurn;
           this.updateInputHandlerConfig();
@@ -762,7 +866,7 @@ class AxesMundiApp {
           this.playerHand = cards;
         },
         onSetScore: (score) => {
-          this.score = score;
+          this.updateScore(score);
         },
         onSetCurrentTurn: (turn) => {
           this.currentTurn = turn;
@@ -1583,6 +1687,10 @@ class AxesMundiApp {
     this.gameWon = false;
     this.gameLost = false;
     this.score = 0;
+    this.player1Score = 0;
+    this.player2Score = 0;
+    this.scoreCommitted = false;
+    this.matchId = AxesMundiApp.createMatchId();
     this.playerHand = [];
     this.opponentHand = [];
     this.player1Hand = [];

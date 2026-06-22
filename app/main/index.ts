@@ -1,6 +1,7 @@
 import {
   app, BrowserWindow, ipcMain, dialog, protocol,
 } from 'electron';
+import { randomUUID } from 'crypto';
 import { join } from 'path';
 import {
   readFile, writeFile, mkdir, readdir,
@@ -20,6 +21,15 @@ import {
   parseLanCardDistribution,
   parseLanGameState,
 } from '../shared/lanProtocol';
+import {
+  MatchScoreTransaction,
+  PlayerAccount,
+  PlayerAccountsFile,
+  applyScoreTransaction,
+  createPlayerAccount,
+  normalizeAccountName,
+  normalizeAvatar,
+} from '../shared/playerAccounts';
 
 // Register custom protocol scheme as privileged BEFORE app.ready
 // This is required for the protocol to work with image loading in the renderer
@@ -39,6 +49,52 @@ protocol.registerSchemesAsPrivileged([
 // User data paths for imported decks
 const getUserDecksDir = () => join(app.getPath('userData'), 'decks');
 const getUserDeckImagesDir = () => join(app.getPath('userData'), 'deck-images');
+const getPlayerAccountsPath = () => join(app.getPath('userData'), 'accounts.json');
+
+function parsePlayerAccountsFile(rawValue: unknown): PlayerAccountsFile {
+  if (
+    !rawValue
+    || typeof rawValue !== 'object'
+    || !Array.isArray((rawValue as PlayerAccountsFile).accounts)
+  ) {
+    return { version: 1, accounts: [] };
+  }
+
+  const accounts = (rawValue as PlayerAccountsFile).accounts.filter((account): account is PlayerAccount => (
+    !!account
+    && typeof account === 'object'
+    && typeof account.id === 'string'
+    && typeof account.name === 'string'
+    && account.stats !== undefined
+  ));
+
+  return { version: 1, accounts };
+}
+
+async function readPlayerAccountsFile(): Promise<PlayerAccountsFile> {
+  const accountsPath = getPlayerAccountsPath();
+  if (!existsSync(accountsPath)) {
+    return { version: 1, accounts: [] };
+  }
+
+  try {
+    const fileContents = await readFile(accountsPath, 'utf-8');
+    return parsePlayerAccountsFile(JSON.parse(fileContents));
+  } catch (error: any) {
+    logger.error({
+      scope: 'main/accounts',
+      msg: 'Failed to read player accounts file',
+      meta: { path: accountsPath },
+      err: { message: error.message },
+    });
+    return { version: 1, accounts: [] };
+  }
+}
+
+async function writePlayerAccountsFile(accountsFile: PlayerAccountsFile): Promise<void> {
+  await mkdir(app.getPath('userData'), { recursive: true });
+  await writeFile(getPlayerAccountsPath(), JSON.stringify(accountsFile, null, 2), 'utf-8');
+}
 
 /**
  * Register custom protocol for serving user deck images
@@ -226,6 +282,117 @@ function setupIPC(): void {
   ipcMain.handle('debug-log', (_, message: string, data?: any) => {
     console.log('[RENDERER]', message, data ? JSON.stringify(data) : '');
     return { success: true };
+  });
+
+  ipcMain.handle('get-player-accounts', async () => {
+    const accountsFile = await readPlayerAccountsFile();
+    return { success: true, accounts: accountsFile.accounts };
+  });
+
+  ipcMain.handle('create-player-account', async (_, input: any) => {
+    try {
+      const accountsFile = await readPlayerAccountsFile();
+      const now = new Date().toISOString();
+      const account = createPlayerAccount(input, randomUUID(), now);
+
+      accountsFile.accounts.push(account);
+      await writePlayerAccountsFile(accountsFile);
+
+      logger.info({
+        scope: 'main/accounts',
+        msg: 'player account created',
+        meta: { accountId: account.id, name: account.name },
+      });
+
+      return { success: true, account };
+    } catch (error: any) {
+      logger.error({
+        scope: 'main/accounts',
+        msg: 'failed to create player account',
+        err: { message: error.message },
+      });
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('update-player-account', async (_, accountId: string, input: any) => {
+    try {
+      if (typeof accountId !== 'string' || accountId.trim().length === 0) {
+        throw new Error('Account id is required');
+      }
+
+      const accountsFile = await readPlayerAccountsFile();
+      const accountIndex = accountsFile.accounts.findIndex((account) => account.id === accountId);
+      if (accountIndex === -1) {
+        throw new Error('Account not found');
+      }
+
+      const existingAccount = accountsFile.accounts[accountIndex];
+      const updatedAccount: PlayerAccount = {
+        ...existingAccount,
+        name: input?.name === undefined ? existingAccount.name : normalizeAccountName(input.name),
+        avatar: input?.avatar === undefined ? existingAccount.avatar : normalizeAvatar(input.avatar),
+        updatedAt: new Date().toISOString(),
+      };
+
+      accountsFile.accounts[accountIndex] = updatedAccount;
+      await writePlayerAccountsFile(accountsFile);
+
+      logger.info({
+        scope: 'main/accounts',
+        msg: 'player account updated',
+        meta: { accountId: updatedAccount.id, name: updatedAccount.name },
+      });
+
+      return { success: true, account: updatedAccount };
+    } catch (error: any) {
+      logger.error({
+        scope: 'main/accounts',
+        msg: 'failed to update player account',
+        err: { message: error.message },
+      });
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('commit-match-score', async (_, transaction: MatchScoreTransaction) => {
+    try {
+      if (!transaction || typeof transaction !== 'object') {
+        throw new Error('Score transaction is required');
+      }
+
+      const accountsFile = await readPlayerAccountsFile();
+      const accountIndex = accountsFile.accounts.findIndex((account) => account.id === transaction.accountId);
+      if (accountIndex === -1) {
+        throw new Error('Account not found');
+      }
+
+      const result = applyScoreTransaction(accountsFile.accounts[accountIndex], transaction);
+      accountsFile.accounts[accountIndex] = result.account;
+
+      if (result.applied) {
+        await writePlayerAccountsFile(accountsFile);
+      }
+
+      logger.info({
+        scope: 'main/accounts',
+        msg: result.applied ? 'match score committed' : 'match score already committed',
+        meta: {
+          accountId: transaction.accountId,
+          matchId: transaction.matchId,
+          scoreDelta: transaction.scoreDelta,
+        },
+      });
+
+      return { success: true, account: result.account, applied: result.applied };
+    } catch (error: any) {
+      logger.error({
+        scope: 'main/accounts',
+        msg: 'failed to commit match score',
+        err: { message: error.message },
+      });
+      return { success: false, error: error.message };
+    }
   });
 
   // Send deck selection to client
@@ -757,6 +924,7 @@ function setupIPC(): void {
     userDataPath: app.getPath('userData'),
     decksPath: getUserDecksDir(),
     imagesPath: getUserDeckImagesDir(),
+    accountsPath: getPlayerAccountsPath(),
   }));
 }
 

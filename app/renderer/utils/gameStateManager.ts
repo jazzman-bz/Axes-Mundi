@@ -4,6 +4,12 @@ import { logger } from '@/utils/logger';
 import { recycleGraveyard as recycleGraveyardUtil } from '@/utils/cardLayout';
 import { SoundType } from '@/utils/soundManager';
 
+interface PlayerData {
+  id?: string | null;
+  name: string;
+  avatar: string | null;
+}
+
 /**
  * Callbacks for GameStateManager to communicate with main app
  */
@@ -27,8 +33,8 @@ export interface GameStateManagerCallbacks {
     isLearningMode: boolean;
     isHotseatMode: boolean;
     currentPlayerIndex: number;
-    player1Data: { name: string; avatar: string } | null;
-    player2Data: { name: string; avatar: string } | null;
+    player1Data: PlayerData | null;
+    player2Data: PlayerData | null;
   };
 
   // State setters
@@ -74,6 +80,7 @@ export interface GameStateManagerCallbacks {
   onShowHotseatWinDialog: (winnerName: string) => void;
   onShowWinDialog: () => void;
   onShowLoseDialog: () => void;
+  onCommitMatchResult?: (didWin: boolean, winnerPlayerIndex?: number) => void;
 }
 
 /**
@@ -365,6 +372,8 @@ export class GameStateManager {
           },
         });
 
+        this.config.callbacks.onCommitMatchResult?.(true, gameState.currentPlayerIndex);
+
         // Show win dialog after 4 seconds delay
         setTimeout(() => {
           this.config.callbacks.onShowHotseatWinDialog(winnerName);
@@ -387,6 +396,8 @@ export class GameStateManager {
         },
       });
 
+      this.config.callbacks.onCommitMatchResult?.(true);
+
       // Show win dialog after 4 seconds delay
       setTimeout(() => {
         this.config.callbacks.onShowWinDialog();
@@ -406,6 +417,8 @@ export class GameStateManager {
           remainingCards: remainingCards.length,
         },
       });
+
+      this.config.callbacks.onCommitMatchResult?.(false);
 
       // Show lose dialog after 4 seconds delay
       setTimeout(() => {

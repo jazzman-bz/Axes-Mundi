@@ -19,6 +19,12 @@ function getAvatarEmoji(avatarId: string | number | null | undefined): string {
   return AVATAR_EMOJIS[String(avatarId)] || '👤';
 }
 
+interface PlayerData {
+  id?: string | null;
+  name: string;
+  avatar: string | null;
+}
+
 /**
  * Render state - all data needed for rendering
  */
@@ -50,8 +56,8 @@ export interface RenderState {
   playerSwitchOverlayVisible: boolean;
   remainingCards: number;
   gameDifficulty: 'easy' | 'medium' | 'hard';
-  player1Data: { name: string; avatar: string } | null;
-  player2Data: { name: string; avatar: string } | null;
+  player1Data: PlayerData | null;
+  player2Data: PlayerData | null;
   currentPlayerIndex: number;
   player1Hand: GameCard[];
   player2Hand: GameCard[];
