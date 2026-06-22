@@ -40,8 +40,23 @@ describe('deckSecurity', () => {
       expect(resolvedPath).toBe('/tmp/axes/Custom Deck/planet-1.png');
     });
 
+    it('allows punctuation used by imported art deck images', () => {
+      const resolvedPath = resolveUserDeckAssetPath(
+        '/tmp/axes',
+        'art-time-en',
+        'The Floating Piers (Christo + Jeanne Claude) - 2016.png',
+      );
+
+      expect(resolvedPath).toBe('/tmp/axes/art-time-en/The Floating Piers (Christo + Jeanne Claude) - 2016.png');
+    });
+
     it('rejects traversal attempts', () => {
       expect(() => resolveUserDeckAssetPath('/tmp/axes', 'Custom Deck', '../secret.png')).toThrow(/unsupported/);
+    });
+
+    it('rejects path separators even when the extension is valid', () => {
+      expect(() => resolveUserDeckAssetPath('/tmp/axes', 'Custom Deck', 'nested/planet.png')).toThrow(/unsupported/);
+      expect(() => resolveUserDeckAssetPath('/tmp/axes', 'Custom Deck', 'nested\\planet.png')).toThrow(/unsupported/);
     });
   });
 

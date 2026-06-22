@@ -25,29 +25,45 @@ Entwickelt mit Electron + Vite + PixiJS + GSAP.
 
 ## Techstack
 
-- Electron – Cross-Plattform Desktop-App (Windows, macOS, Linux)  
-- Vite – ultraschnelles Dev- & Build-Tool  
-- PixiJS – 2D WebGL Renderer für Spielbrett, Karten & Animationen  
-- GSAP – Tweening & Animationen (z. B. Karten-Flip, Einfügen, Shake bei Fehlern)  
+- Electron – Cross-Plattform Desktop-App (Windows, macOS, Linux)
+- Electron Main/Preload/Renderer – Prozessgrenzen mit sicherer `contextBridge`-API
+- Vite – ultraschnelles Dev- & Build-Tool
+- PixiJS – 2D WebGL Renderer für Spielbrett, Karten & Animationen
+- GSAP – Tweening & Animationen (z. B. Karten-Flip, Einfügen, Shake bei Fehlern)
 - TypeScript – Striktes Typensystem  
 - Zod – Validierung für Deck-Import, IPC und LAN-Protokoll  
 - WS (WebSockets) – LAN-Multiplayer  
+- Pino – strukturierte Logs
 - Vitest – Unit-Tests für Rendering, State, Scoring und neue Sicherheits-/Protokoll-Helfer  
+- Playwright – E2E-/UI-Tests für zentrale Flows
+- Electron Builder – Packaging für Desktop-Releases
 
 ## Projektstruktur
 
-/app  
-  /main        # Electron main process (Host, LAN)  
-  /preload     # sichere Bridges (IPC)  
-  /renderer    # Vite-Projekt mit Pixi, GSAP, UI  
-    /game      # Szenen, FSM  
-    /ui        # Menüs, HUD, Dialoge  
-    /data      # Models & Normalizer  
-    /content   # Decks (JSON), Lokalisierungen  
-    /net       # Multiplayer-Client  
-    /utils  
-  /shared      # gemeinsame Schemas und Sicherheits-Helfer  
-/tests         # Vitest + Playwright  
+```text
+app/
+  generated/       # generierte Versionsmetadaten
+  main/            # Electron main process: Fenster, IPC, Deck-Import, LAN-Server
+  preload/         # sichere Bridge als window.AXM
+  renderer/        # Vite-Projekt mit Landing Page, Spiel, LAN-Views, Assets
+    data/          # Deck-Loader, Scoring, Datenmodelle
+    game/          # Card und GameScene
+    content/       # gebündelte Decks, Sounds, Musik, Bilder
+    assets/        # Renderer-Asset-Kopien
+    styles/        # CSS
+    utils/         # Rendering, Input, State, Audio, Session, Dialoge, Helpers
+  shared/          # gemeinsame Schemas und Sicherheits-Helfer
+tests/unit/        # Vitest Unit-Tests
+```
+
+## Architektur
+
+- `app/main/index.ts` erstellt das Electron-Fenster, registriert IPC-Handler, importiert Deck-ZIPs, stellt User-Deck-Bilder über `user-deck-image://` bereit und startet den LAN-WebSocket-Server.
+- `app/preload/index.ts` kapselt `ipcRenderer` und gibt dem Renderer nur die typisierte `window.AXM`-API.
+- `app/renderer/main.ts` enthält `AxesMundiApp` als Orchestrator für die Spielmodule. Die Spiellogik ist in fokussierte Manager ausgelagert, z. B. `GameRenderer`, `InputHandler`, `GameStateManager`, `CardPlacementHandler`, `CardDealerManager`, `TurnTimerManager`, `UIDialogManager`, `LearningModeManager` und `BoardNavigationManager`.
+- `app/shared/deckSecurity.ts` und `app/shared/lanProtocol.ts` validieren Deck-Importe, Asset-Pfade, LAN-Nachrichten und IPC-/State-Payloads mit Zod.
+- `app/renderer/utils/sessionStore.ts` bündelt zentrale Renderer-Session-/LAN-Werte statt verteilter `localStorage`-Zugriffe.
+- `app/renderer/utils/accountScoreStore.ts` speichert Account-Scores im Browser-/localhost-Fallback mit derselben Score-Transaktionslogik wie der Electron-IPC-Pfad.
 
 
 ## Entwicklungsregeln
@@ -70,6 +86,7 @@ Entwickelt mit Electron + Vite + PixiJS + GSAP.
 - Importierte Deck-Kacheln werden im Renderer jetzt über sichere DOM-Erzeugung statt HTML-Interpolation aufgebaut.
 - LAN-Nachrichten und IPC-Payloads werden zentral über gemeinsame Schemas geprüft.
 - Ein zentraler `sessionStore` bündelt den wichtigsten Renderer-Session-State fuer LAN und wird jetzt auch von `lan-client` und `GameScene` genutzt.
+- Account-Scores werden im Electron-Betrieb über IPC gespeichert und im Browser-/localhost-Fallback über `accountScoreStore`, damit Tests und In-App-Browser-Flows denselben Fortschritt anzeigen.
 - Eine Regression im LAN-Client wurde behoben, sodass `cardPlacement`-Nachrichten nicht mehr doppelt an den Renderer-Callback weitergereicht werden.
 - LAN- und GameScene-Hotspots verwenden jetzt strukturierte Logger-Pfade statt direkter `console.*`-Ausgaben.
 - Der Repo-Lint laeuft jetzt ohne Fehler und ohne Warnungen durch.

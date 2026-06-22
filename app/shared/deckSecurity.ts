@@ -3,7 +3,15 @@ import { z } from 'zod';
 
 const SAFE_DECK_ID_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
 const SAFE_FOLDER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9 _-]*$/;
-const SAFE_ASSET_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9 ._()'-]*\.(png|jpe?g|webp)$/i;
+const SAFE_ASSET_EXTENSION_PATTERN = /\.(png|jpe?g|webp)$/i;
+const PATH_SEPARATOR_PATTERN = /[\\/]/;
+
+function containsControlCharacter(value: string): boolean {
+  return Array.from(value).some((character) => {
+    const charCode = character.charCodeAt(0);
+    return charCode < 32 || charCode === 127;
+  });
+}
 
 const sourceSchema = z.object({
   label: z.string().min(1),
@@ -59,7 +67,13 @@ export function assertSafeImageFolder(value: string, label: string = 'Image fold
 }
 
 export function assertSafeAssetName(value: string, label: string = 'Asset name'): string {
-  if (!SAFE_ASSET_NAME_PATTERN.test(value)) {
+  if (
+    value.length === 0
+    || value.startsWith('.')
+    || !SAFE_ASSET_EXTENSION_PATTERN.test(value)
+    || PATH_SEPARATOR_PATTERN.test(value)
+    || containsControlCharacter(value)
+  ) {
     throw new Error(`${label} contains unsupported characters`);
   }
 
