@@ -22,6 +22,7 @@ import { LearningModeManager } from '@/utils/learningModeManager';
 import { BoardNavigationManager } from '@/utils/boardNavigationManager';
 import { OptionsMenu } from '@/utils/optionsMenu';
 import { getLanSessionState, getSelectedDifficulty, getSelectedGameType } from '@/utils/sessionStore';
+import { commitLocalMatchScore } from '@/utils/accountScoreStore';
 import type { MatchScoreTransaction } from '../shared/playerAccounts';
 
 interface PlayerData {
@@ -197,11 +198,13 @@ class AxesMundiApp {
   }
 
   private commitMatchResult(didWin: boolean, winnerPlayerIndex?: number): void {
-    if (this.scoreCommitted || !window.AXM?.commitMatchScore) {
+    if (this.scoreCommitted) {
       return;
     }
 
-    const { commitMatchScore } = window.AXM;
+    const commitMatchScore = window.AXM?.commitMatchScore
+      ?? ((transaction: MatchScoreTransaction) => Promise.resolve(commitLocalMatchScore(transaction)));
+
     this.scoreCommitted = true;
     const deckId = this.deck?.id || localStorage.getItem('selectedDeck') || 'unknown';
     const createdAt = new Date().toISOString();
@@ -1759,6 +1762,12 @@ function navigateToMenu(): Promise<void> {
   });
 }
 
+function navigateToAccountSelection(): Promise<void> {
+  return backgroundMusicManager.fadeOutCurrent(700).finally(() => {
+    window.location.href = './index.html#account-selection';
+  });
+}
+
 function quitApplication(): Promise<void> {
   if (window.AXM?.quitApp) {
     return window.AXM.quitApp().then(() => undefined);
@@ -1781,6 +1790,9 @@ function setupOptionsMenu(): void {
       optionsMenu.setSfxVolume(soundManager.getVolume());
     },
     onReturn: () => {},
+    onSwitchAccount: () => {
+      navigateToAccountSelection();
+    },
     onLeaveToMenu: () => {
       navigateToMenu();
     },

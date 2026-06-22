@@ -10,6 +10,7 @@ import { OptionsMenu } from './utils/optionsMenu.ts';
 import { getDeckDescription, getDeckLocaleLabel, getDeckThemeLabel } from './utils/deckPresentation.ts';
 import { createUserDeckCard } from './utils/userDeckCard.ts';
 import { formatVersionBadge, formatVersionTooltip } from './utils/versionPresentation.ts';
+import { LOCAL_ACCOUNTS_STORAGE_KEY } from './utils/accountScoreStore.ts';
 import {
   clearLanSessionState,
   getLanCardDistribution,
@@ -53,6 +54,7 @@ const AVATAR_EMOJIS = {
 const ACCOUNT_KEYS = {
   selectedAccountId: 'selectedAccountId',
   selectedSecondAccountId: 'selectedSecondAccountId',
+  localAccounts: LOCAL_ACCOUNTS_STORAGE_KEY,
 };
 
 /**
@@ -163,6 +165,9 @@ class LandingPageController {
       
       // Load saved data if available
       this.loadSavedData();
+
+      await this.ensurePrimaryAccountExists();
+      this.showInitialSection();
       
       // Update progress
       this.updateProgress();
@@ -251,6 +256,9 @@ class LandingPageController {
         optionsMenu.setSfxVolume(soundManager.getVolume());
       },
       onReturn: () => {},
+      onSwitchAccount: () => {
+        this.navigateToSection('account-selection');
+      },
       onLeaveToMenu: null,
       onLeaveApp: () => {
         void backgroundMusicManager.fadeOutCurrent(500).finally(() => {
@@ -278,7 +286,7 @@ class LandingPageController {
   async loadAccounts() {
     try {
       if (!window.AXM?.getPlayerAccounts) {
-        this.accounts = [];
+        this.accounts = this.readLocalAccounts();
         this.renderAccountLists();
         return;
       }
@@ -298,6 +306,118 @@ class LandingPageController {
       this.accounts = [];
       this.renderAccountLists();
     }
+  }
+
+  readLocalAccounts() {
+    const accounts = this.readJsonFromStorage(ACCOUNT_KEYS.localAccounts);
+    return Array.isArray(accounts) ? accounts : [];
+  }
+
+  writeLocalAccounts() {
+    localStorage.setItem(ACCOUNT_KEYS.localAccounts, JSON.stringify(this.accounts));
+  }
+
+  createLocalAccount(name, avatar) {
+    const now = new Date().toISOString();
+    return {
+      id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: name.trim(),
+      avatar: avatar || null,
+      createdAt: now,
+      updatedAt: now,
+      stats: {
+        totalScore: 0,
+        matchesPlayed: 0,
+        matchesWon: 0,
+        matchesLost: 0,
+        bestScore: 0,
+        aiWins: 0,
+        humanWins: 0,
+        lanWins: 0,
+        processedMatchIds: [],
+      },
+    };
+  }
+
+  findMatchingAccount(playerData) {
+    if (!playerData) {
+      return null;
+    }
+
+    const selectedAccount = this.accounts.find((account) => account.id === playerData.id);
+    if (selectedAccount) {
+      return selectedAccount;
+    }
+
+    const normalizedName = playerData.name?.trim().toLocaleLowerCase();
+    if (!normalizedName) {
+      return null;
+    }
+
+    return this.accounts.find((account) => (
+      account.name.trim().toLocaleLowerCase() === normalizedName
+      && String(account.avatar || '') === String(playerData.avatar || '')
+    )) || null;
+  }
+
+  upsertAccount(account) {
+    const existingIndex = this.accounts.findIndex((existingAccount) => existingAccount.id === account.id);
+    if (existingIndex === -1) {
+      this.accounts.push(account);
+      return;
+    }
+
+    this.accounts[existingIndex] = account;
+  }
+
+  async ensurePrimaryAccountExists() {
+    if (!this.playerData.name || !this.playerData.avatar) {
+      this.renderAccountLists();
+      return;
+    }
+
+    const matchingAccount = this.findMatchingAccount(this.playerData);
+    if (matchingAccount) {
+      this.setPrimaryAccount(matchingAccount);
+      return;
+    }
+
+    const canCreatePersistentAccount = Boolean(window.AXM?.createPlayerAccount);
+    if (canCreatePersistentAccount) {
+      const result = await window.AXM.createPlayerAccount({
+        name: this.playerData.name,
+        avatar: this.playerData.avatar,
+      });
+
+      if (result.success && result.account) {
+        this.upsertAccount(result.account);
+        this.setPrimaryAccount(result.account);
+        return;
+      }
+
+      logger.warn({
+        scope: 'landing/accounts',
+        msg: 'failed to promote saved player data to persistent account',
+        meta: { error: result.error },
+      });
+      this.renderAccountLists();
+      return;
+    }
+
+    const account = this.createLocalAccount(this.playerData.name, this.playerData.avatar);
+    this.upsertAccount(account);
+    this.writeLocalAccounts();
+    this.setPrimaryAccount(account);
+  }
+
+  showInitialSection() {
+    const forceAccountSelection = window.location.hash === '#account-selection';
+    if (!forceAccountSelection && this.playerData.id) {
+      this.navigateToSection('game-mode-selection');
+      return;
+    }
+
+    this.renderAccountLists();
   }
 
   async migrateLegacyAccounts() {
@@ -601,9 +721,10 @@ class LandingPageController {
       }
       
       if (!window.AXM?.createPlayerAccount) {
-        this.playerData.name = playerName;
-        this.savePlayerData();
-        this.updatePlayerInfoDisplay();
+        const account = this.createLocalAccount(playerName, this.playerData.avatar);
+        this.upsertAccount(account);
+        this.writeLocalAccounts();
+        this.setPrimaryAccount(account);
         this.navigateToSection('game-mode-selection');
         return;
       }
@@ -618,7 +739,7 @@ class LandingPageController {
         return;
       }
 
-      this.accounts.push(result.account);
+      this.upsertAccount(result.account);
       this.setPrimaryAccount(result.account);
       this.navigateToSection('game-mode-selection');
       
@@ -866,8 +987,10 @@ class LandingPageController {
       }
       
       if (!window.AXM?.createPlayerAccount) {
-        this.secondPlayerData.name = playerName;
-        this.saveSecondPlayerData();
+        const account = this.createLocalAccount(playerName, this.secondPlayerData.avatar);
+        this.upsertAccount(account);
+        this.writeLocalAccounts();
+        this.setSecondAccount(account);
         this.navigateToSection('deck-selection');
         return;
       }
@@ -882,7 +1005,7 @@ class LandingPageController {
         return;
       }
 
-      this.accounts.push(result.account);
+      this.upsertAccount(result.account);
       this.setSecondAccount(result.account);
       this.navigateToSection('deck-selection');
       

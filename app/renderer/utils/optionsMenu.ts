@@ -6,6 +6,8 @@ export interface OptionsMenuConfig {
   onMusicVolumeChange: (volume: number) => void;
   onSfxVolumeChange: (volume: number) => void;
   onReturn: () => void;
+  onSwitchAccount?: (() => void) | null;
+  switchAccountLabel?: string;
   onLeaveToMenu?: (() => void) | null;
   leaveToMenuLabel?: string;
   onLeaveApp: () => void;
@@ -228,6 +230,13 @@ export class OptionsMenu {
       this.config.onReturn();
       this.close();
     }));
+
+    if (this.config.onSwitchAccount) {
+      actions.appendChild(this.createActionButton(this.config.switchAccountLabel || 'Switch Account', () => {
+        this.close();
+        this.config.onSwitchAccount?.();
+      }));
+    }
 
     if (this.config.onLeaveToMenu) {
       actions.appendChild(this.createActionButton(this.config.leaveToMenuLabel || 'Leave Game to Menu', () => {
