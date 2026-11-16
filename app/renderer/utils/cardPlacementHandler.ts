@@ -1,4 +1,5 @@
 import { GameCard } from '@/game/Card';
+import { GameDifficulty } from '@/data/aiDifficulty';
 import { Card as CardData } from '@/data/types';
 import { isAxisCorrectlySorted, getScore } from '@/data/scoring';
 import { SoundType } from '@/utils/soundManager';
@@ -17,6 +18,7 @@ export interface CardPlacementHandlerCallbacks {
   };
   onGetGameState: () => {
     score: number;
+    aiDifficulty?: GameDifficulty | undefined;
     currentTurn: number;
     gameWon: boolean;
     gameLost: boolean;
@@ -168,7 +170,7 @@ export class CardPlacementHandler {
     // Update score (not in learning mode)
     if (!gameState.isLearningMode) {
       const currentScore = gameState.score;
-      const newScore = currentScore + getScore(card.card);
+      const newScore = currentScore + getScore(card.card, gameState.aiDifficulty);
       this.config.callbacks.onSetScore(newScore);
     }
 

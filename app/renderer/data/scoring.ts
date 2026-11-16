@@ -1,4 +1,5 @@
 import { Card } from './types';
+import { AI_DIFFICULTY, GameDifficulty } from './aiDifficulty';
 import { logger } from '@/utils/logger';
 
 /**
@@ -135,18 +136,11 @@ export function convertToComparable(value: number, unit: string): number {
   }
 }
 
-/**
- * Get score for correct placement
- */
-export function getScore(card: Card): number {
-  switch (card.difficulty) {
-    case 'easy':
-      return 10;
-    case 'medium':
-      return 20;
-    case 'hard':
-      return 30;
-    default:
-      return 10;
-  }
+const BASE_CARD_POINTS = { easy: 10, medium: 20, hard: 30 } as const;
+
+/** Get the points for a correct placement, with an AI difficulty bonus when applicable. */
+export function getScore(card: Card, aiDifficulty?: GameDifficulty): number {
+  const baseScore = Object.hasOwn(BASE_CARD_POINTS, card.difficulty) ? BASE_CARD_POINTS[card.difficulty] : 10;
+  const multiplier = aiDifficulty ? AI_DIFFICULTY[aiDifficulty]?.scoreMultiplier ?? 1 : 1;
+  return Math.round(baseScore * multiplier);
 }

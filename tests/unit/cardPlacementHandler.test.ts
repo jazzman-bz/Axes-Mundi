@@ -26,10 +26,13 @@ const mockIsAxisCorrectlySorted = vi.fn((cards: CardData[]) => {
   return true;
 });
 
-vi.mock('@/data/scoring', () => ({
-  isAxisCorrectlySorted: (cards: CardData[]) => mockIsAxisCorrectlySorted(cards),
-  getScore: vi.fn((card: CardData) => card.value || 10),
-}));
+vi.mock('@/data/scoring', async () => {
+  const scoring = await vi.importActual<typeof import('@/data/scoring')>('@/data/scoring');
+  return {
+    ...scoring,
+    isAxisCorrectlySorted: (cards: CardData[]) => mockIsAxisCorrectlySorted(cards),
+  };
+});
 
 describe('CardPlacementHandler', () => {
   let handler: CardPlacementHandler;
@@ -210,7 +213,7 @@ describe('CardPlacementHandler', () => {
       handler.handleCardPlacement(mockCard2, 700, 200, false, false);
 
       expect(mockCard2.setCorrect).toHaveBeenCalled();
-      expect(mockCallbacks.onSetScore).toHaveBeenCalledWith(200);
+      expect(mockCallbacks.onSetScore).toHaveBeenCalledWith(10);
       expect(mockCallbacks.onSetWeiterButtonBounds).toHaveBeenCalledWith(null);
       expect(mockCallbacks.onLayoutAxisCards).toHaveBeenCalled();
 
@@ -223,6 +226,21 @@ describe('CardPlacementHandler', () => {
       // Check success sound (with delay)
       vi.advanceTimersByTime(300);
       expect(mockCallbacks.onPlaySound).toHaveBeenCalledWith(SoundType.SUCCESS);
+    });
+
+    it.each([
+      ['easy', 40],
+      ['medium', 46],
+      ['hard', 55],
+    ] as const)('applies the %s AI bonus to this card before the next turn', (aiDifficulty, expectedScore) => {
+      const state = { ...mockCallbacks.onGetGameState(), score: 10, aiDifficulty };
+      mockCallbacks.onGetGameState = () => state;
+      mockCard2.card.difficulty = 'hard';
+
+      handler.handleCardPlacement(mockCard2, 700, 200, false, false);
+
+      expect(mockCallbacks.onSetScore).toHaveBeenCalledOnce();
+      expect(mockCallbacks.onSetScore).toHaveBeenCalledWith(expectedScore);
     });
 
     it('should trigger AI turn if opponent has cards', () => {
@@ -305,6 +323,7 @@ describe('CardPlacementHandler', () => {
 
       handler.handleCardPlacement(mockCard2, 700, 200, false, false);
 
+      expect(mockCallbacks.onSetScore).toHaveBeenCalledWith(10);
       expect(mockCallbacks.onCheckWin).not.toHaveBeenCalled();
       expect(mockCallbacks.onShowPlayerSwitchOverlay).not.toHaveBeenCalled();
 
@@ -510,8 +529,11 @@ describe('CardPlacementHandler', () => {
     });
 
     it('should move card to graveyard after delay in normal mode', () => {
+      const state = { ...mockCallbacks.onGetGameState(), score: 10, aiDifficulty: 'hard' as const };
+      mockCallbacks.onGetGameState = () => state;
       handler.handleCardPlacement(mockCard2, 700, 200, false, false);
 
+      expect(mockCallbacks.onSetScore).not.toHaveBeenCalled();
       expect(mockCard2.setIncorrect).toHaveBeenCalled();
       expect(mockCallbacks.onStopTurnTimer).toHaveBeenCalledOnce();
       expect(mockCallbacks.onSetIsPlayerTurn).toHaveBeenCalledWith(false);

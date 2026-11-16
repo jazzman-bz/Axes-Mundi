@@ -15,9 +15,8 @@ Entwickelt mit Electron + Vite + PixiJS + GSAP.
   - LAN-Multiplayer
   - Lernmodus (ohne Zeitdruck, mit Erklärungen)
 - Bewertung:
-  - korrekt → Punkte & Zeitbonus
-  - knapp daneben → halbe Punkte
-  - falsch → Zeitverlust & Fehlerzähler
+  - Richtig gelegte Karten bringen je nach Kartenschwierigkeit 10, 20 oder 30 Basispunkte.
+  - Fehlzüge und Zeitablauf bringen keine Punkte. Wer zuerst alle Handkarten loswird, gewinnt.
 - Extras:
   - Lerninfos & Quellenlinks
   - Power-Ups (Multiplayer)
@@ -25,11 +24,13 @@ Entwickelt mit Electron + Vite + PixiJS + GSAP.
 
 ### Gegen KI
 
-| Stufe | Zugzeit | Startkarten der KI | Fehlerchance pro KI-Zug |
-| --- | ---: | ---: | ---: |
-| Leicht | 30 s | 7 | 20 % |
-| Mittel | 20 s | 6 | 10 % |
-| Schwer | 10 s | 5 | 5 % |
+| Stufe | Zugzeit | Startkarten der KI | Fehlerchance pro KI-Zug | Punktemultiplikator |
+| --- | ---: | ---: | ---: | ---: |
+| Leicht | 30 s | 7 | 20 % | ×1,00 |
+| Mittel | 20 s | 6 | 10 % | ×1,20 |
+| Schwer | 10 s | 5 | 5 % | ×1,50 |
+
+Bei jeder richtig gelegten Karte werden ihre Basispunkte sofort mit der gewählten KI-Stufe multipliziert. Eine schwere Karte bringt zum Beispiel 30 Punkte auf Leicht, 36 auf Mittel und 45 auf Schwer. Der während der Partie angezeigte Punktestand wird am Ende auch bei einer Niederlage dem Profil gutgeschrieben. Im Hotseat gelten die Basispunkte. Der Lernmodus vergibt keine Punkte.
 
 Der Mensch beginnt mit fünf Karten. Die KI wählt eine Handkarte zufällig und zieht pro Zug erneut das Los für einen Fehler. Bei einem Fehler nimmt sie eine benachbarte falsche Lücke. Gleichwertige Lücken zählen als richtig. Gibt es keine falsche Lücke, spielt die KI korrekt.
 

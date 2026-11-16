@@ -651,6 +651,9 @@ class AxesMundiApp {
         }),
         onGetGameState: () => ({
           score: this.score,
+          aiDifficulty: this.isLearningMode || this.isHotseatMode || this.isLANMode
+            ? undefined
+            : this.gameDifficulty,
           currentTurn: this.currentTurn,
           gameWon: this.gameWon,
           gameLost: this.gameLost,

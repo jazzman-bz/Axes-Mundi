@@ -647,10 +647,11 @@ class LandingPageController {
       // AI difficulty selection
       const difficultyCards = document.querySelectorAll('.difficulty-card');
       difficultyCards.forEach(card => {
-        const { errorChance, turnSeconds, opponentCards } = AI_DIFFICULTY[card.dataset.difficulty];
+        const { errorChance, turnSeconds, opponentCards, scoreMultiplier } = AI_DIFFICULTY[card.dataset.difficulty];
         card.querySelector('.difficulty-description').textContent =
           `${turnSeconds} seconds per turn · AI error chance: ${Math.round(errorChance * 100)}% per turn`;
         card.querySelector('.difficulty-hand-size').textContent = `AI starts with ${opponentCards} cards`;
+        card.querySelector('.difficulty-score-multiplier').textContent = `Score multiplier: ×${scoreMultiplier.toFixed(2)}`;
         card.addEventListener('click', this.handleDifficultySelection.bind(this));
       });
 
