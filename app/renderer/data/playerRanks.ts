@@ -3,19 +3,19 @@ export const PLAYER_RANKS = [
     id: 'bronze', label: 'Bronze', level: 1, minimum: 0,
   },
   {
-    id: 'silver', label: 'Silver', level: 2, minimum: 150,
+    id: 'silver', label: 'Silver', level: 2, minimum: 500,
   },
   {
-    id: 'gold', label: 'Gold', level: 3, minimum: 500,
+    id: 'gold', label: 'Gold', level: 3, minimum: 1000,
   },
   {
-    id: 'platinum', label: 'Platinum', level: 4, minimum: 1000,
+    id: 'platinum', label: 'Platinum', level: 4, minimum: 2000,
   },
   {
-    id: 'diamond', label: 'Diamond', level: 5, minimum: 2000,
+    id: 'diamond', label: 'Diamond', level: 5, minimum: 4000,
   },
   {
-    id: 'epic', label: 'Epic', level: 6, minimum: 3500,
+    id: 'epic', label: 'Epic', level: 6, minimum: 10000,
   },
 ] as const;
 

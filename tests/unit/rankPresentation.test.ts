@@ -5,7 +5,7 @@ import { createMatchRankSummary, createRankProfile } from '@/utils/rankPresentat
 
 describe('rank presentation', () => {
   const promotion = {
-    name: 'Joe', avatar: '1', previousTotalScore: 470, totalScore: 545,
+    name: 'Joe', avatar: '1', previousTotalScore: 970, totalScore: 1045,
   };
 
   beforeEach(() => {
@@ -20,10 +20,10 @@ describe('rank presentation', () => {
   });
 
   it('shows the persisted rank with an avatar badge and progress for an existing profile', () => {
-    const { element } = createRankProfile('Joe', '1', 545);
+    const { element } = createRankProfile('Joe', '1', 1045);
     expect(element.querySelector('[role="img"]')?.getAttribute('aria-label')).toBe('Gold, level 3 avatar');
     expect(element.querySelector('.rank-level')?.textContent).toBe('3');
-    expect(element.textContent).toContain('455 points to Platinum');
+    expect(element.textContent).toContain('955 points to Platinum');
   });
 
   it('fills the previous rank before revealing the new frame and remaining points', () => {
@@ -37,12 +37,12 @@ describe('rank presentation', () => {
     vi.advanceTimersByTime(400);
 
     expect(summary.querySelector('.rank-avatar')?.getAttribute('data-rank')).toBe('gold');
-    expect(summary.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('9');
+    expect(summary.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('5');
     expect(summary.querySelector('[role="status"]')?.textContent).toBe('Rank up! Gold · +75 profile points');
   });
 
   it('credits progress within a rank without a promotion', () => {
-    const summary = createMatchRankSummary({ ...promotion, totalScore: 495 });
+    const summary = createMatchRankSummary({ ...promotion, totalScore: 995 });
     document.body.append(summary);
     vi.runAllTimers();
 

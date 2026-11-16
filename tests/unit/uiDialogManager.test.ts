@@ -156,7 +156,7 @@ describe('UIDialogManager', () => {
     it('shows a saved rank promotion alongside a defeat', () => {
       global.document = realDocument;
       manager.showLoseDialog([{
-        name: 'Joe', avatar: '1', previousTotalScore: 470, totalScore: 545,
+        name: 'Joe', avatar: '1', previousTotalScore: 970, totalScore: 1045,
       }]);
       vi.runAllTimers();
 
