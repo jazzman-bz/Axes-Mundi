@@ -305,6 +305,8 @@ export class CardPlacementHandler {
       }, 2000);
     } else {
       // NORMAL MODE: Move card to graveyard after 2 seconds
+      this.config.callbacks.onStopTurnTimer();
+      this.config.callbacks.onSetIsPlayerTurn(false);
       this.config.callbacks.onLog('info', 'renderer/cardplacement', 'normal mode: incorrect card will be moved to graveyard in 2 seconds', {
         cardTitle: card.card.title,
         turn: gameState.currentTurn,

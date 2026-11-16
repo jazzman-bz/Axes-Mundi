@@ -11,6 +11,7 @@ import { getDeckDescription, getDeckLocaleLabel, getDeckThemeLabel } from './uti
 import { createUserDeckCard } from './utils/userDeckCard.ts';
 import { formatVersionBadge, formatVersionTooltip } from './utils/versionPresentation.ts';
 import { LOCAL_ACCOUNTS_STORAGE_KEY } from './utils/accountScoreStore.ts';
+import { AI_DIFFICULTY } from './data/aiDifficulty.ts';
 import {
   clearLanSessionState,
   getLanCardDistribution,
@@ -646,6 +647,10 @@ class LandingPageController {
       // AI difficulty selection
       const difficultyCards = document.querySelectorAll('.difficulty-card');
       difficultyCards.forEach(card => {
+        const { errorChance, turnSeconds, opponentCards } = AI_DIFFICULTY[card.dataset.difficulty];
+        card.querySelector('.difficulty-description').textContent =
+          `${turnSeconds} seconds per turn · AI error chance: ${Math.round(errorChance * 100)}% per turn`;
+        card.querySelector('.difficulty-hand-size').textContent = `AI starts with ${opponentCards} cards`;
         card.addEventListener('click', this.handleDifficultySelection.bind(this));
       });
 

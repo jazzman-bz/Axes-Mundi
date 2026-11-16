@@ -168,9 +168,14 @@ export class GameStateManager {
    * @param skipGraveyardRecycle - If true, skip graveyard recycling (used in learning mode)
    */
   moveCardToGraveyard(card: GameCard, skipGraveyardRecycle: boolean = false): void {
+    this.discardCard(card);
+    this.giveNewCard(skipGraveyardRecycle || this.config.callbacks.onGetGameState().isLearningMode);
+  }
+
+  /** Move a card off the axis without drawing or changing whose turn it is. */
+  discardCard(card: GameCard): void {
     const boardCards = this.config.callbacks.onGetBoardCards();
     const graveyard = this.config.callbacks.onGetGraveyard();
-    const gameState = this.config.callbacks.onGetGameState();
 
     // Remove from appropriate side
     const newPlacedLeft = boardCards.placedLeft.filter((c) => c !== card);
@@ -195,8 +200,6 @@ export class GameStateManager {
         cardTitle: card.card.title,
         isCorrect: card.isCorrect,
         graveyardSizeBefore: graveyard.length,
-        isLearningMode: gameState.isLearningMode,
-        skipGraveyardRecycle,
       },
     });
 
@@ -204,17 +207,12 @@ export class GameStateManager {
     this.config.callbacks.onSetGraveyard(newGraveyard);
     this.config.callbacks.onAnimateCardToGraveyard(card);
 
-    // Give player a new card
-    // In learning mode, don't recycle graveyard - cards should stay in graveyard
-    this.giveNewCard(skipGraveyardRecycle || gameState.isLearningMode);
-
     logger.info({
       scope: 'renderer/gamestate',
       msg: 'incorrect card moved to graveyard',
       meta: {
         cardTitle: card.card.title,
         graveyardSize: newGraveyard.length,
-        skipGraveyardRecycle: skipGraveyardRecycle || gameState.isLearningMode,
       },
     });
   }

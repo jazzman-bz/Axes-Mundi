@@ -1,5 +1,5 @@
 import {
-  describe, it, expect, beforeEach, vi,
+  describe, it, expect, beforeEach, afterEach, vi,
 } from 'vitest';
 import { AIManager, AIManagerCallbacks } from '@/utils/aiManager';
 import { GameCard } from '@/game/Card';
@@ -56,8 +56,10 @@ describe('AIManager', () => {
   let aiManager: AIManager;
 
   beforeEach(() => {
+    vi.useFakeTimers();
     canvas = createMockCanvas();
     callbacks = {
+      onGetDifficulty: () => 'medium',
       onGetBoardCards: vi.fn(() => ({
         boardCard: null,
         placedLeft: [],
@@ -68,6 +70,7 @@ describe('AIManager', () => {
       onCardPlaced: vi.fn(),
       onLayoutAxisCards: vi.fn(),
       onCardSetCorrect: vi.fn(),
+      onIncorrectPlacement: vi.fn(),
       onTurnComplete: vi.fn(),
       onCheckWin: vi.fn(),
       onStartTurnTimer: vi.fn(),
@@ -81,6 +84,12 @@ describe('AIManager', () => {
       isLearningMode: false,
       callbacks,
     });
+  });
+
+  afterEach(() => {
+    vi.clearAllTimers();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   describe('playTurn', () => {
@@ -180,7 +189,7 @@ describe('AIManager', () => {
   });
 
   describe('callbacks', () => {
-    it('should call onCardRemovedFromHand when card is placed', async () => {
+    it('should call onCardRemovedFromHand when card is placed', () => {
       const hand = [createMockGameCard(createMockCardData('1', 10))];
       hand[0].startDrag = vi.fn();
       hand[0].updateDrag = vi.fn();
@@ -200,7 +209,7 @@ describe('AIManager', () => {
       aiManager.playTurn(hand, false);
 
       // Wait for animation to complete (800ms + 400ms delay)
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      vi.advanceTimersByTime(1500);
 
       expect(callbacks.onCardRemovedFromHand).toHaveBeenCalledWith(hand[0]);
       expect(callbacks.onCardPlaced).toHaveBeenCalled();
@@ -211,7 +220,7 @@ describe('AIManager', () => {
       expect(callbacks.onPlaySound).toHaveBeenCalledWith(SoundType.CARD_PLACE);
     }, 2000);
 
-    it('should call onShowPreview during animation', async () => {
+    it('should call onShowPreview during animation', () => {
       const hand = [createMockGameCard(createMockCardData('1', 10))];
       hand[0].startDrag = vi.fn();
       hand[0].updateDrag = vi.fn();
@@ -230,12 +239,12 @@ describe('AIManager', () => {
       aiManager.playTurn(hand, false);
 
       // Preview should show after 30% of animation (240ms)
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      vi.advanceTimersByTime(300);
 
       expect(callbacks.onShowPreview).toHaveBeenCalled();
     }, 500);
 
-    it('should call onHidePreview after placement', async () => {
+    it('should call onHidePreview after placement', () => {
       const hand = [createMockGameCard(createMockCardData('1', 10))];
       hand[0].startDrag = vi.fn();
       hand[0].updateDrag = vi.fn();
@@ -254,10 +263,87 @@ describe('AIManager', () => {
       aiManager.playTurn(hand, false);
 
       // Hide preview should be called after placement delay (400ms)
-      await new Promise((resolve) => setTimeout(resolve, 1300));
+      vi.advanceTimersByTime(1300);
 
       expect(callbacks.onHidePreview).toHaveBeenCalled();
     }, 2000);
+  });
+
+  describe('difficulty and incorrect placements', () => {
+    it.each([
+      ['easy', 0.199, 0.20],
+      ['medium', 0.099, 0.10],
+      ['hard', 0.049, 0.05],
+    ] as const)('uses the %s error threshold per turn', (difficulty, below, threshold) => {
+      callbacks.onGetDifficulty = () => difficulty;
+      const boardCard = createMockGameCard(createMockCardData('board', 50));
+      callbacks.onGetBoardCards = () => ({ boardCard, placedLeft: [], placedRight: [] });
+      vi.spyOn(Math, 'random')
+        .mockReturnValueOnce(0)
+        .mockReturnValueOnce(below)
+        .mockReturnValueOnce(0)
+        .mockReturnValueOnce(threshold);
+      const incorrectCard = createMockGameCard(createMockCardData('low', 30));
+      const correctCard = createMockGameCard(createMockCardData('lower', 20));
+
+      aiManager.playTurn([incorrectCard], false);
+      vi.advanceTimersByTime(1200);
+      expect(incorrectCard.isCorrect).toBe(false);
+      expect(callbacks.onCardPlaced).toHaveBeenCalledWith(incorrectCard, false);
+      expect(callbacks.onPlaySound).toHaveBeenCalledWith(SoundType.ERROR);
+      expect(callbacks.onTurnComplete).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(2000);
+      expect(callbacks.onIncorrectPlacement).toHaveBeenCalledWith(incorrectCard);
+      expect(callbacks.onCheckWin).not.toHaveBeenCalled();
+      expect(callbacks.onTurnComplete).toHaveBeenCalledOnce();
+
+      aiManager.playTurn([correctCard], false);
+      vi.advanceTimersByTime(1200);
+      expect(callbacks.onCardPlaced).toHaveBeenCalledWith(correctCard, true);
+      expect(callbacks.onCardSetCorrect).toHaveBeenCalledWith(correctCard);
+      expect(callbacks.onIncorrectPlacement).toHaveBeenCalledOnce();
+      expect(callbacks.onCheckWin).toHaveBeenCalledOnce();
+    });
+
+    it('skips equal gaps when choosing a wrong position', () => {
+      const boardCard = createMockGameCard(createMockCardData('board', 1, 'km'));
+      const smallerCard = createMockGameCard(createMockCardData('small', 200));
+      const equalCard = createMockGameCard(createMockCardData('equal', 1000));
+      callbacks.onGetBoardCards = () => ({ boardCard, placedLeft: [smallerCard], placedRight: [] });
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+
+      aiManager.playTurn([equalCard], false);
+      vi.advanceTimersByTime(1200);
+      expect(equalCard.x + equalCard.width).toBeLessThan(canvas.width / 2 - equalCard.width / 2);
+      expect(equalCard.isCorrect).toBe(false);
+    });
+
+    it('plays correctly when every gap is valid', () => {
+      const boardCard = createMockGameCard(createMockCardData('board', 1, 'km'));
+      const equalCard = createMockGameCard(createMockCardData('equal', 1000));
+      callbacks.onGetBoardCards = () => ({ boardCard, placedLeft: [], placedRight: [] });
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+
+      aiManager.playTurn([equalCard], false);
+      vi.advanceTimersByTime(3200);
+      expect(callbacks.onCardSetCorrect).toHaveBeenCalledWith(equalCard);
+      expect(callbacks.onIncorrectPlacement).not.toHaveBeenCalled();
+    });
+
+    it('cancels pending discard and turn changes when restarting during feedback', () => {
+      const boardCard = createMockGameCard(createMockCardData('board', 50));
+      const card = createMockGameCard(createMockCardData('low', 30));
+      callbacks.onGetBoardCards = () => ({ boardCard, placedLeft: [], placedRight: [] });
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+
+      aiManager.playTurn([card], false);
+      vi.advanceTimersByTime(1200);
+      expect(card.isCorrect).toBe(false);
+      aiManager.cancelTurn();
+      vi.runAllTimers();
+      expect(callbacks.onIncorrectPlacement).not.toHaveBeenCalled();
+      expect(callbacks.onTurnComplete).not.toHaveBeenCalled();
+    });
   });
 
   describe('updateConfig', () => {

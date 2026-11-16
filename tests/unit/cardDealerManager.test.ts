@@ -290,20 +290,30 @@ describe('CardDealerManager', () => {
       expect(callbacks.onLayoutOpponentHand).toHaveBeenCalled();
     });
 
-    it('should recycle graveyard when deck is empty', () => {
-      callbacks.onGetRemainingCards = () => [];
-      const graveyardCard = new GameCard(
-        createTestCard('graveyard-1', 'Graveyard Card'),
-        deck,
-        0,
-        0,
-        1,
-      );
+    it('draws a replacement from the new deck after recycling', () => {
+      let remainingCards: CardData[] = [];
+      const recycled = createTestCard('graveyard-1', 'Graveyard Card');
+      const graveyardCard = new GameCard(recycled, deck, 0, 0, 1);
+      callbacks.onGetRemainingCards = () => remainingCards;
       callbacks.onGetGraveyard = () => [graveyardCard];
+      callbacks.onRecycleGraveyard = vi.fn(() => { remainingCards = [recycled]; });
 
-      manager.dealCardToOpponent();
+      manager.dealCardToOpponent(createTestCard('fallback', 'Fallback'));
 
-      expect(callbacks.onRecycleGraveyard).toHaveBeenCalled();
+      expect(callbacks.onRecycleGraveyard).toHaveBeenCalledOnce();
+      expect(callbacks.onAddCardToOpponentHand).toHaveBeenCalledWith(expect.objectContaining({ card: recycled }));
+      expect(remainingCards).toHaveLength(0);
+    });
+
+    it('returns the missed card to the opponent if no replacement is available', () => {
+      const missedCard = createTestCard('missed', 'Missed Card');
+      callbacks.onGetRemainingCards = () => [];
+      callbacks.onGetGraveyard = () => [];
+
+      manager.dealCardToOpponent(missedCard);
+
+      expect(callbacks.onAddCardToOpponentHand).toHaveBeenCalledWith(expect.objectContaining({ card: missedCard }));
+      expect(callbacks.onAddCardToPlayerHand).not.toHaveBeenCalled();
     });
   });
 

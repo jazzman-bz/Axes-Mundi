@@ -246,7 +246,7 @@ export class CardDealerManager {
   /**
    * Deal a card to the opponent
    */
-  public dealCardToOpponent(): void {
+  public dealCardToOpponent(fallbackCard?: CardData): void {
     logger.info({
       scope: 'renderer/dealer',
       msg: 'dealCardToOpponent called',
@@ -262,18 +262,10 @@ export class CardDealerManager {
     // Recycle graveyard if deck is empty
     if (remainingCards.length === 0 && graveyard.length > 0) {
       this.config.callbacks.onRecycleGraveyard();
-      // Get updated remaining cards after recycling
-      const updatedCards = this.config.callbacks.onGetRemainingCards();
-      if (updatedCards.length === 0) {
-        logger.warn({
-          scope: 'renderer/dealer',
-          msg: 'no cards available after recycling graveyard',
-        });
-        return;
-      }
     }
 
-    const cardData = dealCard(remainingCards);
+    const currentDeck = this.config.callbacks.onGetRemainingCards();
+    const cardData = dealCard(currentDeck) ?? fallbackCard;
     if (cardData) {
       const card = new GameCard(
         cardData,
@@ -292,7 +284,7 @@ export class CardDealerManager {
         meta: {
           cardTitle: cardData.title,
           handSize: this.config.callbacks.onGetHands().opponentHand.length,
-          remainingCards: this.config.callbacks.onGetRemainingCards().length,
+          remainingCards: currentDeck.length,
         },
       });
     } else {

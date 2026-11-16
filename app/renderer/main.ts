@@ -1,6 +1,7 @@
 import { logger } from '@/utils/logger';
 // REMOVED: loadDeck, shuffleCardsInPlace - Now used in GameInitializer
 import { GameCard } from '@/game/Card';
+import { GameDifficulty } from '@/data/aiDifficulty';
 import { Card as CardData } from '@/data/types';
 import { soundManager } from '@/utils/soundManager';
 import { backgroundMusicManager } from '@/utils/backgroundMusicManager';
@@ -118,7 +119,7 @@ class AxesMundiApp {
 
   private turnTimer: number = 10; // Default timer
 
-  private gameDifficulty: 'easy' | 'medium' | 'hard'; // Current game difficulty
+  private gameDifficulty: GameDifficulty;
 
   // REMOVED: turnTimerInterval - Now in TurnTimerManager
 
@@ -399,6 +400,7 @@ class AxesMundiApp {
       scale: this.scale,
       isLearningMode: this.isLearningMode,
       callbacks: {
+        onGetDifficulty: () => this.gameDifficulty,
         onGetBoardCards: () => ({
           boardCard: this.boardCard,
           placedLeft: this.placedLeft,
@@ -426,12 +428,16 @@ class AxesMundiApp {
         onCardSetCorrect: (card) => {
           card.setCorrect();
         },
+        onIncorrectPlacement: (card) => {
+          this.gameStateManager?.discardCard(card);
+          this.cardDealerManager?.dealCardToOpponent(card.card);
+        },
         onTurnComplete: () => {
           this.isPlayerTurn = true;
           this.currentTurn++;
           this.isAITurnInProgress = false;
-          if (this.turnTimerManager) {
-            this.turnTimerManager.startTurnTimer();
+          if (!this.gameWon && !this.gameLost) {
+            this.turnTimerManager?.startTurnTimer();
           }
           this.updateInputHandlerConfig();
         },
@@ -599,13 +605,7 @@ class AxesMundiApp {
         onUpdateInputHandlerConfig: () => {
           this.updateInputHandlerConfig();
         },
-        onAITurn: (opponentHand) => {
-          if (this.aiManager) {
-            // Pass false to playTurn - we're starting a new turn, not continuing one
-            // playTurn will return true if the turn starts successfully
-            this.isAITurnInProgress = this.aiManager.playTurn(opponentHand, false);
-          }
-        },
+        onAITurn: (opponentHand) => this.startAITurn(opponentHand),
         onSetAITurnInProgress: (inProgress) => {
           this.isAITurnInProgress = inProgress;
         },
@@ -694,13 +694,7 @@ class AxesMundiApp {
             this.gameStateManager.checkForWin();
           }
         },
-        onAITurn: (opponentHand) => {
-          if (this.aiManager) {
-            // Pass false to playTurn - we're starting a new turn, not continuing one
-            // playTurn will return true if the turn starts successfully
-            this.isAITurnInProgress = this.aiManager.playTurn(opponentHand, false);
-          }
-        },
+        onAITurn: (opponentHand) => this.startAITurn(opponentHand),
         onShowPlayerSwitchOverlay: () => {
           if (this.uiDialogManager) {
             this.uiDialogManager.showPlayerSwitchOverlay();
@@ -764,7 +758,7 @@ class AxesMundiApp {
         onAITurn: (opponentHand) => {
           if (this.aiManager && !this.isAITurnInProgress) {
             setTimeout(() => {
-              this.isAITurnInProgress = this.aiManager!.playTurn(opponentHand, this.isAITurnInProgress);
+              this.startAITurn(opponentHand);
             }, 500);
           }
         },
@@ -1672,6 +1666,12 @@ class AxesMundiApp {
   // REMOVED: Dialog methods - Now handled by UIDialogManager
   // showHotseatWinDialog, showWinDialog, showLoseDialog, showCustomWinDialog, goToMainMenu
 
+  private startAITurn(opponentHand: GameCard[]): void {
+    if (!this.aiManager || this.isAITurnInProgress || this.isPlayerTurn
+      || this.gameWon || this.gameLost || opponentHand !== this.opponentHand) return;
+    this.isAITurnInProgress = this.aiManager.playTurn(opponentHand, false);
+  }
+
   /**
    * Restart the game
    */
@@ -1687,6 +1687,8 @@ class AxesMundiApp {
     }
 
     // Reset game state
+    this.aiManager?.cancelTurn();
+    this.isAITurnInProgress = false;
     this.gameWon = false;
     this.gameLost = false;
     this.score = 0;

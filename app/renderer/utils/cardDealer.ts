@@ -1,9 +1,5 @@
 import { Card } from '@/data/types';
-
-/**
- * Game difficulty levels
- */
-export type GameDifficulty = 'easy' | 'medium' | 'hard';
+import { AI_DIFFICULTY, GameDifficulty } from '@/data/aiDifficulty';
 
 /**
  * Game mode types
@@ -28,7 +24,7 @@ export interface DealConfig {
  * Default card counts per mode
  */
 const DEFAULT_COUNTS = {
-  normal: { player: 5, opponent: { easy: 7, medium: 6, hard: 5 } },
+  normal: { player: 5 },
   learning: { player: 5 },
   hotseat: { player1: 5, player2: 5 },
 } as const;
@@ -39,7 +35,7 @@ const DEFAULT_COUNTS = {
  * @returns Number of cards for opponent
  */
 export function getOpponentCardCount(difficulty: GameDifficulty = 'medium'): number {
-  return DEFAULT_COUNTS.normal.opponent[difficulty];
+  return AI_DIFFICULTY[difficulty].opponentCards;
 }
 
 /**

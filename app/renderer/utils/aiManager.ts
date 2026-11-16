@@ -1,5 +1,6 @@
 import { GameCard } from '@/game/Card';
 import { convertToComparable } from '@/data/scoring';
+import { AI_DIFFICULTY, GameDifficulty } from '@/data/aiDifficulty';
 import { SoundType } from '@/utils/soundManager';
 import { logger } from '@/utils/logger';
 
@@ -7,6 +8,8 @@ import { logger } from '@/utils/logger';
  * Callbacks for AI manager to interact with game state
  */
 export interface AIManagerCallbacks {
+  onGetDifficulty: () => GameDifficulty;
+
   /** Get current board cards for position calculation */
   onGetBoardCards: () => {
     boardCard: GameCard | null;
@@ -28,6 +31,9 @@ export interface AIManagerCallbacks {
 
   /** Mark card as correct */
   onCardSetCorrect: (card: GameCard) => void;
+
+  /** Discard the incorrect card and deal a replacement to the opponent. */
+  onIncorrectPlacement: (card: GameCard) => void;
 
   /** Switch back to player turn */
   onTurnComplete: () => void;
@@ -65,18 +71,28 @@ export interface AIManagerConfig {
   callbacks: AIManagerCallbacks;
 }
 
+interface AIPlacement {
+  x: number;
+  isLeft: boolean;
+  isCorrect: boolean;
+}
+
 /**
  * AI Manager - Handles AI turn logic and card placement
  */
 export class AIManager {
   private config: AIManagerConfig;
 
+  private animationInterval: ReturnType<typeof setInterval> | undefined;
+
+  private placementTimeout: ReturnType<typeof setTimeout> | undefined;
+
   constructor(config: AIManagerConfig) {
     this.config = config;
   }
 
   /**
-   * Play AI turn - selects a card and places it correctly
+   * Play an AI turn at the selected difficulty
    * @param opponentHand - Array of cards in AI's hand
    * @param isAITurnInProgress - Flag to prevent multiple turns
    * @returns true if turn was started, false if skipped
@@ -125,8 +141,9 @@ export class AIManager {
     const randomIndex = Math.floor(Math.random() * opponentHand.length);
     const aiCard = opponentHand[randomIndex];
 
-    // Simulate player drag mechanics - find correct position by scanning
-    this.simulateDrag(aiCard);
+    const { errorChance } = AI_DIFFICULTY[this.config.callbacks.onGetDifficulty()];
+    const placement = this.choosePlacement(aiCard, Math.random() < errorChance);
+    this.simulateDrag(aiCard, placement);
 
     logger.info({
       scope: 'renderer/ai',
@@ -140,21 +157,20 @@ export class AIManager {
   }
 
   /**
-   * Simulate AI drag to find correct position - animates directly to the correct position
+   * Animate the chosen move from the opponent hand to the axis
    */
-  private simulateDrag(aiCard: GameCard): void {
+  private simulateDrag(aiCard: GameCard, placement: AIPlacement): void {
     // Start drag from opponent hand position
     const startX = aiCard.x;
     const startY = aiCard.y;
 
-    // Calculate the correct target position directly (no scanning needed)
-    const targetX = this.findCorrectPosition(aiCard);
+    const targetX = placement.x;
     const axisY = this.config.canvas.height / 2;
     const targetY = axisY - aiCard.height / 2;
 
     logger.info({
       scope: 'renderer/ai',
-      msg: 'AI calculated correct position',
+      msg: 'AI chose a card position',
       meta: {
         cardTitle: aiCard.card.title,
         cardValue: aiCard.card.value,
@@ -163,13 +179,14 @@ export class AIManager {
         startY,
         targetX,
         targetY,
+        isCorrect: placement.isCorrect,
       },
     });
 
     // Simulate picking up card from hand
     aiCard.startDrag(startX, startY);
 
-    // Animate card from hand directly to correct position
+    // Animate card from hand to the chosen position
     const animationDuration = 800; // 800ms to move from hand to target
     const animationSteps = 40; // 40 steps for smooth animation
     const stepDuration = animationDuration / animationSteps;
@@ -179,9 +196,9 @@ export class AIManager {
     let previewShown = false;
 
     let step = 0;
-    const animationInterval = setInterval(() => {
+    this.animationInterval = setInterval(() => {
       // Interpolate from hand position to target position
-      const progress = step / animationSteps;
+      const progress = (step + 1) / animationSteps;
       // Use easeOutQuad for smooth deceleration
       const easedProgress = 1 - (1 - progress) * (1 - progress);
 
@@ -202,112 +219,87 @@ export class AIManager {
 
       step++;
       if (step >= animationSteps) {
-        clearInterval(animationInterval);
-
-        // DON'T hide preview here - let the card be placed into the open space
-        // The preview will be cleared when layoutAxisCards() is called after placement
-
-        // Place the card at the correct position (into the open space)
-        this.placeCard(aiCard, targetX, axisY);
+        clearInterval(this.animationInterval);
+        this.animationInterval = undefined;
+        this.placeCard(aiCard, placement);
       }
     }, stepDuration);
   }
 
-  /**
-   * Place AI card at the calculated correct position
-   */
-  private placeCard(aiCard: GameCard, x: number, y: number): void {
-    // Stop dragging
+  private placeCard(aiCard: GameCard, { x, isLeft, isCorrect }: AIPlacement): void {
     aiCard.stopDrag();
-
-    // The card is now at its position in the gap created by the preview
-    // DON'T set target position yet - let the card stay where it is
-
-    // Immediately update game state (no delay - card is already in position)
-    // Remove the specific card from opponent hand
     this.config.callbacks.onCardRemovedFromHand(aiCard);
     this.config.callbacks.onLayoutOpponentHand();
-
-    // Add to appropriate array based on card value (not position)
-    // Determine left/right by comparing card value to board card value
-    const boardCards = this.config.callbacks.onGetBoardCards();
-    const aiCardValue = convertToComparable(aiCard.card.value, aiCard.card.unit);
-    const boardCardValue = boardCards.boardCard
-      ? convertToComparable(boardCards.boardCard.card.value, boardCards.boardCard.card.unit)
-      : 0;
-    const isLeft = aiCardValue < boardCardValue;
-
-    // Play card placement sound for AI
-    this.config.callbacks.onPlaySound(SoundType.CARD_PLACE);
-
-    // Add card to appropriate side
     this.config.callbacks.onCardPlaced(aiCard, isLeft);
     aiCard.isInHand = false;
+    this.config.callbacks.onPlaySound(SoundType.CARD_PLACE);
 
-    // Small delay to show the card in position, then re-center all cards smoothly
-    setTimeout(() => {
-      // Clear preview positions before re-centering
+    this.placementTimeout = setTimeout(() => {
+      this.placementTimeout = undefined;
+      if (!isCorrect) {
+        aiCard.setIncorrect();
+        this.config.callbacks.onPlaySound(SoundType.ERROR);
+        this.placementTimeout = setTimeout(() => {
+          this.placementTimeout = undefined;
+          this.config.callbacks.onHidePreview();
+          this.config.callbacks.onIncorrectPlacement(aiCard);
+          this.config.callbacks.onLayoutAxisCards();
+          this.config.callbacks.onTurnComplete();
+        }, 2000);
+        return;
+      }
+
       this.config.callbacks.onHidePreview();
-
-      // Center all cards (including the newly placed AI card)
       this.config.callbacks.onLayoutAxisCards();
-
-      // Mark card as correct and play success sound
       this.config.callbacks.onCardSetCorrect(aiCard);
-      setTimeout(() => {
-        this.config.callbacks.onPlaySound(SoundType.SUCCESS);
-      }, 300); // Small delay after placement sound
-
-      // Switch back to player turn
-      this.config.callbacks.onTurnComplete();
-
-      // Check for AI win
+      this.config.callbacks.onPlaySound(SoundType.SUCCESS);
       this.config.callbacks.onCheckWin();
-
+      this.config.callbacks.onTurnComplete();
       logger.info({
         scope: 'renderer/ai',
         msg: 'AI card placed successfully',
-        meta: {
-          cardTitle: aiCard.card.title,
-          position: { x, y },
-          isLeft,
-        },
+        meta: { cardTitle: aiCard.card.title, x, isLeft },
       });
-    }, 400); // Brief pause to show card in the gap, then re-center
+    }, 400);
   }
 
-  /**
-   * Find the correct position for a card on the axis
-   */
-  private findCorrectPosition(card: GameCard): number {
-    // Get all cards currently on axis
-    const boardCards = this.config.callbacks.onGetBoardCards();
-    const allCards = [
-      boardCards.boardCard,
-      ...boardCards.placedLeft,
-      ...boardCards.placedRight,
-    ].filter(Boolean) as GameCard[];
+  private choosePlacement(card: GameCard, attemptError: boolean): AIPlacement {
+    const { boardCard, placedLeft, placedRight } = this.config.callbacks.onGetBoardCards();
+    const board = [...placedLeft, ...(boardCard ? [boardCard] : []), ...placedRight]
+      .map((placed) => ({ placed, value: convertToComparable(placed.card.value, placed.card.unit) }))
+      .sort((a, b) => a.value - b.value);
+    const value = convertToComparable(card.card.value, card.card.unit);
 
-    // Add the new card to the list
-    const cardsWithNew = [...allCards, card];
+    // Any gap between the lower and upper bounds is valid, including ties.
+    const firstGreater = board.findIndex((entry) => entry.value > value);
+    const correctGap = firstGreater === -1 ? board.length : firstGreater;
+    let gap = correctGap;
+    if (attemptError) {
+      // The gap after the first greater value is one step from the chosen valid gap.
+      // At the right edge, skip equal values to find the nearest strictly smaller card.
+      const wrongGap = correctGap < board.length
+        ? correctGap + 1
+        : board.filter((entry) => entry.value < value).length - 1;
+      if (wrongGap >= 0) gap = wrongGap;
+    }
 
-    // Sort by axis value to find correct position
-    const sortedCards = cardsWithNew.sort((a, b) => {
-      const aValue = convertToComparable(a.card.value, a.card.unit);
-      const bValue = convertToComparable(b.card.value, b.card.unit);
-      return aValue - bValue;
-    });
-
-    // Find the index of the new card in the sorted list
-    const cardIndex = sortedCards.findIndex((c) => c === card);
-
-    // Calculate position based on index
-    const cardWidth = 200 * this.config.scale;
     const spacing = 5 * this.config.scale;
-    const totalWidth = sortedCards.length * cardWidth + (sortedCards.length - 1) * spacing;
+    const totalWidth = (board.length + 1) * card.width + board.length * spacing;
     const startX = (this.config.canvas.width - totalWidth) / 2;
+    const boardIndex = board.findIndex((entry) => entry.placed === boardCard);
+    return {
+      x: startX + gap * (card.width + spacing),
+      isLeft: boardIndex >= 0 && gap <= boardIndex,
+      isCorrect: gap === correctGap,
+    };
+  }
 
-    return startX + cardIndex * (cardWidth + spacing);
+  public cancelTurn(): void {
+    clearInterval(this.animationInterval);
+    clearTimeout(this.placementTimeout);
+    this.animationInterval = undefined;
+    this.placementTimeout = undefined;
+    this.config.callbacks.onHidePreview();
   }
 
   /**

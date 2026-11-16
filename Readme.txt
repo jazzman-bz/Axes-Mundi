@@ -23,6 +23,20 @@ Entwickelt mit Electron + Vite + PixiJS + GSAP.
   - Power-Ups (Multiplayer)
   - Highscores, Medaillen, Trophäen
 
+### Gegen KI
+
+| Stufe | Zugzeit | Startkarten der KI | Fehlerchance pro KI-Zug |
+| --- | ---: | ---: | ---: |
+| Leicht | 30 s | 7 | 20 % |
+| Mittel | 20 s | 6 | 10 % |
+| Schwer | 10 s | 5 | 5 % |
+
+Der Mensch beginnt mit fünf Karten. Die KI wählt eine Handkarte zufällig und zieht pro Zug erneut das Los für einen Fehler. Bei einem Fehler nimmt sie eine benachbarte falsche Lücke. Gleichwertige Lücken zählen als richtig. Gibt es keine falsche Lücke, spielt die KI korrekt.
+
+Eine falsch gelegte Karte wird rot markiert und abgelegt. Die KI zieht eine Ersatzkarte, bei Bedarf aus dem wiederverwendeten Ablagestapel, und gibt den Zug an den Menschen zurück. Ein Fehlzug kann die KI-Hand nicht leeren und keinen Sieg auslösen.
+
+Die Kacheln und die Spiellogik lesen dieselben Werte aus `app/renderer/data/aiDifficulty.ts`.
+
 ## Techstack
 
 - Electron – Cross-Plattform Desktop-App (Windows, macOS, Linux)

@@ -513,6 +513,8 @@ describe('CardPlacementHandler', () => {
       handler.handleCardPlacement(mockCard2, 700, 200, false, false);
 
       expect(mockCard2.setIncorrect).toHaveBeenCalled();
+      expect(mockCallbacks.onStopTurnTimer).toHaveBeenCalledOnce();
+      expect(mockCallbacks.onSetIsPlayerTurn).toHaveBeenCalledWith(false);
       expect(mockCallbacks.onMoveCardToGraveyard).not.toHaveBeenCalled();
 
       vi.advanceTimersByTime(2000);

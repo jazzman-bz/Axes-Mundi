@@ -1,4 +1,5 @@
 import { GameCard } from '@/game/Card';
+import { AI_DIFFICULTY, GameDifficulty } from '@/data/aiDifficulty';
 import { logger } from '@/utils/logger';
 
 interface PlayerData {
@@ -13,7 +14,7 @@ interface PlayerData {
 export interface TurnTimerManagerCallbacks {
   /** Get current game state */
   onGetGameState: () => {
-    gameDifficulty: 'easy' | 'medium' | 'hard';
+    gameDifficulty: GameDifficulty;
     isLearningMode: boolean;
     isHotseatMode: boolean;
     isPlayerTurn: boolean;
@@ -79,17 +80,8 @@ export class TurnTimerManager {
    * @param difficulty - Game difficulty level
    * @returns Timer duration in seconds
    */
-  public getDifficultyTimer(difficulty: 'easy' | 'medium' | 'hard'): number {
-    switch (difficulty) {
-      case 'easy':
-        return 30;
-      case 'medium':
-        return 20;
-      case 'hard':
-        return 10;
-      default:
-        return 10;
-    }
+  public getDifficultyTimer(difficulty: GameDifficulty): number {
+    return AI_DIFFICULTY[difficulty]?.turnSeconds ?? AI_DIFFICULTY.hard.turnSeconds;
   }
 
   /**
