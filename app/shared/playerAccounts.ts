@@ -48,6 +48,15 @@ export interface MatchScoreTransaction {
   createdAt: string;
 }
 
+export interface MatchScoreCommitSuccess {
+  success: true;
+  account: PlayerAccount;
+  applied: boolean;
+  previousTotalScore: number;
+}
+
+export type MatchScoreCommitResult = MatchScoreCommitSuccess | { success: false; error: string };
+
 export function createEmptyStats(): PlayerAccountStats {
   return {
     totalScore: 0,

@@ -63,11 +63,32 @@ describe('accountScoreStore', () => {
     const [updatedAccount] = readLocalPlayerAccounts(storage);
 
     expect(firstResult.applied).toBe(true);
+    expect(firstResult.previousTotalScore).toBe(0);
     expect(secondResult.applied).toBe(false);
+    expect(secondResult.previousTotalScore).toBe(175);
     expect(updatedAccount.stats.totalScore).toBe(175);
     expect(updatedAccount.stats.matchesPlayed).toBe(1);
     expect(updatedAccount.stats.matchesWon).toBe(1);
     expect(updatedAccount.stats.aiWins).toBe(1);
+  });
+
+  it('returns the before and after totals when defeat still earns a promotion', () => {
+    const account = createPlayerAccount({ name: 'Joe' }, 'account-1', '2026-06-22T10:00:00.000Z');
+    account.stats.totalScore = 470;
+    const storage = createStorage(JSON.stringify([account]));
+
+    const result = commitLocalMatchScore({
+      matchId: 'match-2',
+      accountId: account.id,
+      scoreDelta: 75,
+      didWin: false,
+      mode: 'ai',
+      deckId: 'buildings-height-de',
+      createdAt: '2026-06-22T10:10:00.000Z',
+    }, storage);
+
+    expect(result).toMatchObject({ applied: true, previousTotalScore: 470 });
+    expect(readLocalPlayerAccounts(storage)[0].stats).toMatchObject({ totalScore: 545, matchesLost: 1 });
   });
 
   it('throws when the transaction account does not exist locally', () => {

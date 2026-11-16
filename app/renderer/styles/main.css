@@ -250,23 +250,6 @@ body {
   box-shadow: 0 0 0 3px rgba(240, 147, 251, 0.25);
 }
 
-.account-card-avatar {
-  font-size: 2rem;
-  line-height: 1;
-}
-
-.account-card-name {
-  font-weight: 700;
-  color: var(--text-primary);
-  word-break: break-word;
-}
-
-.account-card-score {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  margin-top: 0.25rem;
-}
-
 .empty-state {
   margin: 0 auto 2rem;
   padding: 1rem;

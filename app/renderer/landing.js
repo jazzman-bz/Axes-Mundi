@@ -12,6 +12,8 @@ import { createUserDeckCard } from './utils/userDeckCard.ts';
 import { formatVersionBadge, formatVersionTooltip } from './utils/versionPresentation.ts';
 import { LOCAL_ACCOUNTS_STORAGE_KEY } from './utils/accountScoreStore.ts';
 import { AI_DIFFICULTY } from './data/aiDifficulty.ts';
+import { getRankProgress } from './data/playerRanks.ts';
+import { createRankAvatar, createRankProfile } from './utils/rankPresentation.ts';
 import {
   clearLanSessionState,
   getLanCardDistribution,
@@ -39,32 +41,11 @@ const logger = {
   error: () => {}
 };
 
-/**
- * Avatar emoji mapping
- * Maps avatar ID (1-6) to emoji
- */
-const AVATAR_EMOJIS = {
-  '1': '👨‍🚀', // Astronaut
-  '2': '🧙‍♂️', // Wizard
-  '3': '🏴‍☠️', // Pirate
-  '4': '🦄', // Unicorn
-  '5': '🤖', // Robot
-  '6': '🐉', // Dragon
-};
-
 const ACCOUNT_KEYS = {
   selectedAccountId: 'selectedAccountId',
   selectedSecondAccountId: 'selectedSecondAccountId',
   localAccounts: LOCAL_ACCOUNTS_STORAGE_KEY,
 };
-
-/**
- * Get avatar emoji from avatar ID
- */
-function getAvatarEmoji(avatarId) {
-  if (!avatarId) return '👤';
-  return AVATAR_EMOJIS[String(avatarId)] || '👤';
-}
 
 function quitApplication() {
   if (window.AXM?.quitApp) {
@@ -526,21 +507,8 @@ class LandingPageController {
       card.type = 'button';
       card.className = account.id === selectedAccountId ? 'account-card selected' : 'account-card';
 
-      const avatar = document.createElement('div');
-      avatar.className = 'account-card-avatar';
-      avatar.textContent = getAvatarEmoji(account.avatar);
-
-      const details = document.createElement('div');
-      const name = document.createElement('div');
-      name.className = 'account-card-name';
-      name.textContent = account.name;
-
-      const score = document.createElement('div');
-      score.className = 'account-card-score';
-      score.textContent = `${account.stats.totalScore} points`;
-
-      details.append(name, score);
-      card.append(avatar, details);
+      const profile = createRankProfile(account.name, account.avatar, account.stats.totalScore);
+      card.append(profile.element);
       card.addEventListener('click', () => onSelect(account));
       container.appendChild(card);
     });
@@ -2226,9 +2194,9 @@ class LandingPageController {
         // Show the player info
         playerInfoDisplay.style.display = 'flex';
         
-        // Set avatar emoji
-        const avatarEmoji = getAvatarEmoji(this.playerData.avatar);
-        avatarDisplay.textContent = avatarEmoji;
+        const account = this.accounts.find(entry => entry.id === this.playerData.id);
+        const rank = account ? getRankProgress(account.stats.totalScore).rank : undefined;
+        avatarDisplay.replaceChildren(createRankAvatar(this.playerData.avatar, rank));
         
         // Set player name
         nameDisplay.textContent = this.playerData.name;

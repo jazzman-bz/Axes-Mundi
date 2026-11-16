@@ -24,6 +24,7 @@ import { BoardNavigationManager } from '@/utils/boardNavigationManager';
 import { OptionsMenu } from '@/utils/optionsMenu';
 import { getLanSessionState, getSelectedDifficulty, getSelectedGameType } from '@/utils/sessionStore';
 import { commitLocalMatchScore } from '@/utils/accountScoreStore';
+import type { MatchRankUpdate } from '@/utils/rankPresentation';
 import type { MatchScoreTransaction } from '../shared/playerAccounts';
 
 interface PlayerData {
@@ -170,6 +171,8 @@ class AxesMundiApp {
 
   private scoreCommitted: boolean = false;
 
+  private matchRankUpdates: Promise<MatchRankUpdate[]> = Promise.resolve([]);
+
   private matchId: string = AxesMundiApp.createMatchId();
 
   private static createMatchId(): string {
@@ -199,12 +202,9 @@ class AxesMundiApp {
   }
 
   private commitMatchResult(didWin: boolean, winnerPlayerIndex?: number): void {
-    if (this.scoreCommitted) {
+    if (this.scoreCommitted || this.isLearningMode || this.isLANMode) {
       return;
     }
-
-    const commitMatchScore = window.AXM?.commitMatchScore
-      ?? ((transaction: MatchScoreTransaction) => Promise.resolve(commitLocalMatchScore(transaction)));
 
     this.scoreCommitted = true;
     const deckId = this.deck?.id || localStorage.getItem('selectedDeck') || 'unknown';
@@ -248,16 +248,43 @@ class AxesMundiApp {
       });
     }
 
-    transactions.forEach((transaction) => {
-      commitMatchScore(transaction).catch((error: Error) => {
+    this.matchRankUpdates = this.saveMatchRankUpdates(transactions);
+  }
+
+  private async saveMatchRankUpdates(transactions: MatchScoreTransaction[]): Promise<MatchRankUpdate[]> {
+    const updates: MatchRankUpdate[] = [];
+    // Hotseat accounts share one file. Save both results in order.
+    for (const transaction of transactions) {
+      try {
+        // eslint-disable-next-line no-await-in-loop -- Both Hotseat scores update the same accounts file.
+        const result = await (window.AXM?.commitMatchScore
+          ? window.AXM.commitMatchScore(transaction)
+          : commitLocalMatchScore(transaction));
+        if (!result.success) throw new Error(result.error);
+        if (result.applied) {
+          updates.push({
+            name: result.account.name,
+            avatar: result.account.avatar,
+            previousTotalScore: result.previousTotalScore,
+            totalScore: result.account.stats.totalScore,
+          });
+        }
+      } catch (error) {
         logger.error({
           scope: 'renderer/accounts',
           msg: 'failed to commit match score',
           meta: { accountId: transaction.accountId, matchId: transaction.matchId },
-          err: { message: error.message },
+          err: { message: error instanceof Error ? error.message : String(error) },
         });
-      });
-    });
+      }
+    }
+    return updates;
+  }
+
+  private async showMatchResult(showDialog: (updates: MatchRankUpdate[]) => void): Promise<void> {
+    const { matchId } = this;
+    const updates = await this.matchRankUpdates;
+    if (this.matchId === matchId) showDialog(updates);
   }
 
   constructor() {
@@ -614,21 +641,11 @@ class AxesMundiApp {
             this.uiDialogManager.showPlayerSwitchOverlay();
           }
         },
-        onShowHotseatWinDialog: (winnerName) => {
-          if (this.uiDialogManager) {
-            this.uiDialogManager.showHotseatWinDialog(winnerName);
-          }
-        },
-        onShowWinDialog: () => {
-          if (this.uiDialogManager) {
-            this.uiDialogManager.showWinDialog();
-          }
-        },
-        onShowLoseDialog: () => {
-          if (this.uiDialogManager) {
-            this.uiDialogManager.showLoseDialog();
-          }
-        },
+        onShowHotseatWinDialog: (winnerName) => this.showMatchResult(
+          (updates) => this.uiDialogManager?.showHotseatWinDialog(winnerName, updates),
+        ),
+        onShowWinDialog: () => this.showMatchResult((updates) => this.uiDialogManager?.showWinDialog(updates)),
+        onShowLoseDialog: () => this.showMatchResult((updates) => this.uiDialogManager?.showLoseDialog(updates)),
         onCommitMatchResult: (didWin, winnerPlayerIndex) => {
           this.commitMatchResult(didWin, winnerPlayerIndex);
         },
@@ -1698,6 +1715,7 @@ class AxesMundiApp {
     this.player1Score = 0;
     this.player2Score = 0;
     this.scoreCommitted = false;
+    this.matchRankUpdates = Promise.resolve([]);
     this.matchId = AxesMundiApp.createMatchId();
     this.playerHand = [];
     this.opponentHand = [];

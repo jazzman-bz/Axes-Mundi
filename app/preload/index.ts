@@ -3,6 +3,7 @@ import type { ImportedDeck } from '../shared/deckSecurity';
 import type { LanCardDistributionPayload, LanGameStateSnapshot } from '../shared/lanProtocol';
 import type {
   CreatePlayerAccountInput,
+  MatchScoreCommitResult,
   MatchScoreTransaction,
   PlayerAccount,
   UpdatePlayerAccountInput,
@@ -162,12 +163,7 @@ declare global {
         error?: string;
         account?: PlayerAccount;
       }>;
-      commitMatchScore: (transaction: MatchScoreTransaction) => Promise<{
-        success: boolean;
-        error?: string;
-        account?: PlayerAccount;
-        applied?: boolean;
-      }>;
+      commitMatchScore: (transaction: MatchScoreTransaction) => Promise<MatchScoreCommitResult>;
     };
   }
 }

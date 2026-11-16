@@ -60,6 +60,7 @@ function createMockCallbacks(): UIDialogManagerCallbacks {
 }
 
 describe('UIDialogManager', () => {
+  const realDocument = document;
   let manager: UIDialogManager;
   let callbacks: UIDialogManagerCallbacks;
   let mockDocument: any;
@@ -95,6 +96,9 @@ describe('UIDialogManager', () => {
   });
 
   afterEach(() => {
+    global.document = realDocument;
+    realDocument.body.replaceChildren();
+    vi.clearAllTimers();
     vi.restoreAllMocks();
     vi.useRealTimers();
   });
@@ -149,6 +153,18 @@ describe('UIDialogManager', () => {
   });
 
   describe('showLoseDialog', () => {
+    it('shows a saved rank promotion alongside a defeat', () => {
+      global.document = realDocument;
+      manager.showLoseDialog([{
+        name: 'Joe', avatar: '1', previousTotalScore: 470, totalScore: 545,
+      }]);
+      vi.runAllTimers();
+
+      expect(document.body.textContent).toContain('You Lost!');
+      expect(document.body.textContent).toContain('Rank up! Gold · +75 profile points');
+      expect(document.querySelector('.rank-avatar')?.getAttribute('data-rank')).toBe('gold');
+    });
+
     it('should create dialog with correct title', () => {
       manager.showLoseDialog();
 

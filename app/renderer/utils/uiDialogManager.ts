@@ -1,5 +1,6 @@
 import { logger } from '@/utils/logger';
 import { soundManager, SoundType } from '@/utils/soundManager';
+import { createMatchRankSummary, MatchRankUpdate } from '@/utils/rankPresentation';
 
 interface PlayerData {
   id?: string | null;
@@ -76,12 +77,12 @@ export class UIDialogManager {
   /**
    * Show win dialog (single-player mode)
    */
-  public showWinDialog(): void {
+  public showWinDialog(rankUpdates: MatchRankUpdate[] = []): void {
     const gameState = this.config.callbacks.onGetGameState();
     const title = '🎉 Congratulations! 🎉';
     const message = `You successfully sorted all the cards!\n\nFinal score: ${gameState.score}\nNumber of turns: ${gameState.currentTurn}`;
 
-    this.showCustomDialog(title, message);
+    this.showCustomDialog(title, message, rankUpdates);
 
     logger.info({
       scope: 'renderer/dialog',
@@ -96,12 +97,12 @@ export class UIDialogManager {
   /**
    * Show lose dialog (single-player mode)
    */
-  public showLoseDialog(): void {
+  public showLoseDialog(rankUpdates: MatchRankUpdate[] = []): void {
     const gameState = this.config.callbacks.onGetGameState();
     const title = '😔 You Lost! 😔';
     const message = `Your opponent sorted all cards first!\n\nFinal score: ${gameState.score}\nNumber of turns: ${gameState.currentTurn}`;
 
-    this.showCustomDialog(title, message);
+    this.showCustomDialog(title, message, rankUpdates);
 
     logger.info({
       scope: 'renderer/dialog',
@@ -116,11 +117,11 @@ export class UIDialogManager {
   /**
    * Show hotseat win dialog
    */
-  public showHotseatWinDialog(winnerName: string): void {
+  public showHotseatWinDialog(winnerName: string, rankUpdates: MatchRankUpdate[] = []): void {
     const title = '🎉 Congratulations! 🎉';
     const message = `${winnerName} won the game!\n\nAll cards were sorted successfully!`;
 
-    this.showCustomDialog(title, message);
+    this.showCustomDialog(title, message, rankUpdates);
 
     logger.info({
       scope: 'renderer/dialog',
@@ -132,7 +133,7 @@ export class UIDialogManager {
   /**
    * Show custom dialog with two buttons (Play Again and Main Menu)
    */
-  private showCustomDialog(title: string, message: string): void {
+  private showCustomDialog(title: string, message: string, rankUpdates: MatchRankUpdate[]): void {
     try {
       // Create dialog overlay
       const overlay = document.createElement('div');
@@ -155,8 +156,10 @@ export class UIDialogManager {
       dialog.style.cssText = `
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border-radius: 20px;
-        padding: 40px;
+        padding: clamp(16px, 4vw, 40px);
         max-width: 500px;
+        max-height: calc(100vh - 32px);
+        overflow-y: auto;
         width: 90%;
         text-align: center;
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
@@ -282,6 +285,7 @@ export class UIDialogManager {
       buttonContainer.appendChild(mainMenuButton);
       dialog.appendChild(titleElement);
       dialog.appendChild(messageElement);
+      rankUpdates.forEach((update) => dialog.appendChild(createMatchRankSummary(update)));
       dialog.appendChild(buttonContainer);
       overlay.appendChild(dialog);
 

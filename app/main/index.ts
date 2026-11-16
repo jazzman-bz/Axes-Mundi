@@ -367,6 +367,7 @@ function setupIPC(): void {
         throw new Error('Account not found');
       }
 
+      const previousTotalScore = accountsFile.accounts[accountIndex].stats.totalScore;
       const result = applyScoreTransaction(accountsFile.accounts[accountIndex], transaction);
       accountsFile.accounts[accountIndex] = result.account;
 
@@ -384,7 +385,9 @@ function setupIPC(): void {
         },
       });
 
-      return { success: true, account: result.account, applied: result.applied };
+      return {
+        success: true, account: result.account, applied: result.applied, previousTotalScore,
+      };
     } catch (error: any) {
       logger.error({
         scope: 'main/accounts',

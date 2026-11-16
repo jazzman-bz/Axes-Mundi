@@ -1,5 +1,6 @@
 import {
   applyScoreTransaction,
+  type MatchScoreCommitSuccess,
   type MatchScoreTransaction,
   type PlayerAccount,
 } from '../../shared/playerAccounts';
@@ -43,13 +44,14 @@ export function writeLocalPlayerAccounts(
 export function commitLocalMatchScore(
   transaction: MatchScoreTransaction,
   storage: Storage = localStorage,
-): { success: true; account: PlayerAccount; applied: boolean } {
+): MatchScoreCommitSuccess {
   const accounts = readLocalPlayerAccounts(storage);
   const accountIndex = accounts.findIndex((account) => account.id === transaction.accountId);
   if (accountIndex === -1) {
     throw new Error('Account not found');
   }
 
+  const previousTotalScore = accounts[accountIndex].stats.totalScore;
   const result = applyScoreTransaction(accounts[accountIndex], transaction);
   accounts[accountIndex] = result.account;
 
@@ -57,5 +59,7 @@ export function commitLocalMatchScore(
     writeLocalPlayerAccounts(accounts, storage);
   }
 
-  return { success: true, account: result.account, applied: result.applied };
+  return {
+    success: true, account: result.account, applied: result.applied, previousTotalScore,
+  };
 }
