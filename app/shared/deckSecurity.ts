@@ -28,7 +28,7 @@ const importedCardSchema = z.object({
   image: z.string().min(1).optional(),
   facts: z.array(z.string().min(1)).optional(),
   sources: z.array(sourceSchema).optional(),
-  difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
+  difficulty: z.enum(['easy', 'medium', 'hard', 'expert']).optional(),
 });
 
 export const importedDeckSchema = z.object({

@@ -1886,7 +1886,10 @@ class LandingPageController {
     // Create and show a success toast/notification
     const toast = document.createElement('div');
     toast.className = 'toast toast-success';
-    toast.innerHTML = `<span>✅</span> ${message}`;
+    // Deck names come from imported files: never interpolate them into HTML.
+    const icon = document.createElement('span');
+    icon.textContent = '✅';
+    toast.append(icon, document.createTextNode(` ${message}`));
     toast.style.cssText = `
       position: fixed;
       top: 20px;
@@ -2374,12 +2377,15 @@ class LandingPageController {
       // Create loading overlay
       const overlay = document.createElement('div');
       overlay.className = 'loading-overlay';
-      overlay.innerHTML = `
-        <div class="loading-content">
-          <div class="spinner"></div>
-          <div class="loading-text">${message}</div>
-        </div>
-      `;
+      const content = document.createElement('div');
+      content.className = 'loading-content';
+      const spinner = document.createElement('div');
+      spinner.className = 'spinner';
+      const text = document.createElement('div');
+      text.className = 'loading-text';
+      text.textContent = message;
+      content.append(spinner, text);
+      overlay.append(content);
       
       // Add styles
       overlay.style.cssText = `

@@ -136,7 +136,9 @@ export function convertToComparable(value: number, unit: string): number {
   }
 }
 
-const BASE_CARD_POINTS = { easy: 10, medium: 20, hard: 30 } as const;
+const BASE_CARD_POINTS = {
+  easy: 10, medium: 20, hard: 30, expert: 40,
+} as const;
 
 /** Get the points for a correct placement, with an AI difficulty bonus when applicable. */
 export function getScore(card: Card, aiDifficulty?: GameDifficulty): number {

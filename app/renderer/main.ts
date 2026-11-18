@@ -1005,8 +1005,12 @@ class AxesMundiApp {
       this.updateAllCardsScale();
 
       // Re-layout all cards with new scale
-      this.layoutHand();
-      this.layoutOpponentHand();
+      if (this.isHotseatMode) {
+        this.layoutHotseatHands();
+      } else {
+        this.layoutHand();
+        this.layoutOpponentHand();
+      }
       this.layoutAxisCards();
 
       // Re-position board card if it exists
@@ -1651,13 +1655,15 @@ class AxesMundiApp {
       ...(this.boardCard ? [this.boardCard] : []),
       ...this.playerHand,
       ...this.opponentHand,
+      ...this.player1Hand,
+      ...this.player2Hand,
       ...this.placedLeft,
       ...this.placedRight,
       ...this.graveyard,
     ];
 
-    // Update scale for all cards
-    this.layoutManager.updateScale(allCards);
+    // Update scale for all cards (a hand may be listed twice in Hotseat)
+    this.layoutManager.updateScale([...new Set(allCards)]);
   }
 
   /**

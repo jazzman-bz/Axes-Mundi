@@ -8,6 +8,19 @@ import {
 
 describe('deckSecurity', () => {
   describe('parseImportedDeck', () => {
+    it('accepts every card difficulty that has a score, including expert', () => {
+      const deck = parseImportedDeck({
+        id: 'custom-deck',
+        name: 'Custom Deck',
+        axis: 'time',
+        cards: ['easy', 'medium', 'hard', 'expert'].map((difficulty, index) => ({
+          id: `card-${index}`, title: 'Card', value: index, difficulty,
+        })),
+      });
+
+      expect(deck.cards.map((card) => card.difficulty)).toEqual(['easy', 'medium', 'hard', 'expert']);
+    });
+
     it('fills defaults for optional deck metadata', () => {
       const deck = parseImportedDeck({
         id: 'custom-deck',

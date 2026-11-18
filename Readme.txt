@@ -15,7 +15,7 @@ Entwickelt mit Electron + Vite + PixiJS + GSAP.
   - LAN-Multiplayer
   - Lernmodus (ohne Zeitdruck, mit Erklärungen)
 - Bewertung:
-  - Richtig gelegte Karten bringen je nach Kartenschwierigkeit 10, 20 oder 30 Basispunkte.
+  - Richtig gelegte Karten bringen je nach Kartenschwierigkeit 10 (easy), 20 (medium), 30 (hard) oder 40 (expert) Basispunkte.
   - Fehlzüge und Zeitablauf bringen keine Punkte. Wer zuerst alle Handkarten loswird, gewinnt.
 - Extras:
   - Lerninfos & Quellenlinks
@@ -64,7 +64,6 @@ app/
     data/          # Deck-Loader, Scoring, Datenmodelle
     game/          # Card und GameScene
     content/       # gebündelte Decks, Sounds, Musik, Bilder
-    assets/        # Renderer-Asset-Kopien
     styles/        # CSS
     utils/         # Rendering, Input, State, Audio, Session, Dialoge, Helpers
   shared/          # gemeinsame Schemas und Sicherheits-Helfer
@@ -98,6 +97,10 @@ tests/unit/        # Vitest Unit-Tests
 ## Aktueller Fokus
 	
 - Deck-Importe werden jetzt über Zod validiert und auf sichere IDs/Pfade begrenzt.
+- Karten der Schwierigkeit `expert` zählen jetzt 40 Basispunkte statt des Fallbacks von 10; das Import-Schema akzeptiert `expert`.
+- Erfolgsmeldung und Lade-Overlay der Landing Page werden ohne `innerHTML` aufgebaut, damit importierte Deck-Namen kein HTML einschleusen können.
+- Die ungenutzte Deck-Kopie unter `app/renderer/assets/decks` wurde entfernt (sechs Dateien identisch, das deutsche Gebäude-Deck dort veraltet); Decks liegen nur noch in `app/renderer/content/decks`.
+- Hotseat-Hände werden bei einer Fenstergrößenänderung jetzt mitskaliert und neu angeordnet.
 - Importierte Deck-Kacheln werden im Renderer jetzt über sichere DOM-Erzeugung statt HTML-Interpolation aufgebaut.
 - LAN-Nachrichten und IPC-Payloads werden zentral über gemeinsame Schemas geprüft.
 - Ein zentraler `sessionStore` bündelt den wichtigsten Renderer-Session-State fuer LAN und wird jetzt auch von `lan-client` und `GameScene` genutzt.
@@ -106,7 +109,7 @@ tests/unit/        # Vitest Unit-Tests
 - LAN- und GameScene-Hotspots verwenden jetzt strukturierte Logger-Pfade statt direkter `console.*`-Ausgaben.
 - Der Repo-Lint laeuft jetzt ohne Fehler und ohne Warnungen durch.
 - Die ESLint-Regeln wurden dabei auf signalstarke Checks fuer diese Canvas-/Electron-Codebasis zugeschnitten, statt Legacy-Hotspots nur formell umzuschreiben.
-- Aktuell abgesichert durch `npm run lint`, `npm run typecheck` und `npm test` mit 26 Testdateien / 472 Tests.
+- Aktuell abgesichert durch `npm run lint`, `npm run typecheck` und `npm test` mit 32 Testdateien / 514 Tests.
 - Der gebaute Electron-Bundle wurde zusaetzlich Ende-zu-Ende ueber den Singleplayer-Kernfluss bis ins Spiel gestartet und per Screenshot verifiziert.
 
 ## Beispiel-Deck (JSON)
@@ -162,6 +165,8 @@ Empfohlene Felder in `deck.json`:
 - `version`
 - `imageFolder`
 - `cards`
+
+Karten können `difficulty` auf `easy`, `medium`, `hard` oder `expert` setzen (10/20/30/40 Basispunkte); ohne Angabe gelten 10 Punkte.
 
 `description` ist optional, wird aber empfohlen. Wenn sie fehlt, erzeugt die App fuer importierte Deck-Kacheln einen generischen Fallback-Text.
 

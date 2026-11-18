@@ -336,6 +336,12 @@ describe('scoring', () => {
       expect(getScore(card)).toBe(30);
     });
 
+    it('should return 40 for expert cards', () => {
+      const card = createCard({ difficulty: 'expert' });
+      expect(getScore(card)).toBe(40);
+      expect(getScore(card, 'hard')).toBe(60);
+    });
+
     it('should return 10 for unknown difficulty', () => {
       const card = createCard({ difficulty: 'unknown' as Card['difficulty'] });
       expect(getScore(card)).toBe(10);

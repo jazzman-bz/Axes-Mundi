@@ -14,7 +14,7 @@ export interface Card {
     label: string;
     url: string;
   }>;
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
 }
 
 /**

@@ -289,7 +289,6 @@ app/
   │   ├── data/                      # Deck loading, scoring, shared renderer types
   │   ├── game/                      # Card and GameScene classes
   │   ├── content/                   # Bundled decks, sounds, music, images
-  │   ├── assets/                    # Renderer asset copies used by the app
   │   ├── styles/                    # CSS
   │   └── utils/                     # Game, rendering, input, state, audio, LAN/session helpers
   └── shared/
