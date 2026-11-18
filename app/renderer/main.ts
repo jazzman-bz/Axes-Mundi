@@ -1836,6 +1836,15 @@ function setupOptionsMenu(): void {
 
 // Initialize the app when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
+  // The game needs a deck chosen on the landing page (this check used to be an inline script,
+  // which the Content-Security-Policy no longer allows).
+  if (!localStorage.getItem('selectedDeck')) {
+    // eslint-disable-next-line no-alert
+    alert('No deck selected! Please go back and choose a deck.');
+    window.location.href = './index.html';
+    return;
+  }
+
   try {
     // Initialize sound manager first
     await initSoundManagerAsync();

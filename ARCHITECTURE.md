@@ -25,6 +25,9 @@ Axes-Mundi is split along Electron's process boundaries:
 - Serves imported user deck images through the privileged `user-deck-image://` protocol
 - Starts and coordinates the LAN WebSocket server
 - Uses structured logging through `app/main/logger.ts`
+- Hardens every window: new windows are denied, navigation is limited to the app's own pages (`app/main/navigationPolicy.ts`), `<webview>` is blocked and browser permission requests are refused
+- Checks deck ZIP sizes before reading and unpacking (`DECK_ARCHIVE_LIMITS` in `app/shared/deckSecurity.ts`)
+- Writes `accounts.json` atomically and runs account changes one at a time; an unreadable file is moved aside instead of being overwritten
 
 ### Preload Process (`app/preload/index.ts`)
 - Exposes a narrow `window.AXM` API via `contextBridge`
@@ -34,7 +37,7 @@ Axes-Mundi is split along Electron's process boundaries:
 
 ### Renderer Process (`app/renderer/`)
 - Built by Vite from `app/renderer`
-- Contains landing/game/LAN HTML entry points
+- Contains landing/game/LAN HTML entry points, each with a strict Content-Security-Policy (`script-src 'self'`, no `eval`, no inline scripts, `object-src 'none'`); `tests/unit/contentSecurityPolicy.test.ts` checks every page Vite builds
 - Runs the canvas game loop, UI state, input handling, deck loading, audio, and LAN client code
 - Uses `AxesMundiApp` in `app/renderer/main.ts` as the orchestration layer for focused utility modules
 
@@ -287,7 +290,7 @@ app/
   │   ├── lan-client.ts              # LAN lobby/client flow
   │   ├── lan-game*.ts               # LAN game entry and protocol glue
   │   ├── data/                      # Deck loading, scoring, shared renderer types
-  │   ├── game/                      # Card and GameScene classes
+  │   ├── game/                      # Card class
   │   ├── content/                   # Bundled decks, sounds, music, images
   │   ├── styles/                    # CSS
   │   └── utils/                     # Game, rendering, input, state, audio, LAN/session helpers

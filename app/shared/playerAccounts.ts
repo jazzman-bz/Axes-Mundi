@@ -1,5 +1,10 @@
-export type AccountGameMode = 'ai' | 'hotseat' | 'lan' | 'learning';
-export type AccountDifficulty = 'easy' | 'medium' | 'hard';
+import { z } from 'zod';
+
+const ACCOUNT_GAME_MODES = ['ai', 'hotseat', 'lan', 'learning'] as const;
+const ACCOUNT_DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
+
+export type AccountGameMode = typeof ACCOUNT_GAME_MODES[number];
+export type AccountDifficulty = typeof ACCOUNT_DIFFICULTIES[number];
 
 export interface PlayerAccountStats {
   totalScore: number;
@@ -132,7 +137,8 @@ export function applyScoreTransaction(
     return { account, applied: false };
   }
 
-  const scoreDelta = Math.max(0, Math.round(transaction.scoreDelta));
+  const roundedDelta = Math.round(transaction.scoreDelta);
+  const scoreDelta = Number.isFinite(roundedDelta) ? Math.max(0, roundedDelta) : 0;
   const processedMatchIds = [
     transaction.matchId,
     ...account.stats.processedMatchIds,
@@ -159,4 +165,82 @@ export function applyScoreTransaction(
     },
     applied: true,
   };
+}
+
+/** A counter that older or damaged files may lack or hold as null; it falls back to 0. */
+const counterSchema = z.number().min(0).catch(0);
+
+const storedStatsSchema = z.object({
+  totalScore: counterSchema,
+  matchesPlayed: counterSchema,
+  matchesWon: counterSchema,
+  matchesLost: counterSchema,
+  bestScore: counterSchema,
+  aiWins: counterSchema,
+  humanWins: counterSchema,
+  lanWins: counterSchema,
+  processedMatchIds: z.array(z.string()).catch([]),
+});
+
+const storedAccountSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  avatar: z.string().nullable().catch(null),
+  createdAt: z.string().catch(''),
+  updatedAt: z.string().catch(''),
+  stats: storedStatsSchema,
+});
+
+export interface ParsedPlayerAccountsFile {
+  file: PlayerAccountsFile;
+  /** Entries that had no usable id, name or stats and were left out. */
+  droppedAccounts: number;
+}
+
+/**
+ * Reads the stored accounts file. Throws when the content is not an accounts file at all,
+ * so the caller can keep the original instead of overwriting it with an empty list.
+ */
+export function parsePlayerAccountsFile(rawValue: unknown): ParsedPlayerAccountsFile {
+  if (
+    !rawValue
+    || typeof rawValue !== 'object'
+    || !Array.isArray((rawValue as { accounts?: unknown }).accounts)
+  ) {
+    throw new Error('Player accounts file has no accounts list');
+  }
+
+  const rawAccounts: unknown[] = (rawValue as { accounts: unknown[] }).accounts;
+  const accounts = rawAccounts.flatMap((rawAccount) => {
+    const result = storedAccountSchema.safeParse(rawAccount);
+    return result.success ? [result.data as PlayerAccount] : [];
+  });
+
+  return {
+    file: { version: 1, accounts },
+    droppedAccounts: rawAccounts.length - accounts.length,
+  };
+}
+
+const matchScoreTransactionSchema = z.object({
+  matchId: z.string().min(1).max(200),
+  accountId: z.string().min(1).max(200),
+  scoreDelta: z.number().min(0).max(1_000_000),
+  didWin: z.boolean(),
+  mode: z.enum(ACCOUNT_GAME_MODES),
+  difficulty: z.enum(ACCOUNT_DIFFICULTIES).optional(),
+  deckId: z.string().min(1).max(200),
+  createdAt: z.string().min(1).max(100),
+});
+
+/** Validates a score transaction that arrives from the renderer over IPC. */
+export function parseMatchScoreTransaction(input: unknown): MatchScoreTransaction {
+  const result = matchScoreTransactionSchema.safeParse(input);
+  if (!result.success) {
+    const fields = [...new Set(result.error.issues.map((issue) => issue.path.join('.') || 'transaction'))];
+    throw new Error(`Invalid score transaction: ${fields.join(', ')}`);
+  }
+
+  const { difficulty, ...transaction } = result.data;
+  return difficulty === undefined ? transaction : { ...transaction, difficulty };
 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: user-deck-image:; connect-src 'self' ws: wss: user-deck-image:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: user-deck-image:; media-src 'self'; font-src 'self' data:; connect-src 'self' ws: user-deck-image:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
     <link rel="stylesheet" href="./styles/ranks.css">
     <title>Axes-Mundi - Game</title>
     <style>
@@ -70,15 +70,6 @@
             </div>
         </div>
     </div>
-
-    <script>
-        // Check if deck is selected
-        const selectedDeck = localStorage.getItem('selectedDeck');
-        if (!selectedDeck) {
-            alert('No deck selected! Please go back and choose a deck.');
-            window.location.href = './index.html';
-        }
-    </script>
 
     <script type="module" src="./main.ts"></script>
 </body>

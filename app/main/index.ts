@@ -1,10 +1,10 @@
 import {
-  app, BrowserWindow, ipcMain, dialog, protocol,
+  app, BrowserWindow, ipcMain, dialog, protocol, session,
 } from 'electron';
 import { randomUUID } from 'crypto';
 import { join } from 'path';
 import {
-  readFile, writeFile, mkdir, readdir,
+  readFile, writeFile, mkdir, readdir, rename, copyFile, stat,
 } from 'fs/promises';
 import { existsSync } from 'fs';
 import AdmZip from 'adm-zip';
@@ -12,11 +12,16 @@ import { logger } from './logger';
 import { LANWebSocketServer } from './websocket-server';
 import versionInfo from '../generated/version';
 import {
+  assertDeckArchiveEntries,
+  assertDeckArchiveSize,
   assertSafeDeckId,
   getImageContentType,
+  isDeckImageEntry,
+  isDeckJsonEntry,
   parseImportedDeck,
   resolveUserDeckAssetPath,
 } from '../shared/deckSecurity';
+import { isAllowedAppUrl } from './navigationPolicy';
 import {
   parseLanCardDistribution,
   parseLanGameState,
@@ -29,6 +34,8 @@ import {
   createPlayerAccount,
   normalizeAccountName,
   normalizeAvatar,
+  parseMatchScoreTransaction,
+  parsePlayerAccountsFile,
 } from '../shared/playerAccounts';
 
 // Register custom protocol scheme as privileged BEFORE app.ready
@@ -51,49 +58,117 @@ const getUserDecksDir = () => join(app.getPath('userData'), 'decks');
 const getUserDeckImagesDir = () => join(app.getPath('userData'), 'deck-images');
 const getPlayerAccountsPath = () => join(app.getPath('userData'), 'accounts.json');
 
-function parsePlayerAccountsFile(rawValue: unknown): PlayerAccountsFile {
-  if (
-    !rawValue
-    || typeof rawValue !== 'object'
-    || !Array.isArray((rawValue as PlayerAccountsFile).accounts)
-  ) {
-    return { version: 1, accounts: [] };
-  }
+const DEV_SERVER_URL = 'http://localhost:5179';
 
-  const accounts = (rawValue as PlayerAccountsFile).accounts.filter((account): account is PlayerAccount => (
-    !!account
-    && typeof account === 'object'
-    && typeof account.id === 'string'
-    && typeof account.name === 'string'
-    && account.stats !== undefined
-  ));
-
-  return { version: 1, accounts };
+function isDevelopment(): boolean {
+  return process.env.NODE_ENV === 'development' || process.env.AXM_ENV === 'development';
 }
 
+function getAppUrlPolicy() {
+  return isDevelopment()
+    ? { devServerUrl: DEV_SERVER_URL }
+    : { rendererDir: join(__dirname, '../../renderer') };
+}
+
+/**
+ * Account changes read, modify and write one file. Running them one after another
+ * keeps two quick IPC calls (e.g. both Hotseat scores) from overwriting each other.
+ */
+let accountsQueue: Promise<unknown> = Promise.resolve();
+function withAccountsLock<T>(task: () => Promise<T>): Promise<T> {
+  const run = accountsQueue.then(task, task);
+  accountsQueue = run.catch(() => undefined);
+  return run;
+}
+
+function getAccountsBackupPath(kind: 'corrupt' | 'backup'): string {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  return join(app.getPath('userData'), `accounts.${kind}-${timestamp}.json`);
+}
+
+/**
+ * Reads the accounts file. Never loses data on a bad file:
+ * - unreadable (permissions, I/O): throws, so nothing gets written over it
+ * - not valid JSON or not an accounts file: moved aside to accounts.corrupt-<time>.json
+ * - some entries unusable: a copy is kept as accounts.backup-<time>.json before they are dropped
+ */
 async function readPlayerAccountsFile(): Promise<PlayerAccountsFile> {
   const accountsPath = getPlayerAccountsPath();
   if (!existsSync(accountsPath)) {
     return { version: 1, accounts: [] };
   }
 
+  const fileContents = await readFile(accountsPath, 'utf-8');
+
+  let parsed: ReturnType<typeof parsePlayerAccountsFile>;
   try {
-    const fileContents = await readFile(accountsPath, 'utf-8');
-    return parsePlayerAccountsFile(JSON.parse(fileContents));
+    parsed = parsePlayerAccountsFile(JSON.parse(fileContents));
   } catch (error: any) {
+    const corruptPath = getAccountsBackupPath('corrupt');
+    await rename(accountsPath, corruptPath);
     logger.error({
       scope: 'main/accounts',
-      msg: 'Failed to read player accounts file',
-      meta: { path: accountsPath },
+      msg: 'Player accounts file was unreadable and has been moved aside',
+      meta: { path: accountsPath, movedTo: corruptPath },
       err: { message: error.message },
     });
     return { version: 1, accounts: [] };
   }
+
+  if (parsed.droppedAccounts > 0) {
+    const backupPath = getAccountsBackupPath('backup');
+    await copyFile(accountsPath, backupPath);
+    logger.warn({
+      scope: 'main/accounts',
+      msg: 'Skipped invalid player accounts; kept a copy of the original file',
+      meta: { droppedAccounts: parsed.droppedAccounts, backupPath },
+    });
+  }
+
+  return parsed.file;
 }
 
+/** Writes to a temporary file first, so a crash mid-write never leaves a half-written accounts file. */
 async function writePlayerAccountsFile(accountsFile: PlayerAccountsFile): Promise<void> {
   await mkdir(app.getPath('userData'), { recursive: true });
-  await writeFile(getPlayerAccountsPath(), JSON.stringify(accountsFile, null, 2), 'utf-8');
+  const accountsPath = getPlayerAccountsPath();
+  const temporaryPath = `${accountsPath}.tmp`;
+  await writeFile(temporaryPath, JSON.stringify(accountsFile, null, 2), 'utf-8');
+  await rename(temporaryPath, accountsPath);
+}
+
+/**
+ * Keeps every window on the app's own pages: no new windows, no navigation to other
+ * sites or files, no <webview>, and no browser permissions (camera, location, ...).
+ */
+function hardenWebContents(): void {
+  app.on('web-contents-created', (_event, contents) => {
+    contents.setWindowOpenHandler(({ url }) => {
+      logger.warn({ scope: 'main/security', msg: 'Blocked new window', meta: { url } });
+      return { action: 'deny' };
+    });
+
+    const blockForeignNavigation = (event: Electron.Event, url: string) => {
+      if (!isAllowedAppUrl(url, getAppUrlPolicy())) {
+        event.preventDefault();
+        logger.warn({ scope: 'main/security', msg: 'Blocked navigation', meta: { url } });
+      }
+    };
+    contents.on('will-navigate', blockForeignNavigation);
+    contents.on('will-redirect', blockForeignNavigation);
+
+    contents.on('will-attach-webview', (event) => {
+      event.preventDefault();
+      logger.warn({ scope: 'main/security', msg: 'Blocked webview' });
+    });
+  });
+}
+
+function denyPermissionRequests(): void {
+  session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+    logger.warn({ scope: 'main/security', msg: 'Denied permission request', meta: { permission } });
+    callback(false);
+  });
 }
 
 /**
@@ -207,9 +282,8 @@ function createWindow(): void {
 
     // Load the app
     // Check if we're in development mode
-    const isDev = process.env.NODE_ENV === 'development' || process.env.AXM_ENV === 'development';
-    if (isDev) {
-      mainWindow.loadURL('http://localhost:5179');
+    if (isDevelopment()) {
+      mainWindow.loadURL(DEV_SERVER_URL);
       mainWindow.webContents.openDevTools();
     } else {
       mainWindow.loadFile(join(__dirname, '../../renderer/index.html'));
@@ -285,18 +359,28 @@ function setupIPC(): void {
   });
 
   ipcMain.handle('get-player-accounts', async () => {
-    const accountsFile = await readPlayerAccountsFile();
-    return { success: true, accounts: accountsFile.accounts };
+    try {
+      const accountsFile = await withAccountsLock(readPlayerAccountsFile);
+      return { success: true, accounts: accountsFile.accounts };
+    } catch (error: any) {
+      logger.error({
+        scope: 'main/accounts',
+        msg: 'failed to read player accounts',
+        err: { message: error.message },
+      });
+      return { success: false, error: error.message, accounts: [] };
+    }
   });
 
   ipcMain.handle('create-player-account', async (_, input: any) => {
     try {
-      const accountsFile = await readPlayerAccountsFile();
-      const now = new Date().toISOString();
-      const account = createPlayerAccount(input, randomUUID(), now);
-
-      accountsFile.accounts.push(account);
-      await writePlayerAccountsFile(accountsFile);
+      const account = await withAccountsLock(async () => {
+        const accountsFile = await readPlayerAccountsFile();
+        const createdAccount = createPlayerAccount(input, randomUUID(), new Date().toISOString());
+        accountsFile.accounts.push(createdAccount);
+        await writePlayerAccountsFile(accountsFile);
+        return createdAccount;
+      });
 
       logger.info({
         scope: 'main/accounts',
@@ -321,22 +405,25 @@ function setupIPC(): void {
         throw new Error('Account id is required');
       }
 
-      const accountsFile = await readPlayerAccountsFile();
-      const accountIndex = accountsFile.accounts.findIndex((account) => account.id === accountId);
-      if (accountIndex === -1) {
-        throw new Error('Account not found');
-      }
+      const updatedAccount = await withAccountsLock(async () => {
+        const accountsFile = await readPlayerAccountsFile();
+        const accountIndex = accountsFile.accounts.findIndex((account) => account.id === accountId);
+        if (accountIndex === -1) {
+          throw new Error('Account not found');
+        }
 
-      const existingAccount = accountsFile.accounts[accountIndex];
-      const updatedAccount: PlayerAccount = {
-        ...existingAccount,
-        name: input?.name === undefined ? existingAccount.name : normalizeAccountName(input.name),
-        avatar: input?.avatar === undefined ? existingAccount.avatar : normalizeAvatar(input.avatar),
-        updatedAt: new Date().toISOString(),
-      };
+        const existingAccount = accountsFile.accounts[accountIndex];
+        const nextAccount: PlayerAccount = {
+          ...existingAccount,
+          name: input?.name === undefined ? existingAccount.name : normalizeAccountName(input.name),
+          avatar: input?.avatar === undefined ? existingAccount.avatar : normalizeAvatar(input.avatar),
+          updatedAt: new Date().toISOString(),
+        };
 
-      accountsFile.accounts[accountIndex] = updatedAccount;
-      await writePlayerAccountsFile(accountsFile);
+        accountsFile.accounts[accountIndex] = nextAccount;
+        await writePlayerAccountsFile(accountsFile);
+        return nextAccount;
+      });
 
       logger.info({
         scope: 'main/accounts',
@@ -355,25 +442,26 @@ function setupIPC(): void {
     }
   });
 
-  ipcMain.handle('commit-match-score', async (_, transaction: MatchScoreTransaction) => {
+  ipcMain.handle('commit-match-score', async (_, rawTransaction: unknown) => {
     try {
-      if (!transaction || typeof transaction !== 'object') {
-        throw new Error('Score transaction is required');
-      }
+      const transaction: MatchScoreTransaction = parseMatchScoreTransaction(rawTransaction);
 
-      const accountsFile = await readPlayerAccountsFile();
-      const accountIndex = accountsFile.accounts.findIndex((account) => account.id === transaction.accountId);
-      if (accountIndex === -1) {
-        throw new Error('Account not found');
-      }
+      const { result, previousTotalScore } = await withAccountsLock(async () => {
+        const accountsFile = await readPlayerAccountsFile();
+        const accountIndex = accountsFile.accounts.findIndex((account) => account.id === transaction.accountId);
+        if (accountIndex === -1) {
+          throw new Error('Account not found');
+        }
 
-      const previousTotalScore = accountsFile.accounts[accountIndex].stats.totalScore;
-      const result = applyScoreTransaction(accountsFile.accounts[accountIndex], transaction);
-      accountsFile.accounts[accountIndex] = result.account;
+        const previousTotal = accountsFile.accounts[accountIndex].stats.totalScore;
+        const scoreResult = applyScoreTransaction(accountsFile.accounts[accountIndex], transaction);
+        accountsFile.accounts[accountIndex] = scoreResult.account;
 
-      if (result.applied) {
-        await writePlayerAccountsFile(accountsFile);
-      }
+        if (scoreResult.applied) {
+          await writePlayerAccountsFile(accountsFile);
+        }
+        return { result: scoreResult, previousTotalScore: previousTotal };
+      });
 
       logger.info({
         scope: 'main/accounts',
@@ -689,14 +777,18 @@ function setupIPC(): void {
       const zipPath = result.filePaths[0];
       logger.info({ scope: 'main/deck', msg: 'Processing ZIP file', meta: { path: zipPath } });
 
-      // Extract ZIP file
+      // Check sizes before anything is read into memory or unpacked
+      assertDeckArchiveSize((await stat(zipPath)).size);
       const zip = new AdmZip(zipPath);
       const zipEntries = zip.getEntries();
+      assertDeckArchiveEntries(zipEntries.map((entry) => ({
+        name: entry.entryName,
+        size: entry.header.size,
+        isDirectory: entry.isDirectory,
+      })));
 
       // Find deck.json in the ZIP
-      const deckJsonEntry = zipEntries.find(
-        (entry) => entry.entryName === 'deck.json' || entry.entryName.endsWith('/deck.json'),
-      );
+      const deckJsonEntry = zipEntries.find((entry) => !entry.isDirectory && isDeckJsonEntry(entry.entryName));
 
       if (!deckJsonEntry) {
         logger.error({ scope: 'main/deck', msg: 'No deck.json found in ZIP' });
@@ -724,30 +816,21 @@ function setupIPC(): void {
         logger.info({ scope: 'main/deck', msg: 'Created user decks directory', meta: { path: userDecksDir } });
       }
 
+      // Each imported deck keeps its images in a folder named after its id,
+      // so one deck can never overwrite (or, on delete, remove) another deck's images.
+      const imageFolder = assertSafeDeckId(deck.id);
+      const storedDeck = { ...deck, imageFolder };
+
       // Save deck.json to user decks folder
-      const deckTargetPath = join(userDecksDir, `${assertSafeDeckId(deck.id)}.json`);
-      await writeFile(deckTargetPath, JSON.stringify(deck, null, 2), 'utf-8');
+      const deckTargetPath = join(userDecksDir, `${imageFolder}.json`);
+      await writeFile(deckTargetPath, JSON.stringify(storedDeck, null, 2), 'utf-8');
       logger.info({ scope: 'main/deck', msg: 'Deck JSON saved', meta: { path: deckTargetPath } });
 
       // Extract images if present
-      const { imageFolder } = deck;
       const userImagesDir = join(getUserDeckImagesDir(), imageFolder);
 
-      // Find image entries (look for images/ folder or image files at root)
-      // Note: ZIP entries may use forward or backslashes depending on how they were created
-      const imageEntries = zipEntries.filter((entry) => {
-        const name = entry.entryName.toLowerCase();
-        // Normalize path separators for cross-platform compatibility
-        const normalizedName = name.replace(/\\/g, '/');
-        return !entry.isDirectory
-          && (normalizedName.startsWith('images/') || normalizedName.includes('/images/'))
-          && (
-            normalizedName.endsWith('.jpg')
-            || normalizedName.endsWith('.jpeg')
-            || normalizedName.endsWith('.png')
-            || normalizedName.endsWith('.webp')
-          );
-      });
+      // Image entries live in an images/ folder; ZIP tools write / or \\ as separator
+      const imageEntries = zipEntries.filter((entry) => !entry.isDirectory && isDeckImageEntry(entry.entryName));
 
       if (imageEntries.length > 0) {
         if (!existsSync(userImagesDir)) {
@@ -941,6 +1024,7 @@ function setupAppEvents(): void {
 
     // Register custom protocol for user deck images BEFORE creating window
     registerUserDeckImageProtocol();
+    denyPermissionRequests();
 
     setupIPC();
     createWindow();
@@ -990,4 +1074,5 @@ process.on('unhandledRejection', (reason) => {
 });
 
 // Initialize the app
+hardenWebContents();
 setupAppEvents();

@@ -3,7 +3,7 @@
 # Axes-Mundi
 
 Ein edukatives Sortierspiel, inspiriert von Timeline, erweitert um verschiedene Achsen (Zeit, Höhe, Masse, Distanz, Temperatur, Komplexität …).  
-Entwickelt mit Electron + Vite + PixiJS + GSAP.
+Entwickelt mit Electron + Vite + Canvas 2D + GSAP.
 
 ## Spielidee
 
@@ -43,7 +43,7 @@ Die Kacheln und die Spiellogik lesen dieselben Werte aus `app/renderer/data/aiDi
 - Electron – Cross-Plattform Desktop-App (Windows, macOS, Linux)
 - Electron Main/Preload/Renderer – Prozessgrenzen mit sicherer `contextBridge`-API
 - Vite – ultraschnelles Dev- & Build-Tool
-- PixiJS – 2D WebGL Renderer für Spielbrett, Karten & Animationen
+- Canvas 2D – Rendering von Spielbrett, Karten & Animationen
 - GSAP – Tweening & Animationen (z. B. Karten-Flip, Einfügen, Shake bei Fehlern)
 - TypeScript – Striktes Typensystem  
 - Zod – Validierung für Deck-Import, IPC und LAN-Protokoll  
@@ -62,7 +62,7 @@ app/
   preload/         # sichere Bridge als window.AXM
   renderer/        # Vite-Projekt mit Landing Page, Spiel, LAN-Views, Assets
     data/          # Deck-Loader, Scoring, Datenmodelle
-    game/          # Card und GameScene
+    game/          # Card (Kartendarstellung und -animation)
     content/       # gebündelte Decks, Sounds, Musik, Bilder
     styles/        # CSS
     utils/         # Rendering, Input, State, Audio, Session, Dialoge, Helpers
@@ -97,19 +97,24 @@ tests/unit/        # Vitest Unit-Tests
 ## Aktueller Fokus
 	
 - Deck-Importe werden jetzt über Zod validiert und auf sichere IDs/Pfade begrenzt.
+- Alle drei App-Seiten (`index.html`, `game.html`, `lan-game.html`) haben eine strikte Content-Security-Policy: Skripte nur aus App-Dateien, kein `eval`, keine Inline-Skripte, keine Plugins. Die Deck-Prüfung aus `game.html` liegt deshalb jetzt in `main.ts`.
+- Das Electron-Fenster öffnet keine neuen Fenster, navigiert nur zu den eigenen Seiten (`app/main/navigationPolicy.ts`), bindet keine `<webview>` ein und lehnt Browser-Berechtigungen (Kamera, Standort usw.) ab.
+- Deck-ZIPs werden vor dem Entpacken begrenzt: Archiv max. 200 MB, max. 2000 Dateien, `deck.json` max. 2 MB, Bild max. 20 MB, entpackt max. 500 MB; nur ein `deck.json` pro Archiv. Bilder eines importierten Decks liegen immer im Ordner seiner Deck-ID.
+- `accounts.json` wird atomar geschrieben (temporäre Datei, dann Umbenennen); Kontoänderungen laufen nacheinander. Eine unlesbare Datei wird als `accounts.corrupt-<Zeit>.json` beiseitegelegt statt überschrieben, unbrauchbare Einträge werden vorher als `accounts.backup-<Zeit>.json` gesichert. Punktebuchungen werden per Zod geprüft.
+- Abhängigkeiten aktualisiert: `adm-zip` 0.6.1, `zod` 4, `ws` 8.23; das ungenutzte `pixi.js` und `GameScene.ts` wurden entfernt. `npm audit --omit=dev` meldet keine bekannten Lücken.
 - Karten der Schwierigkeit `expert` zählen jetzt 40 Basispunkte statt des Fallbacks von 10; das Import-Schema akzeptiert `expert`.
 - Erfolgsmeldung und Lade-Overlay der Landing Page werden ohne `innerHTML` aufgebaut, damit importierte Deck-Namen kein HTML einschleusen können.
 - Die ungenutzte Deck-Kopie unter `app/renderer/assets/decks` wurde entfernt (sechs Dateien identisch, das deutsche Gebäude-Deck dort veraltet); Decks liegen nur noch in `app/renderer/content/decks`.
 - Hotseat-Hände werden bei einer Fenstergrößenänderung jetzt mitskaliert und neu angeordnet.
 - Importierte Deck-Kacheln werden im Renderer jetzt über sichere DOM-Erzeugung statt HTML-Interpolation aufgebaut.
 - LAN-Nachrichten und IPC-Payloads werden zentral über gemeinsame Schemas geprüft.
-- Ein zentraler `sessionStore` bündelt den wichtigsten Renderer-Session-State fuer LAN und wird jetzt auch von `lan-client` und `GameScene` genutzt.
+- Ein zentraler `sessionStore` bündelt den wichtigsten Renderer-Session-State fuer LAN und wird jetzt auch von `lan-client` genutzt.
 - Account-Scores werden im Electron-Betrieb über IPC gespeichert und im Browser-/localhost-Fallback über `accountScoreStore`, damit Tests und In-App-Browser-Flows denselben Fortschritt anzeigen.
 - Eine Regression im LAN-Client wurde behoben, sodass `cardPlacement`-Nachrichten nicht mehr doppelt an den Renderer-Callback weitergereicht werden.
 - LAN- und GameScene-Hotspots verwenden jetzt strukturierte Logger-Pfade statt direkter `console.*`-Ausgaben.
 - Der Repo-Lint laeuft jetzt ohne Fehler und ohne Warnungen durch.
 - Die ESLint-Regeln wurden dabei auf signalstarke Checks fuer diese Canvas-/Electron-Codebasis zugeschnitten, statt Legacy-Hotspots nur formell umzuschreiben.
-- Aktuell abgesichert durch `npm run lint`, `npm run typecheck` und `npm test` mit 32 Testdateien / 514 Tests.
+- Aktuell abgesichert durch `npm run lint`, `npm run typecheck` und `npm test` mit 34 Testdateien / 540 Tests.
 - Der gebaute Electron-Bundle wurde zusaetzlich Ende-zu-Ende ueber den Singleplayer-Kernfluss bis ins Spiel gestartet und per Screenshot verifiziert.
 
 ## Beispiel-Deck (JSON)
@@ -217,5 +222,5 @@ MIT License – frei nutzbar & erweiterbar.
 Credits
 
 Projektidee & Umsetzung: Jochen Hagen
-Engine: PixiJS, GSAP, Electron, Vite
+Engine: Canvas 2D, GSAP, Electron, Vite
 Inspiration: Timeline (Asmodee)

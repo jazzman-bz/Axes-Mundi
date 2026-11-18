@@ -80,6 +80,90 @@ export function assertSafeAssetName(value: string, label: string = 'Asset name')
   return value;
 }
 
+const MEGABYTE = 1024 * 1024;
+
+/** Size limits for imported deck ZIP files. The bundled decks stay far below them. */
+export const DECK_ARCHIVE_LIMITS = {
+  maxArchiveBytes: 200 * MEGABYTE,
+  maxEntries: 2000,
+  maxDeckJsonBytes: 2 * MEGABYTE,
+  maxImageBytes: 20 * MEGABYTE,
+  maxTotalBytes: 500 * MEGABYTE,
+} as const;
+
+export type DeckArchiveLimits = { [K in keyof typeof DECK_ARCHIVE_LIMITS]: number };
+
+/** What the import needs to know about a ZIP entry before unpacking it. */
+export interface DeckArchiveEntryInfo {
+  name: string;
+  /** Uncompressed size declared in the ZIP header. adm-zip never inflates past it. */
+  size: number;
+  isDirectory: boolean;
+}
+
+function normalizeEntryName(name: string): string {
+  return name.replace(/\\/g, '/').toLowerCase();
+}
+
+function formatMegabytes(bytes: number): string {
+  return `${Math.round(bytes / MEGABYTE)} MB`;
+}
+
+export function isDeckJsonEntry(name: string): boolean {
+  const normalizedName = normalizeEntryName(name);
+  return normalizedName === 'deck.json' || normalizedName.endsWith('/deck.json');
+}
+
+export function isDeckImageEntry(name: string): boolean {
+  const normalizedName = normalizeEntryName(name);
+  return (normalizedName.startsWith('images/') || normalizedName.includes('/images/'))
+    && SAFE_ASSET_EXTENSION_PATTERN.test(normalizedName);
+}
+
+/** Checked before the ZIP is read into memory. */
+export function assertDeckArchiveSize(
+  archiveBytes: number,
+  limits: DeckArchiveLimits = DECK_ARCHIVE_LIMITS,
+): void {
+  if (archiveBytes > limits.maxArchiveBytes) {
+    throw new Error(`Deck archive is larger than ${formatMegabytes(limits.maxArchiveBytes)}`);
+  }
+}
+
+/**
+ * Rejects archives that are too large to unpack safely or ambiguous about their deck.json.
+ * Sizes come from the ZIP headers, so nothing has been decompressed yet.
+ */
+export function assertDeckArchiveEntries(
+  entries: DeckArchiveEntryInfo[],
+  limits: DeckArchiveLimits = DECK_ARCHIVE_LIMITS,
+): void {
+  if (entries.length > limits.maxEntries) {
+    throw new Error(`Deck archive has more than ${limits.maxEntries} files`);
+  }
+
+  const files = entries.filter((entry) => !entry.isDirectory);
+  const deckJsonEntries = files.filter((entry) => isDeckJsonEntry(entry.name));
+  if (deckJsonEntries.length > 1) {
+    throw new Error('Deck archive contains more than one deck.json');
+  }
+
+  const [deckJsonEntry] = deckJsonEntries;
+  if (deckJsonEntry && deckJsonEntry.size > limits.maxDeckJsonBytes) {
+    throw new Error(`deck.json is larger than ${formatMegabytes(limits.maxDeckJsonBytes)}`);
+  }
+
+  const oversizedImage = files.find((entry) => isDeckImageEntry(entry.name) && entry.size > limits.maxImageBytes);
+  if (oversizedImage) {
+    throw new Error(`Image "${oversizedImage.name}" is larger than ${formatMegabytes(limits.maxImageBytes)}`);
+  }
+
+  const totalBytes = files.reduce((sum, entry) => sum + Math.max(0, entry.size), 0);
+  if (totalBytes > limits.maxTotalBytes) {
+    throw new Error(`Deck archive unpacks to more than ${formatMegabytes(limits.maxTotalBytes)}`);
+  }
+}
+
 export function parseImportedDeck(input: unknown): NormalizedImportedDeck {
   const deck = importedDeckSchema.parse(input);
   return {

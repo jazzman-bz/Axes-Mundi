@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DECK_ARCHIVE_LIMITS,
+  assertDeckArchiveEntries,
+  assertDeckArchiveSize,
+  isDeckImageEntry,
+  isDeckJsonEntry,
   assertSafeDeckId,
   getImageContentType,
   parseImportedDeck,
@@ -84,5 +89,56 @@ describe('deckSecurity', () => {
       expect(getImageContentType('card.webp')).toBe('image/webp');
       expect(getImageContentType('card.jpg')).toBe('image/jpeg');
     });
+  });
+});
+
+describe('deck archive limits', () => {
+  const MB = 1024 * 1024;
+  const file = (name: string, size: number) => ({ name, size, isDirectory: false });
+  const validArchive = [
+    { name: 'my-deck/', size: 0, isDirectory: true },
+    file('my-deck/deck.json', 20_000),
+    file('my-deck/images/card-1.png', 2 * MB),
+    file('my-deck/images/card-2.jpg', 3 * MB),
+  ];
+
+  it('recognises deck.json and image entries with either path separator', () => {
+    expect(isDeckJsonEntry('deck.json')).toBe(true);
+    expect(isDeckJsonEntry('My Deck\\deck.json')).toBe(true);
+    expect(isDeckJsonEntry('deck.json.bak')).toBe(false);
+    expect(isDeckImageEntry('images/a.PNG')).toBe(true);
+    expect(isDeckImageEntry('deck\\images\\b.webp')).toBe(true);
+    expect(isDeckImageEntry('images/script.js')).toBe(false);
+    expect(isDeckImageEntry('a.png')).toBe(false);
+  });
+
+  it('accepts a normal deck archive', () => {
+    expect(() => assertDeckArchiveSize(10 * MB)).not.toThrow();
+    expect(() => assertDeckArchiveEntries(validArchive)).not.toThrow();
+  });
+
+  it('rejects an archive file that is too large to read', () => {
+    expect(() => assertDeckArchiveSize(DECK_ARCHIVE_LIMITS.maxArchiveBytes + 1)).toThrow('larger than 200 MB');
+  });
+
+  it('rejects too many files', () => {
+    const entries = Array.from({ length: DECK_ARCHIVE_LIMITS.maxEntries + 1 }, (_, i) => file(`images/${i}.png`, 1));
+    expect(() => assertDeckArchiveEntries(entries)).toThrow('more than 2000 files');
+  });
+
+  it('rejects an oversized deck.json or image', () => {
+    expect(() => assertDeckArchiveEntries([file('deck.json', 3 * MB)])).toThrow('deck.json is larger than 2 MB');
+    expect(() => assertDeckArchiveEntries([file('deck.json', 100), file('images/huge.png', 21 * MB)]))
+      .toThrow('Image "images/huge.png" is larger than 20 MB');
+  });
+
+  it('rejects archives that unpack to too much data (decompression bombs)', () => {
+    const entries = [file('deck.json', 100), ...Array.from({ length: 30 }, (_, i) => file(`data/${i}.bin`, 19 * MB))];
+    expect(() => assertDeckArchiveEntries(entries)).toThrow('unpacks to more than 500 MB');
+  });
+
+  it('rejects archives with more than one deck.json', () => {
+    expect(() => assertDeckArchiveEntries([file('deck.json', 100), file('other/deck.json', 100)]))
+      .toThrow('more than one deck.json');
   });
 });

@@ -69,6 +69,15 @@ type PlayerAccount = {
 };
 ```
 
+### File safety
+
+- Writes go to `accounts.json.tmp` first and then replace `accounts.json`, so a crash never leaves a half-written file.
+- Account changes (create, update, score commit) run one after another in the main process, so two quick calls cannot overwrite each other.
+- If `accounts.json` is not valid JSON or has no `accounts` list, it is renamed to `accounts.corrupt-<time>.json` and the app starts with an empty list. The original stays on disk.
+- Entries without a usable `id`, `name` or `stats` are skipped. Before that happens, a copy of the original file is saved as `accounts.backup-<time>.json`. Missing or broken counters (for example `null`) are read as `0`.
+- If the file cannot be read at all (permissions, I/O), the request fails and nothing is written.
+- Score transactions are validated with Zod before they are applied: `scoreDelta` must be a number from 0 to 1,000,000, `mode` one of `ai`, `hotseat`, `lan`, `learning`.
+
 ## Runtime Storage
 
 `localStorage` is still used for selection/session state:
