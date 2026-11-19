@@ -1,4 +1,33 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type { ImportedDeck } from '../shared/deckSecurity';
+import type { LanCardDistributionPayload, LanGameStateSnapshot } from '../shared/lanProtocol';
+import type {
+  CreatePlayerAccountInput,
+  MatchScoreCommitResult,
+  MatchScoreTransaction,
+  PlayerAccount,
+  UpdatePlayerAccountInput,
+} from '../shared/playerAccounts';
+
+interface AppVersionInfo {
+  appVersion: string;
+  commit: string;
+  branch?: string;
+  dirty?: boolean;
+  buildDate?: string;
+}
+
+interface UserDeckSummary {
+  id: string;
+  name: string;
+  description?: string;
+  axis: string;
+  theme: string;
+  locale: string;
+  cardCount: number;
+  imageFolder: string;
+  isUserDeck: boolean;
+}
 
 /**
  * Expose protected methods that allow the renderer process to use
@@ -6,12 +35,14 @@ import { contextBridge, ipcRenderer } from 'electron';
  */
 contextBridge.exposeInMainWorld('AXM', {
   // App info
-  version: '1.0.0',
+  version: process.env.npm_package_version || 'unknown',
   logLevel: process.env.AXM_LOG_LEVEL || 'info',
 
   // IPC methods
   getVersion: () => ipcRenderer.invoke('get-version'),
+  getVersionInfo: () => ipcRenderer.invoke('get-version-info'),
   getEnvironment: () => ipcRenderer.invoke('get-environment'),
+  quitApp: () => ipcRenderer.invoke('quit-app'),
   placeCard: (index: number) => ipcRenderer.invoke('place-card', index),
 
   // LAN Server management
@@ -19,12 +50,12 @@ contextBridge.exposeInMainWorld('AXM', {
   stopLANServer: () => ipcRenderer.invoke('stop-lan-server'),
   sendDeckSelection: (deckId: string) => ipcRenderer.invoke('send-deck-selection', deckId),
   sendCurrentPlayerUpdate: (currentPlayer: string) => ipcRenderer.invoke('send-current-player-update', currentPlayer),
-  sendCardDistribution: (distribution: any) => ipcRenderer.invoke('send-card-distribution', distribution),
+  sendCardDistribution: (distribution: LanCardDistributionPayload) => ipcRenderer.invoke('send-card-distribution', distribution),
   sendGameStartTrigger: () => ipcRenderer.invoke('send-game-start-trigger'),
 
   // LAN Game actions
   placeLANCard: (cardId: string, boardPosition: number) => ipcRenderer.invoke('lan-place-card', cardId, boardPosition),
-  updateGameState: (gameState: any) => ipcRenderer.invoke('update-lan-game-state', gameState),
+  updateGameState: (gameState: LanGameStateSnapshot) => ipcRenderer.invoke('update-lan-game-state', gameState),
 
   // Test IPC connection
   testIPC: () => ipcRenderer.invoke('test-ipc'),
@@ -35,6 +66,12 @@ contextBridge.exposeInMainWorld('AXM', {
   loadUserDeck: (deckId: string) => ipcRenderer.invoke('load-user-deck', deckId),
   deleteUserDeck: (deckId: string) => ipcRenderer.invoke('delete-user-deck', deckId),
   getUserDataPaths: () => ipcRenderer.invoke('get-user-data-paths'),
+
+  // Player account methods
+  getPlayerAccounts: () => ipcRenderer.invoke('get-player-accounts'),
+  createPlayerAccount: (input: CreatePlayerAccountInput) => ipcRenderer.invoke('create-player-account', input),
+  updatePlayerAccount: (accountId: string, input: UpdatePlayerAccountInput) => ipcRenderer.invoke('update-player-account', accountId, input),
+  commitMatchScore: (transaction: MatchScoreTransaction) => ipcRenderer.invoke('commit-match-score', transaction),
 
   // Debug method to log from renderer to main process terminal
   debugLog: (message: string, data?: any) => ipcRenderer.invoke('debug-log', message, data),
@@ -63,18 +100,20 @@ declare global {
       version: string;
       logLevel: string;
       getVersion: () => Promise<string>;
+      getVersionInfo: () => Promise<AppVersionInfo>;
       getEnvironment: () => Promise<{ env: string; logLevel: string }>;
+      quitApp: () => Promise<{ success: boolean }>;
       placeCard: (index: number) => Promise<{ success: boolean; score: number }>;
       startLANServer: (playerName: string, playerAvatar?: string) => Promise<{ success: boolean; port: number }>;
       stopLANServer: () => Promise<{ success: boolean }>;
       sendDeckSelection: (deckId: string) => Promise<{ success: boolean }>;
       sendCurrentPlayerUpdate: (currentPlayer: string) => Promise<{ success: boolean }>;
-      sendCardDistribution: (distribution: any) => Promise<{ success: boolean }>;
+      sendCardDistribution: (distribution: LanCardDistributionPayload) => Promise<{ success: boolean; error?: string }>;
       sendGameStartTrigger: () => Promise<{ success: boolean }>;
 
       // LAN Game actions
-      placeLANCard: (cardId: string, boardPosition: number) => Promise<{ success: boolean; message: string }>;
-      updateGameState: (gameState: any) => Promise<{ success: boolean; message: string }>;
+      placeLANCard: (cardId: string, boardPosition: number) => Promise<{ success: boolean; message?: string; error?: string }>;
+      updateGameState: (gameState: LanGameStateSnapshot) => Promise<{ success: boolean; message?: string; error?: string }>;
 
       testIPC: () => Promise<{ success: boolean; message: string }>;
       on: (channel: string, func: (...args: any[]) => void) => void;
@@ -85,35 +124,17 @@ declare global {
         success: boolean;
         cancelled?: boolean;
         error?: string;
-        deck?: {
-          id: string;
-          name: string;
-          axis: string;
-          theme: string;
-          locale: string;
-          cardCount: number;
-          imageFolder: string;
-          isUserDeck: boolean;
-        };
+        deck?: UserDeckSummary;
       }>;
       getUserDecks: () => Promise<{
         success: boolean;
         error?: string;
-        decks: Array<{
-          id: string;
-          name: string;
-          axis: string;
-          theme: string;
-          locale: string;
-          cardCount: number;
-          imageFolder: string;
-          isUserDeck: boolean;
-        }>;
+        decks: UserDeckSummary[];
       }>;
       loadUserDeck: (deckId: string) => Promise<{
         success: boolean;
         error?: string;
-        deck?: any;
+        deck?: ImportedDeck;
       }>;
       deleteUserDeck: (deckId: string) => Promise<{
         success: boolean;
@@ -123,7 +144,26 @@ declare global {
         userDataPath: string;
         decksPath: string;
         imagesPath: string;
+        accountsPath: string;
       }>;
+
+      // Player account methods
+      getPlayerAccounts: () => Promise<{
+        success: boolean;
+        error?: string;
+        accounts: PlayerAccount[];
+      }>;
+      createPlayerAccount: (input: CreatePlayerAccountInput) => Promise<{
+        success: boolean;
+        error?: string;
+        account?: PlayerAccount;
+      }>;
+      updatePlayerAccount: (accountId: string, input: UpdatePlayerAccountInput) => Promise<{
+        success: boolean;
+        error?: string;
+        account?: PlayerAccount;
+      }>;
+      commitMatchScore: (transaction: MatchScoreTransaction) => Promise<MatchScoreCommitResult>;
     };
   }
 }

@@ -48,10 +48,12 @@ export async function loadDeck(deckId: string): Promise<ExtendedDeck> {
   // Check if AXM API is available (running in Electron)
   if (window.AXM && window.AXM.loadUserDeck) {
     const result = await window.AXM.loadUserDeck(deckId);
-    
+
     if (result.success && result.deck) {
-      const deck: ExtendedDeck = result.deck;
-      deck.isUserDeck = true;
+      const deck = {
+        ...result.deck,
+        isUserDeck: true,
+      } as ExtendedDeck;
 
       logger.info({
         scope: 'data/deckLoader',
@@ -76,6 +78,17 @@ export function shuffleCards(cards: Card[]): Card[] {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
+}
+
+/**
+ * Shuffle array of cards in-place (mutates the array)
+ * @param cards - Array of cards to shuffle
+ */
+export function shuffleCardsInPlace(cards: Card[]): void {
+  for (let i = cards.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cards[i], cards[j]] = [cards[j], cards[i]];
+  }
 }
 
 /**

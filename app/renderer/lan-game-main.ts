@@ -2,19 +2,24 @@ import { LANGameManager } from './lan-game';
 import { logger } from '@/utils/logger';
 import { GameCard } from './game/Card';
 import { soundManager, SoundType } from '@/utils/soundManager';
+import { backgroundMusicManager } from '@/utils/backgroundMusicManager';
+import { OptionsMenu } from '@/utils/optionsMenu';
+import {
+  clearLanSessionState, getLanCardDistribution, getLanSessionState, getSelectedGameType, setLanServerPlayer,
+} from '@/utils/sessionStore';
 
 /**
  * Avatar emoji mapping
  * Maps avatar ID (1-6) to emoji
  */
 const AVATAR_EMOJIS: Record<string, string> = {
-  '1': '👨‍🚀', // Astronaut
-  '2': '🧙‍♂️', // Magier
-  '3': '🏴‍☠️', // Pirat
-  '4': '🦄', // Einhorn
-  '5': '🤖', // Roboter
-  '6': '🐉', // Drache
-  'default': '👤', // Default
+  1: '👨‍🚀', // Astronaut
+  2: '🧙‍♂️', // Magier
+  3: '🏴‍☠️', // Pirat
+  4: '🦄', // Einhorn
+  5: '🤖', // Roboter
+  6: '🐉', // Drache
+  default: '👤', // Default
 };
 
 /**
@@ -64,16 +69,15 @@ class LANGameApp {
   private snapThreshold: number = 80; // Distance to axis for snapping (will be scaled)
 
   private isPreviewActive: boolean = false; // Track if preview is currently active
+
   private lastPreviewX: number = 0; // Track last preview position for dynamic updates
 
   private lastSentCardPlacement: string | null = null; // Prevent duplicate card placement sends
 
   private isValidationInProgress: boolean = false; // Block interaction during card validation
 
-  private backButtonBounds: { x: number; y: number; width: number; height: number } | null = null; // Back to menu button
-
   constructor() {
-    console.log('🎮 LANGameApp constructor called');
+    logger.info({ scope: 'renderer/lan-game', msg: 'LANGameApp constructor called' });
     this.init();
 
     // Set up mouse event handlers for hover effects
@@ -85,19 +89,27 @@ class LANGameApp {
    */
   async init(): Promise<void> {
     try {
-      console.log('🎮 Initializing LAN game application...');
+      logger.info({ scope: 'renderer/lan-game', msg: 'initializing LAN game application' });
 
       // IMPORTANT: Set up WebSocket event listeners FIRST to catch early events
       this.setupWebSocketEventListeners();
 
       // Check if we're in LAN mode
-      const isLANMode = localStorage.getItem('selectedGameType') === 'lan';
-      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      const lanSession = getLanSessionState();
+      const isLANMode = getSelectedGameType() === 'lan';
+      const { isServerClient } = lanSession;
 
-      console.log('🎮 LAN mode check:', { isLANMode, isServerClient });
+      logger.debug({
+        scope: 'renderer/lan-game',
+        msg: 'LAN mode check complete',
+        meta: { isLANMode, isServerClient },
+      });
 
       if (!isLANMode) {
-        console.error('🎮 Not in LAN mode, redirecting to landing page');
+        logger.error({
+          scope: 'renderer/lan-game',
+          msg: 'not in LAN mode, redirecting to landing page',
+        });
         window.location.href = './index.html';
         return;
       }
@@ -141,9 +153,13 @@ class LANGameApp {
 
       // WebSocket event listeners already set up at the start of init()
 
-      console.log('🎮 LAN game application initialized successfully');
-    } catch (error) {
-      console.error('🎮 Failed to initialize LAN game application:', error);
+      logger.info({ scope: 'renderer/lan-game', msg: 'LAN game application initialized successfully' });
+    } catch (error: any) {
+      logger.error({
+        scope: 'renderer/lan-game',
+        msg: 'failed to initialize LAN game application',
+        err: { message: error.message, stack: error.stack },
+      });
       this.showError('Error initializing LAN game.');
     }
   }
@@ -153,7 +169,7 @@ class LANGameApp {
    */
   private initCanvas(): void {
     try {
-      console.log('🎮 Initializing canvas...');
+      logger.debug({ scope: 'renderer/lan-game', msg: 'initializing canvas' });
 
       this.canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
       if (!this.canvas) {
@@ -164,9 +180,17 @@ class LANGameApp {
       this.canvas.width = window.innerWidth;
       this.canvas.height = window.innerHeight;
 
-      console.log('🎮 Canvas initialized successfully');
-    } catch (error) {
-      console.error('🎮 Failed to initialize canvas:', error);
+      logger.info({
+        scope: 'renderer/lan-game',
+        msg: 'canvas initialized successfully',
+        meta: { width: this.canvas.width, height: this.canvas.height },
+      });
+    } catch (error: any) {
+      logger.error({
+        scope: 'renderer/lan-game',
+        msg: 'failed to initialize canvas',
+        err: { message: error.message, stack: error.stack },
+      });
       throw error;
     }
   }
@@ -176,7 +200,7 @@ class LANGameApp {
    */
   private initCanvasContext(): void {
     try {
-      console.log('🎮 Initializing Canvas context...');
+      logger.debug({ scope: 'renderer/lan-game', msg: 'initializing canvas context' });
 
       if (!this.canvas) {
         throw new Error('Canvas not initialized');
@@ -195,9 +219,13 @@ class LANGameApp {
       // Apply initial scale to HTML UI elements
       this.updateUIElementsScale();
 
-      console.log('🎮 Canvas context initialized successfully');
-    } catch (error) {
-      console.error('🎮 Failed to initialize Canvas context:', error);
+      logger.info({ scope: 'renderer/lan-game', msg: 'canvas context initialized successfully' });
+    } catch (error: any) {
+      logger.error({
+        scope: 'renderer/lan-game',
+        msg: 'failed to initialize canvas context',
+        err: { message: error.message, stack: error.stack },
+      });
       throw error;
     }
   }
@@ -216,7 +244,11 @@ class LANGameApp {
     // Update snap threshold for new scale
     this.snapThreshold = 80 * this.scale;
 
-    console.log('🎮 Scale calculated:', this.scale);
+    logger.debug({
+      scope: 'renderer/lan-game',
+      msg: 'scale calculated',
+      meta: { scale: this.scale },
+    });
   }
 
   /**
@@ -226,15 +258,19 @@ class LANGameApp {
     try {
       this.logoImage = new Image();
       this.logoImage.onload = () => {
-        console.log('🎮 Logo image loaded successfully');
+        logger.info({ scope: 'renderer/lan-game', msg: 'logo image loaded successfully' });
       };
       this.logoImage.onerror = () => {
-        console.warn('🎮 Failed to load logo image, using fallback');
+        logger.warn({ scope: 'renderer/lan-game', msg: 'failed to load logo image, using fallback' });
         this.logoImage = null;
       };
       this.logoImage.src = './assets/axes-mundi logo.png';
-    } catch (error) {
-      console.error('🎮 Error loading logo image:', error);
+    } catch (error: any) {
+      logger.error({
+        scope: 'renderer/lan-game',
+        msg: 'error loading logo image',
+        err: { message: error.message, stack: error.stack },
+      });
       this.logoImage = null;
     }
   }
@@ -246,21 +282,18 @@ class LANGameApp {
     try {
       this.backgroundImage = new Image();
       this.backgroundImage.onload = () => {
-        console.log('🎮 Background image loaded successfully');
         logger.info({ scope: 'renderer/lan-game', msg: 'background image loaded successfully' });
       };
       this.backgroundImage.onerror = () => {
-        console.warn('🎮 Failed to load background image, using fallback color');
         logger.warn({ scope: 'renderer/lan-game', msg: 'failed to load background image, using fallback color' });
         this.backgroundImage = null;
       };
       this.backgroundImage.src = './assets/background.jpg';
-    } catch (error) {
-      console.error('🎮 Error loading background image:', error);
+    } catch (error: any) {
       logger.error({
         scope: 'renderer/lan-game',
         msg: 'failed to load background image',
-        err: { message: (error as Error).message, stack: (error as Error).stack },
+        err: { message: error.message, stack: error.stack },
       });
       this.backgroundImage = null;
     }
@@ -271,46 +304,52 @@ class LANGameApp {
    */
   private async initLANGame(): Promise<void> {
     try {
-      console.log('🎮 Initializing LANGameServer...');
+      logger.info({ scope: 'renderer/lan-game', msg: 'initializing LANGameManager' });
 
       this.lanGame = new LANGameManager();
 
       // Get isServerClient from localStorage
-      const isServerClient = localStorage.getItem('isServerClient') === 'true';
+      const lanSession = getLanSessionState();
+      const { isServerClient } = lanSession;
 
       // For Server-Client (Electron): Set server player name from localStorage
       // Client player name will come via WebSocket from the browser client
-      const serverPlayerName = localStorage.getItem('serverPlayerName');
+      const { serverPlayerName } = lanSession;
 
       if (serverPlayerName) {
         // Set server player name immediately
         this.lanGame.setPlayerNames(serverPlayerName, 'Waiting for client...');
-        console.log('🎮 Server player name set:', serverPlayerName);
-
-        // Server starts in waiting mode - no current player set yet
-        console.log('🎮 Server starts in waiting mode - no current player set yet');
+        logger.info({
+          scope: 'renderer/lan-game',
+          msg: 'server player name loaded',
+          meta: { serverPlayerName },
+        });
 
         // Update overlay to show server name and waiting for client
         this.updateLANInfo();
-        
+
         // Initialize current player display
         this.updateCurrentPlayerDisplay();
       } else {
-        console.warn('🎮 No server player name found in localStorage, using default');
+        logger.warn({
+          scope: 'renderer/lan-game',
+          msg: 'no server player name found in localStorage, using default',
+        });
         const defaultServerName = 'Server';
         this.lanGame.setPlayerNames(defaultServerName, 'Waiting for client...');
-        localStorage.setItem('serverPlayerName', defaultServerName);
-        // Default server starts in waiting mode - no current player set yet
-        console.log('🎮 Default server starts in waiting mode - no current player set yet');
+        setLanServerPlayer(defaultServerName, lanSession.serverPlayerAvatar || 'default', isServerClient);
         this.updateLANInfo();
-        
+
         // Initialize current player display
         this.updateCurrentPlayerDisplay();
       }
 
       // For Client: Start in waiting mode - no current player loaded
       if (!isServerClient) {
-        console.log('🎮 Client: Starting in waiting mode - no current player loaded yet');
+        logger.info({
+          scope: 'renderer/lan-game',
+          msg: 'client starts in waiting mode until current player is received',
+        });
       }
 
       // Note: Client player name will be set when received via WebSocket
@@ -321,27 +360,39 @@ class LANGameApp {
 
       // For Browser-Client: Ensure WebSocket client is initialized and set up message handling
       if (!isServerClient) {
-        console.log('🎮 Browser-Client: Ensuring WebSocket client is initialized');
         // The LANGameManager should have already initialized the WebSocket client
         // But let's verify it's working
         if (this.lanGame.lanClient) {
-          console.log('🎮 Browser-Client: WebSocket client is available');
-          console.log('🎮 Browser-Client: WebSocket connection state:', this.lanGame.lanClient.isConnected());
+          logger.info({
+            scope: 'renderer/lan-game',
+            msg: 'browser client WebSocket is available',
+            meta: { isConnected: this.lanGame.lanClient.isConnected() },
+          });
 
           // Set up message callback to receive WebSocket messages
           this.lanGame.onMessage((message: any) => {
-            console.log('🎮 Browser-Client: Received message from LANGameManager:', message.type);
+            logger.debug({
+              scope: 'renderer/lan-game',
+              msg: 'received message from LANGameManager',
+              meta: { type: message.type },
+            });
             this.handleWebSocketMessageFromLANGame(message);
           });
-          console.log('🎮 Browser-Client: Message callback set up successfully');
         } else {
-          console.warn('🎮 Browser-Client: WebSocket client is not available');
+          logger.warn({
+            scope: 'renderer/lan-game',
+            msg: 'browser client WebSocket is not available',
+          });
         }
       }
 
-      console.log('🎮 LANGameServer initialized successfully');
-    } catch (error) {
-      console.error('🎮 Failed to initialize LANGameServer:', error);
+      logger.info({ scope: 'renderer/lan-game', msg: 'LANGameManager initialized successfully' });
+    } catch (error: any) {
+      logger.error({
+        scope: 'renderer/lan-game',
+        msg: 'failed to initialize LANGameManager',
+        err: { message: error.message, stack: error.stack },
+      });
       throw error;
     }
   }
@@ -351,14 +402,18 @@ class LANGameApp {
    */
   private async handleServerClientFlow(): Promise<void> {
     try {
-      console.log('🎮 Handling server-client flow...');
+      logger.info({ scope: 'renderer/lan-game', msg: 'handling server-client flow' });
 
       // Get card distribution from LANGameManager
       if (this.lanGame) {
         const distribution = this.lanGame.getCardDistribution();
         if (distribution) {
-          console.log('🎮 Distributing cards on canvas...');
-          this.updateLANStatus('Karten werden verteilt...');
+          logger.info({
+            scope: 'renderer/lan-game',
+            msg: 'distributing cards on canvas',
+            meta: { deckId: distribution.deckId },
+          });
+          this.updateLANStatus('Distributing cards...');
 
           // Create GameCard objects and distribute them (like Single-Player)
           await this.distributeCardsOnCanvas(distribution);
@@ -381,7 +436,7 @@ class LANGameApp {
           // Start game AFTER client connects (not immediately)
           console.log('🎮 Card distribution ready - waiting for client to connect before starting game...');
 
-          this.updateLANStatus('Kartenverteilung an Client gesendet!');
+          this.updateLANStatus('Card distribution sent to client!');
           console.log('🎮 Card distribution sent to client successfully');
         }
       }
@@ -419,9 +474,7 @@ class LANGameApp {
       // This ensures both players have the same remaining cards
       if (distribution.deckOrder && distribution.deckOrder.length > 0) {
         // Use the deckOrder from server (correct remaining cards)
-        this.remainingCards = distribution.deckOrder.map((cardRef: any) => 
-          deck.cards.find((card: any) => card.id === cardRef.id)
-        ).filter((card: any) => card !== undefined);
+        this.remainingCards = distribution.deckOrder.map((cardRef: any) => deck.cards.find((card: any) => card.id === cardRef.id)).filter((card: any) => card !== undefined);
         console.log('🎮 Server: Using deckOrder from distribution for remainingCards:', this.remainingCards.length);
       } else {
         // Fallback: use full deck (should not happen)
@@ -866,13 +919,14 @@ class LANGameApp {
     ctx.stroke();
 
     // Get player data
-    const serverPlayerName = localStorage.getItem('serverPlayerName') || 'Server';
-    const clientPlayerName = localStorage.getItem('clientPlayerName') || 'Client';
-    const isServerClient = localStorage.getItem('isServerClient') === 'true';
+    const lanSession = getLanSessionState();
+    const serverPlayerName = lanSession.serverPlayerName || 'Server';
+    const clientPlayerName = lanSession.clientPlayerName || 'Client';
+    const { isServerClient } = lanSession;
 
     // Get server and client avatars from localStorage
-    const serverPlayerAvatar = localStorage.getItem('serverPlayerAvatar') || 'default';
-    const clientPlayerAvatar = localStorage.getItem('clientPlayerAvatar') || 'default';
+    const serverPlayerAvatar = lanSession.serverPlayerAvatar || 'default';
+    const clientPlayerAvatar = lanSession.clientPlayerAvatar || 'default';
 
     // Determine player and opponent avatars based on perspective
     let playerAvatar: string;
@@ -927,50 +981,6 @@ class LANGameApp {
     ctx.fillText('Graveyard', graveyardX + graveyardBoxWidth / 2, graveyardY - 20 * this.scale);
 
     // Back to menu button is now an HTML element (not canvas)
-  }
-
-  /**
-   * Draw back to menu button (top-left corner, where status message was)
-   * Same width (100px) and font size (13px) as player info avatar box
-   */
-  private drawBackButton(ctx: CanvasRenderingContext2D): void {
-    if (!this.canvas) return;
-    
-    const buttonWidth = 100 * this.scale; // Same width as avatar box
-    const buttonHeight = 35 * this.scale;
-    const buttonX = 20 * this.scale;
-    const buttonY = 15 * this.scale;
-    const borderRadius = 8 * this.scale; // Same border radius as avatar box
-
-    // Store button bounds for click detection
-    this.backButtonBounds = {
-      x: buttonX,
-      y: buttonY,
-      width: buttonWidth,
-      height: buttonHeight,
-    };
-
-    // Draw button background with gradient
-    const gradient = ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
-    gradient.addColorStop(0, '#ff6b6b');
-    gradient.addColorStop(1, '#ee5a5a');
-
-    ctx.fillStyle = gradient;
-    this.roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, borderRadius);
-    ctx.fill();
-
-    // Draw button border
-    ctx.strokeStyle = '#cc4444';
-    ctx.lineWidth = 2;
-    this.roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, borderRadius);
-    ctx.stroke();
-
-    // Draw button text with icon (same font size as avatar box name: 13px)
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${13 * this.scale}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('✕ Beenden', buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
   }
 
   /**
@@ -1112,12 +1122,11 @@ class LANGameApp {
     try {
       console.log('🎮 Handling client flow...');
 
-      this.updateLANStatus('Lade Kartenverteilung...');
+      this.updateLANStatus('Loading card distribution...');
 
       // Client loads card distribution from localStorage (received via WebSocket)
-      const cardDistributionStr = localStorage.getItem('lanCardDistribution');
-      if (cardDistributionStr) {
-        const distribution = JSON.parse(cardDistributionStr);
+      const distribution = getLanCardDistribution();
+      if (distribution) {
         console.log('🎮 Client: Loaded card distribution from localStorage:', distribution);
 
         // Load deck for image folder reference
@@ -1133,36 +1142,35 @@ class LANGameApp {
         // Store remaining cards for deck visualization
         // IMPORTANT: Use the deckOrder from the distribution, not the full deck
         // This ensures both players have the same remaining cards
+        const boardCardId = distribution.boardCard?.id;
         if (distribution.deckOrder && distribution.deckOrder.length > 0) {
           // Use the deckOrder from server (correct remaining cards)
-          this.remainingCards = distribution.deckOrder.map((cardRef: any) => 
-            deck.cards.find((card: any) => card.id === cardRef.id)
-          ).filter((card: any) => card !== undefined);
+          this.remainingCards = distribution.deckOrder.map((cardRef: any) => deck.cards.find((card: any) => card.id === cardRef.id)).filter((card: any) => card !== undefined);
           console.log('🎮 Client: Using deckOrder from server for remainingCards:', this.remainingCards.length);
         } else {
           // Fallback: use full deck and remove distributed cards
           this.remainingCards = [...deck.cards];
-          
+
           // Remove board card if it exists
-          if (distribution.boardCard) {
-            this.remainingCards = this.remainingCards.filter(card => card.id !== distribution.boardCard.id);
-            console.log('🎮 Client: Removed board card from remainingCards:', distribution.boardCard.id);
+          if (boardCardId) {
+            this.remainingCards = this.remainingCards.filter((card) => card.id !== boardCardId);
+            console.log('🎮 Client: Removed board card from remainingCards:', boardCardId);
           }
-          
+
           // Remove server hand cards
           if (distribution.serverHand && distribution.serverHand.length > 0) {
             const serverHandIds = distribution.serverHand.map((cardRef: any) => cardRef.id);
-            this.remainingCards = this.remainingCards.filter(card => !serverHandIds.includes(card.id));
+            this.remainingCards = this.remainingCards.filter((card) => !serverHandIds.includes(card.id));
             console.log('🎮 Client: Removed server hand cards from remainingCards:', serverHandIds);
           }
-          
+
           // Remove client hand cards
           if (distribution.clientHand && distribution.clientHand.length > 0) {
             const clientHandIds = distribution.clientHand.map((cardRef: any) => cardRef.id);
-            this.remainingCards = this.remainingCards.filter(card => !clientHandIds.includes(card.id));
+            this.remainingCards = this.remainingCards.filter((card) => !clientHandIds.includes(card.id));
             console.log('🎮 Client: Removed client hand cards from remainingCards:', clientHandIds);
           }
-          
+
           console.log('🎮 Client: Fallback - remainingCards after removing distributed cards:', this.remainingCards.length);
         }
 
@@ -1172,8 +1180,8 @@ class LANGameApp {
         // - Board card is in the center
 
         // Create board card (zentrale Karte)
-        if (distribution.boardCard) {
-          const boardCardData = deck.cards.find((card) => card.id === distribution.boardCard.id);
+        if (boardCardId) {
+          const boardCardData = deck.cards.find((card) => card.id === boardCardId);
           if (boardCardData) {
             console.log('🎮 Client: Creating central board card:', boardCardData.title);
             const centralCard = new GameCard(
@@ -1224,7 +1232,7 @@ class LANGameApp {
           }
         }, 3000);
 
-        this.updateLANStatus('Kartenverteilung geladen! Spiel bereit.');
+        this.updateLANStatus('Card distribution loaded! Game ready.');
       } else {
         throw new Error('No card distribution found in localStorage');
       }
@@ -1317,7 +1325,6 @@ class LANGameApp {
     const baseFontSize = 14;
     const basePadding = 10;
     const baseBorderRadius = 5;
-    const baseTop = 20;
     const baseLeft = 20;
     const baseInfoTop = 110;
 
@@ -1325,19 +1332,8 @@ class LANGameApp {
     const fontSize = Math.round(baseFontSize * this.scale);
     const padding = Math.round(basePadding * this.scale);
     const borderRadius = Math.round(baseBorderRadius * this.scale);
-    const top = Math.round(baseTop * this.scale);
     const left = Math.round(baseLeft * this.scale);
     const infoTop = Math.round(baseInfoTop * this.scale);
-
-    // Update back-to-menu button
-    const backButton = document.getElementById('back-to-menu');
-    if (backButton) {
-      backButton.style.fontSize = `${fontSize}px`;
-      backButton.style.padding = `${padding}px ${Math.round(15 * this.scale)}px`;
-      backButton.style.borderRadius = `${borderRadius}px`;
-      backButton.style.top = `${top}px`;
-      backButton.style.left = `${left}px`;
-    }
 
     // Update lan-info box
     const lanInfo = document.getElementById('lan-info');
@@ -1378,7 +1374,6 @@ class LANGameApp {
       // Set target position for animation
       card.setTargetPosition(x, y);
     });
-
   }
 
   /**
@@ -1399,7 +1394,6 @@ class LANGameApp {
       // Set target position for animation
       card.setTargetPosition(x, y);
     });
-
   }
 
   /**
@@ -1471,7 +1465,7 @@ class LANGameApp {
           // Fade out animation
           statusElement.style.transition = 'opacity 0.5s ease-out';
           statusElement.style.opacity = '0';
-          
+
           // Hide completely after fade
           setTimeout(() => {
             statusElement.style.display = 'none';
@@ -1576,12 +1570,12 @@ class LANGameApp {
           this.handleGameStateUpdate(data);
           break;
         case 'currentPlayerSet':
-          // NOW ACTIVE: currentPlayer logic after card distribution
+        // NOW ACTIVE: currentPlayer logic after card distribution
           console.log('🎮 Received currentPlayerSet - updating current player');
           this.updateCurrentPlayerFromServer(data.currentPlayer);
           break;
         case 'playerTurnChanged':
-          // NOW ACTIVE: player turn change logic after card distribution
+        // NOW ACTIVE: player turn change logic after card distribution
           console.log('🎮 Received playerTurnChanged - updating turn');
           this.handlePlayerTurnChange(data.currentPlayer);
           break;
@@ -1646,7 +1640,7 @@ class LANGameApp {
       console.log('🎮 Client joined - both sides now in waiting mode for game start');
 
       // Update UI to show waiting status
-      this.updateLANStatus('Client verbunden. Warte auf Spielstart...');
+      this.updateLANStatus('Client connected. Waiting for game start...');
 
       // NOW: Start the game after client is connected!
       console.log('🎮 Client connected - now starting game with random player');
@@ -1663,21 +1657,20 @@ class LANGameApp {
   private handleRemotePlayerSwitch(data: any): void {
     try {
       console.log('🎮 Handling remote player switch:', data);
-      
-      const nextPlayer = data.nextPlayer;
+
+      const { nextPlayer } = data;
       if (!nextPlayer) {
         console.error('🎮 Invalid player switch data - missing nextPlayer');
         return;
       }
-      
+
       // Update current player in localStorage
       localStorage.setItem('currentPlayer', nextPlayer);
-      
+
       // Update UI to reflect the new current player
       this.updateCurrentPlayerDisplay();
-      
+
       console.log('🎮 Remote player switch completed. New current player:', nextPlayer);
-      
     } catch (error) {
       console.error('🎮 Failed to handle remote player switch:', error);
     }
@@ -1690,20 +1683,19 @@ class LANGameApp {
   private handleRemoteGameRestart(data: any): void {
     try {
       console.log('🎮 Handling remote game restart:', data);
-      
-      const playerName = data.playerName;
+
+      const { playerName } = data;
       if (!playerName) {
         console.error('🎮 Invalid game restart data - missing playerName');
         return;
       }
-      
+
       console.log('🎮 Remote game restart requested by:', playerName);
-      
+
       // Restart the game on this client as well
       this.restartLANGame();
-      
+
       console.log('🎮 Remote game restart completed');
-      
     } catch (error) {
       console.error('🎮 Failed to handle remote game restart:', error);
     }
@@ -1716,26 +1708,26 @@ class LANGameApp {
   private handleRemoteRemainingCardsUpdate(data: any): void {
     try {
       console.log('🎮 Handling remote remaining cards update:', data);
-      
-      const remainingCardsCount = data.remainingCardsCount;
-      const playerName = data.playerName;
-      
+
+      const { remainingCardsCount } = data;
+      const { playerName } = data;
+
       if (typeof remainingCardsCount !== 'number') {
         console.error('🎮 Invalid remaining cards update data - missing or invalid remainingCardsCount');
         return;
       }
-      
+
       console.log('🎮 Remote remaining cards update from:', playerName, 'count:', remainingCardsCount);
-      
+
       // Update local remaining cards array to match the remote count
       // This ensures both players have the same remaining cards count
       if (this.remainingCards.length !== remainingCardsCount) {
         console.log('🎮 Synchronizing remaining cards:', {
           localCount: this.remainingCards.length,
           remoteCount: remainingCardsCount,
-          difference: this.remainingCards.length - remainingCardsCount
+          difference: this.remainingCards.length - remainingCardsCount,
         });
-        
+
         // Adjust local remaining cards array to match remote count
         if (this.remainingCards.length > remainingCardsCount) {
           // Remove excess cards from the end
@@ -1744,13 +1736,12 @@ class LANGameApp {
           // This shouldn't happen, but log it
           console.warn('🎮 Local remaining cards count is less than remote count - this is unexpected');
         }
-        
+
         console.log('🎮 Remaining cards synchronized:', {
           newLocalCount: this.remainingCards.length,
-          remoteCount: remainingCardsCount
+          remoteCount: remainingCardsCount,
         });
       }
-      
     } catch (error) {
       console.error('🎮 Failed to handle remote remaining cards update:', error);
     }
@@ -1792,8 +1783,8 @@ class LANGameApp {
         playerName,
         isServerClient,
         serverPlayerName,
-        playerHandCards: this.playerHand.map(c => c.card.id),
-        opponentHandCards: this.opponentHand.map(c => c.card.id)
+        playerHandCards: this.playerHand.map((c) => c.card.id),
+        opponentHandCards: this.opponentHand.map((c) => c.card.id),
       });
 
       if (isServerClient) {
@@ -1935,7 +1926,7 @@ class LANGameApp {
       this.updateCurrentPlayerUI(newCurrentPlayer);
 
       // Update status and then hide after a short delay
-      this.updateLANStatus(`Spiel gestartet! ${newCurrentPlayer} beginnt.`);
+      this.updateLANStatus(`Game started! ${newCurrentPlayer} goes first.`);
       this.hideStatusBoxAfterDelay(2000); // Hide after 2 seconds
     } catch (error) {
       console.error('🎮 Failed to update current player from server:', error);
@@ -2040,7 +2031,7 @@ class LANGameApp {
 
       // Update ONLY the current player UI elements (no full LAN update)
       this.updateCurrentPlayerUI(currentPlayer);
-      
+
       // Also update the current player display
       this.updateCurrentPlayerDisplay();
 
@@ -2057,7 +2048,7 @@ class LANGameApp {
 
           if (result.success) {
             console.log('🎮 Current player sent to client successfully:', currentPlayer);
-            this.updateLANStatus(`Spiel gestartet! ${currentPlayer} beginnt.`);
+            this.updateLANStatus(`Game started! ${currentPlayer} goes first.`);
             this.hideStatusBoxAfterDelay(2000); // Hide after 2 seconds
           } else {
             console.warn('🎮 Failed to send current player to client:', (result as any).error);
@@ -2208,14 +2199,14 @@ class LANGameApp {
         if (playerNameElement) {
           // DISABLED: currentPlayer logic before card distribution
           // Always show waiting mode
-          playerNameElement.textContent = 'Warte auf Spielstart...';
+          playerNameElement.textContent = 'Waiting for game start...';
           playerNameElement.classList.add('waiting-turn');
           playerNameElement.classList.remove('current-turn');
         }
         if (opponentNameElement) {
           // DISABLED: currentPlayer logic before card distribution
           // Always show waiting mode
-          opponentNameElement.textContent = 'Warte auf Spielstart...';
+          opponentNameElement.textContent = 'Waiting for game start...';
           opponentNameElement.classList.add('waiting-turn');
           opponentNameElement.classList.remove('current-turn');
         }
@@ -2224,14 +2215,14 @@ class LANGameApp {
         if (playerNameElement) {
           // DISABLED: currentPlayer logic before card distribution
           // Always show waiting mode
-          playerNameElement.textContent = 'Warte auf Spielstart...';
+          playerNameElement.textContent = 'Waiting for game start...';
           playerNameElement.classList.add('waiting-turn');
           playerNameElement.classList.remove('current-turn');
         }
         if (opponentNameElement) {
           // DISABLED: currentPlayer logic before card distribution
           // Always show waiting mode
-          opponentNameElement.textContent = 'Warte auf Spielstart...';
+          opponentNameElement.textContent = 'Waiting for game start...';
           opponentNameElement.classList.add('waiting-turn');
           opponentNameElement.classList.remove('current-turn');
         }
@@ -2240,7 +2231,7 @@ class LANGameApp {
       if (currentTurnElement) {
         // DISABLED: currentPlayer logic before card distribution
         // Always show waiting mode
-        currentTurnElement.textContent = 'Warte auf Spielstart...';
+        currentTurnElement.textContent = 'Waiting for game start...';
       }
 
       // DISABLED: currentPlayer logging before card distribution
@@ -2258,15 +2249,6 @@ class LANGameApp {
       if (!this.canvas) {
         console.warn('🎮 Canvas not available for mouse events');
         return;
-      }
-
-      // Add click listener for HTML back button
-      const backButton = document.getElementById('back-to-menu');
-      if (backButton) {
-        backButton.addEventListener('click', () => {
-          console.log('🎮 Back to menu button clicked (HTML)');
-          this.goBackToMainMenu();
-        });
       }
 
       // Add mouse down event listener for drag & drop (on canvas)
@@ -2591,7 +2573,7 @@ class LANGameApp {
   /**
    * Show preview of where card would be placed on axis
    */
-  private showPlacementPreview(mouseX: number, mouseY: number): void {
+  private showPlacementPreview(mouseX: number, _mouseY: number): void {
     try {
       // Use the CARD's position, not mouse position, for more intuitive dragging
       if (!this.selectedCard) return;
@@ -2683,18 +2665,17 @@ class LANGameApp {
 
       // Find the insertion point based on previewX (use original positions, not shifted ones)
       let insertIndex = allCards.length; // Default to end
-      
+
       for (let i = 0; i < allCards.length; i++) {
         const existingCard = allCards[i];
         // Use original position to avoid cumulative shifting
         const existingCardCenterX = existingCard.getOriginalX() + existingCard.width / 2;
-        
+
         if (previewX < existingCardCenterX) {
           insertIndex = i;
           break;
         }
       }
-
 
       // Calculate new positions for all cards to make space
       const totalWidth = (allCards.length + 1) * cardWidth + allCards.length * cardSpacing;
@@ -2704,7 +2685,7 @@ class LANGameApp {
       for (let i = 0; i < allCards.length; i++) {
         const card = allCards[i];
         let targetX: number;
-        
+
         if (i < insertIndex) {
           // Cards before insertion point stay in their original positions
           targetX = startX + i * (cardWidth + cardSpacing);
@@ -2712,14 +2693,13 @@ class LANGameApp {
           // Cards at and after insertion point move right to make space
           targetX = startX + (i + 1) * (cardWidth + cardSpacing);
         }
-        
+
         // Set preview position for smooth animation
         card.setPreviewPosition(targetX, centerY);
       }
 
       // Mark preview as active
       this.isPreviewActive = true;
-
     } catch (error) {
       console.error('🎮 Failed to show axis preview:', error);
     }
@@ -2744,7 +2724,6 @@ class LANGameApp {
       // Mark preview as inactive
       this.isPreviewActive = false;
       this.lastPreviewX = 0;
-
     } catch (error) {
       console.error('🎮 Failed to hide placement preview:', error);
     }
@@ -2960,9 +2939,8 @@ class LANGameApp {
       console.log('🎮 Card moved to graveyard successfully:', {
         cardTitle: card.card.title,
         graveyardSize: this.graveyard.length,
-        boardSize: this.board.length
+        boardSize: this.board.length,
       });
-
     } catch (error) {
       console.error('🎮 Failed to move card to graveyard:', error);
     }
@@ -2983,9 +2961,8 @@ class LANGameApp {
       console.log('🎮 Card animated to graveyard:', {
         cardTitle: card.card.title,
         graveyardX,
-        graveyardY
+        graveyardY,
       });
-
     } catch (error) {
       console.error('🎮 Failed to animate card to graveyard:', error);
     }
@@ -3005,19 +2982,17 @@ class LANGameApp {
       if (this.remainingCards.length === 0 && this.graveyard.length > 0) {
         this.recycleGraveyard();
       }
-      
+
       if (this.remainingCards.length > 0) {
         const newCardData = this.remainingCards.shift()!;
-        
+
         // Use the same deck that was used for the original card distribution
         // This ensures the correct imageFolder is used
-        const originalDeckId = localStorage.getItem('lanCardDistribution') 
-          ? JSON.parse(localStorage.getItem('lanCardDistribution')!).deckId 
+        const originalDeckId = localStorage.getItem('lanCardDistribution')
+          ? JSON.parse(localStorage.getItem('lanCardDistribution')!).deckId
           : 'buildings-height-en';
-        
-        import('@/data/deckLoader').then(({ loadDeck }) => {
-          return loadDeck(originalDeckId);
-        }).then((deck) => {
+
+        import('@/data/deckLoader').then(({ loadDeck }) => loadDeck(originalDeckId)).then((deck) => {
           if (!deck) {
             console.error('🎮 Failed to load deck for new card');
             return;
@@ -3085,7 +3060,7 @@ class LANGameApp {
             opponentHandSize: this.opponentHand.length,
             shouldGiveToServer,
             isServerClient,
-            currentPlayer
+            currentPlayer,
           });
 
           // No need to send remaining cards update - both players have the same remainingCards list
@@ -3093,15 +3068,12 @@ class LANGameApp {
 
           // Switch to the next player after giving the new card
           this.switchToNextPlayer();
-
         }).catch((error) => {
           console.error('🎮 Failed to load deck for new card:', error);
         });
-
       } else {
         console.log('🎮 No more cards available to give to player');
       }
-
     } catch (error) {
       console.error('🎮 Failed to give new card:', error);
     }
@@ -3137,26 +3109,26 @@ class LANGameApp {
   private switchToNextPlayer(): void {
     try {
       console.log('🎮 Switching to next player...');
-      
+
       const isServerClient = localStorage.getItem('isServerClient') === 'true';
       const currentPlayer = localStorage.getItem('currentPlayer');
       const serverPlayerName = localStorage.getItem('serverPlayerName');
       const clientPlayerName = localStorage.getItem('clientPlayerName');
-      
+
       // Determine the next player
       const nextPlayer = currentPlayer === serverPlayerName ? clientPlayerName : serverPlayerName;
-      
+
       console.log('🎮 Player switch:', {
         currentPlayer,
         nextPlayer,
         isServerClient,
         serverPlayerName,
-        clientPlayerName
+        clientPlayerName,
       });
-      
+
       // Update current player in localStorage
       localStorage.setItem('currentPlayer', nextPlayer!);
-      
+
       // Send player switch via WebSocket if this is the server client
       if (isServerClient && this.lanGame?.lanClient) {
         try {
@@ -3166,12 +3138,11 @@ class LANGameApp {
           console.error('🎮 Failed to send player switch via WebSocket:', error);
         }
       }
-      
+
       // Update UI to reflect the new current player
       this.updateCurrentPlayerDisplay();
-      
+
       console.log('🎮 Player switch completed. New current player:', nextPlayer);
-      
     } catch (error) {
       console.error('🎮 Failed to switch to next player:', error);
     }
@@ -3187,14 +3158,14 @@ class LANGameApp {
       const serverPlayerName = localStorage.getItem('serverPlayerName');
       const clientPlayerName = localStorage.getItem('clientPlayerName');
       const isServerClient = localStorage.getItem('isServerClient') === 'true';
-      
+
       console.log('🎮 Updating current player display:', {
         currentPlayer,
         serverPlayerName,
         clientPlayerName,
-        isServerClient
+        isServerClient,
       });
-      
+
       // Update the current turn indicator (matches HTML element id="currentTurn")
       const currentTurnElement = document.getElementById('currentTurn');
       if (currentTurnElement) {
@@ -3203,11 +3174,11 @@ class LANGameApp {
       } else {
         console.warn('🎮 currentTurn element not found in DOM');
       }
-      
+
       // Update player name elements with turn highlighting
       const playerNameElement = document.getElementById('playerName');
       const opponentNameElement = document.getElementById('opponentName');
-      
+
       if (isServerClient) {
         // Server perspective
         if (playerNameElement) {
@@ -3253,14 +3224,13 @@ class LANGameApp {
           }
         }
       }
-      
+
       console.log('🎮 Updated current player display successfully:', {
         currentPlayer,
         isServerClient,
-        isMyTurn: (isServerClient && currentPlayer === serverPlayerName) || 
-                  (!isServerClient && currentPlayer === clientPlayerName)
+        isMyTurn: (isServerClient && currentPlayer === serverPlayerName)
+                  || (!isServerClient && currentPlayer === clientPlayerName),
       });
-      
     } catch (error) {
       console.error('🎮 Failed to update current player display:', error);
     }
@@ -3281,13 +3251,13 @@ class LANGameApp {
       // IMPORTANT: The board array is already in the correct order (sorted by insertion)
       // We don't need to sort by X position - the array order IS the logical order
       // The cards are positioned based on their array index, not their X coordinates
-      
+
       // Extract just the card data for evaluation (in array order)
       const sortedCardData = allAxisCards.map((gc) => gc.card);
 
       console.log('🎮 Board array order for validation:', {
         totalCards: sortedCardData.length,
-        cardOrder: sortedCardData.map((c, index) => `${index}: ${c.title} (${c.value} ${c.unit})`)
+        cardOrder: sortedCardData.map((c, index) => `${index}: ${c.title} (${c.value} ${c.unit})`),
       });
 
       // Import the validation function from scoring module
@@ -3300,8 +3270,8 @@ class LANGameApp {
           cardTitle: placedCard.card.title,
           isCorrect,
           totalCards: sortedCardData.length,
-          arrayOrder: sortedCardData.map(c => c.title),
-          values: sortedCardData.map(c => `${c.value} ${c.unit}`)
+          arrayOrder: sortedCardData.map((c) => c.title),
+          values: sortedCardData.map((c) => `${c.value} ${c.unit}`),
         });
 
         if (isCorrect) {
@@ -3311,13 +3281,13 @@ class LANGameApp {
             soundManager.play(SoundType.SUCCESS);
           }, 300); // Small delay after placement sound
           console.log('🎮 Card placed correctly - showing green feedback');
-          
+
           // NOW sort and center the cards (only after validation confirms correct)
           this.layoutAxisCards();
-          
+
           // Check for win condition after correct placement
           this.checkForWin();
-          
+
           // Switch to the next player after correct placement
           setTimeout(() => {
             this.switchToNextPlayer();
@@ -3333,7 +3303,7 @@ class LANGameApp {
             soundManager.play(SoundType.ERROR);
           }, 300); // Small delay after placement sound
           console.log('🎮 Card placed incorrectly - showing red feedback, card stays at drop position');
-          
+
           // After 2 seconds, move the incorrect card to graveyard (which will re-center remaining cards)
           setTimeout(() => {
             this.moveCardToGraveyard(placedCard);
@@ -3348,7 +3318,6 @@ class LANGameApp {
         placedCard.setCorrect();
         this.isValidationInProgress = false;
       });
-
     } catch (error) {
       console.error('🎮 Failed to validate card placement:', error);
       // Fallback: assume correct if validation fails
@@ -3373,7 +3342,7 @@ class LANGameApp {
   /**
    * Go back to main menu
    */
-  private goBackToMainMenu(): void {
+  async goBackToMainMenu(): Promise<void> {
     try {
       console.log('🎮 Returning to main menu...');
 
@@ -3384,12 +3353,10 @@ class LANGameApp {
       }
 
       // Clear LAN-specific localStorage items
-      localStorage.removeItem('currentPlayer');
-      localStorage.removeItem('isServerClient');
-      localStorage.removeItem('serverPlayerName');
-      localStorage.removeItem('clientPlayerName');
-      localStorage.removeItem('lanCardDistribution');
+      clearLanSessionState();
       localStorage.removeItem('gameMode');
+
+      await backgroundMusicManager.fadeOutCurrent(700);
 
       // Navigate to main menu (index.html)
       window.location.href = 'index.html';
@@ -3410,11 +3377,11 @@ class LANGameApp {
       const currentPlayer = localStorage.getItem('currentPlayer');
       const serverPlayerName = localStorage.getItem('serverPlayerName');
       const clientPlayerName = localStorage.getItem('clientPlayerName');
-      
+
       // Determine which hand to check based on current player
       let currentPlayerHandLength = 0;
       let winnerName = '';
-      
+
       if (currentPlayer === serverPlayerName) {
         // Server player's turn
         if (isServerClient) {
@@ -3438,34 +3405,33 @@ class LANGameApp {
           winnerName = clientPlayerName || 'Waiting for client...';
         }
       }
-      
+
       console.log('🎮 Checking for win condition:', {
         currentPlayer,
         currentPlayerHandLength,
         winnerName,
         isServerClient,
         serverPlayerName,
-        clientPlayerName
+        clientPlayerName,
       });
-      
+
       // Win condition: current player has no cards left
       if (currentPlayerHandLength === 0) {
         this.gameWon = true; // Mark game as won to prevent further moves
-        
+
         console.log('🎮 GAME WON!', {
           winnerName,
           currentPlayer,
           currentPlayerHandLength,
           remainingCards: this.remainingCards.length,
-          boardCards: this.board.length
+          boardCards: this.board.length,
         });
-        
+
         // Show win dialog after 2 seconds delay
         setTimeout(() => {
           this.showLANWinDialog(winnerName);
         }, 2000);
       }
-      
     } catch (error) {
       console.error('🎮 Failed to check for win condition:', error);
     }
@@ -3481,23 +3447,22 @@ class LANGameApp {
       const currentPlayer = localStorage.getItem('currentPlayer');
       const serverPlayerName = localStorage.getItem('serverPlayerName');
       const clientPlayerName = localStorage.getItem('clientPlayerName');
-      
+
       // Determine if this client is the winner
-      const isWinner = (isServerClient && currentPlayer === serverPlayerName) || 
-                      (!isServerClient && currentPlayer === clientPlayerName);
-      
+      const isWinner = (isServerClient && currentPlayer === serverPlayerName)
+                      || (!isServerClient && currentPlayer === clientPlayerName);
+
       let title = '';
       let message = '';
       if (isWinner) {
         title = '🎉 Congratulations! 🎉';
-        message = `Du hast das Spiel gewonnen!\n\nAlle deine Karten wurden erfolgreich sortiert!\n\nGewinner: ${winnerName}`;
+        message = `You won the game!\n\nAll your cards were sorted successfully!\n\nWinner: ${winnerName}`;
       } else {
-        title = '🎉 Spiel beendet! 🎉';
-        message = `${winnerName} hat das Spiel gewonnen!\n\nAlle Karten wurden erfolgreich sortiert!`;
+        title = '🎉 Game Over! 🎉';
+        message = `${winnerName} won the game!\n\nAll cards were sorted successfully!`;
       }
-      
+
       this.showCustomWinDialog(title, message);
-      
     } catch (error) {
       console.error('🎮 Failed to show LAN win dialog:', error);
     }
@@ -3600,10 +3565,10 @@ class LANGameApp {
       mainMenuButton.addEventListener('click', () => {
         if (isButtonClicked) return;
         isButtonClicked = true;
-        
+
         soundManager.play(SoundType.BUTTON_CLICK);
         mainMenuButton.style.opacity = '0.6';
-        
+
         // Small delay to allow sound to play before navigation
         setTimeout(() => {
           document.body.removeChild(overlay);
@@ -3622,7 +3587,6 @@ class LANGameApp {
       document.body.appendChild(overlay);
 
       console.log('🎮 Custom win dialog displayed');
-
     } catch (error) {
       console.error('🎮 Failed to show custom win dialog:', error);
       // Fallback to simple alert and navigate to main menu
@@ -3650,7 +3614,7 @@ class LANGameApp {
   private restartLANGame(): void {
     try {
       console.log('🎮 Restarting LAN game with same deck...');
-      
+
       // Reset game state
       this.playerHand = [];
       this.opponentHand = [];
@@ -3658,28 +3622,27 @@ class LANGameApp {
       this.graveyard = [];
       this.remainingCards = [];
       this.gameWon = false; // Reset game won state
-      
+
       // Determine who should start (the loser of the previous game)
       const currentPlayer = localStorage.getItem('currentPlayer');
       const serverPlayerName = localStorage.getItem('serverPlayerName');
       const clientPlayerName = localStorage.getItem('clientPlayerName');
-      
+
       // The current player (who just won) should NOT start - the other player should start
       const startingPlayer = currentPlayer === serverPlayerName ? clientPlayerName : serverPlayerName;
-      
+
       console.log('🎮 Restarting game - previous winner:', currentPlayer, 'new starting player:', startingPlayer);
-      
+
       // Set the loser as the starting player
       localStorage.setItem('currentPlayer', startingPlayer || 'Server');
-      
+
       // Update UI
       this.updateCurrentPlayerDisplay();
-      
+
       // Restart the entire LAN game initialization with the same deck
       this.restartLANGameWithSameDeck();
-      
+
       console.log('🎮 LAN game restart initiated successfully');
-      
     } catch (error) {
       console.error('🎮 Failed to restart LAN game:', error);
     }
@@ -3724,7 +3687,6 @@ class LANGameApp {
       }
 
       console.log('🎮 Game started with predetermined player:', currentPlayer);
-
     } catch (error) {
       console.error('🎮 Failed to start game with predetermined player:', error);
     }
@@ -3736,30 +3698,29 @@ class LANGameApp {
   private async restartLANGameWithSameDeck(): Promise<void> {
     try {
       console.log('🎮 Restarting LAN game with same deck...');
-      
+
       // Get the current deck ID from localStorage
       const deckId = localStorage.getItem('selectedDeckId') || 'buildings-height-en';
       console.log('🎮 Using same deck for restart:', deckId);
-      
+
       // Re-initialize the LAN game with the same deck
       if (this.lanGame) {
         // Reset the LANGameManager state
         this.lanGame = new LANGameManager();
-        
+
         // Initialize with the same deck
         await this.lanGame.initializeLANGame();
-        
+
         // Handle server-client flow (distribute cards and send to client)
         await this.handleServerClientFlow();
-        
+
         // Start game with the predetermined starting player (loser)
         await this.startGameWithPredeterminedPlayer();
-        
+
         console.log('🎮 LAN game restarted with same deck successfully');
       } else {
         console.error('🎮 Cannot restart: lanGame is null');
       }
-      
     } catch (error) {
       console.error('🎮 Failed to restart LAN game with same deck:', error);
     }
@@ -3770,7 +3731,7 @@ class LANGameApp {
    */
   private convertToComparable(value: number, unit: string): number {
     switch (unit.toLowerCase()) {
-      // Height units
+    // Height units
       case 'm':
         return value;
       case 'km':
@@ -3783,13 +3744,47 @@ class LANGameApp {
       // Temperature units
       case '°c':
       case 'c':
-        // Celsius values are already comparable (colder = smaller, hotter = larger)
+      // Celsius values are already comparable (colder = smaller, hotter = larger)
         return value;
 
       default:
         return value;
     }
   }
+}
+
+function quitApplication(): Promise<void> {
+  if (window.AXM?.quitApp) {
+    return window.AXM.quitApp().then(() => undefined);
+  }
+
+  window.close();
+  return Promise.resolve();
+}
+
+function setupOptionsMenu(lanGameApp: LANGameApp): void {
+  const optionsMenu = new OptionsMenu({
+    musicVolume: backgroundMusicManager.getVolume(),
+    sfxVolume: soundManager.getVolume(),
+    onMusicVolumeChange: (volume) => {
+      backgroundMusicManager.setVolume(volume);
+      optionsMenu.setMusicVolume(backgroundMusicManager.getVolume());
+    },
+    onSfxVolumeChange: (volume) => {
+      soundManager.setVolume(volume);
+      optionsMenu.setSfxVolume(soundManager.getVolume());
+    },
+    onReturn: () => {},
+    onLeaveToMenu: () => {
+      lanGameApp.goBackToMainMenu();
+    },
+    leaveToMenuLabel: 'Leave Game to Menu',
+    onLeaveApp: () => {
+      backgroundMusicManager.fadeOutCurrent(500).finally(() => {
+        quitApplication();
+      });
+    },
+  });
 }
 
 // Initialize LAN game when DOM is ready
@@ -3825,20 +3820,30 @@ document.addEventListener('DOMContentLoaded', () => {
           // Initialize sound manager first, then create LANGameApp
           soundManager.init().then(() => {
             logger.info({ scope: 'renderer/lan-game', msg: 'sound manager initialized' });
+            backgroundMusicManager.play('gameplay', { fadeInMs: 1600 }).catch((musicError) => {
+              logger.warn({
+                scope: 'renderer/lan-game',
+                msg: 'failed to start gameplay music',
+                err: { message: musicError.message },
+              });
+            });
             const lanGameApp = new LANGameApp();
+            setupOptionsMenu(lanGameApp);
 
             // Add resize event listener
             window.addEventListener('resize', () => {
               lanGameApp.handleResize(window.innerWidth, window.innerHeight);
             });
           }).catch((error) => {
-            logger.error({ 
-              scope: 'renderer/lan-game', 
-              msg: 'failed to initialize sound manager', 
-              err: { message: error.message } 
+            logger.error({
+              scope: 'renderer/lan-game',
+              msg: 'failed to initialize sound manager',
+              err: { message: error.message },
             });
             // Continue anyway
+            backgroundMusicManager.play('gameplay', { fadeInMs: 1600 }).catch(() => {});
             const lanGameApp = new LANGameApp();
+            setupOptionsMenu(lanGameApp);
 
             // Add resize event listener
             window.addEventListener('resize', () => {
@@ -3859,8 +3864,8 @@ document.addEventListener('DOMContentLoaded', () => {
       waitForAXM();
     } else {
     // Browser-Client: Start immediately with WebSocket
-    console.log('🎮 Browser detected, starting with WebSocket connection...');
-    console.log('🎮 No AXM available, using direct WebSocket communication');
+      console.log('🎮 Browser detected, starting with WebSocket connection...');
+      console.log('🎮 No AXM available, using direct WebSocket communication');
 
       // Initialize sound manager first
       soundManager.init().then(() => {
@@ -3872,10 +3877,10 @@ document.addEventListener('DOMContentLoaded', () => {
           lanGameApp.handleResize(window.innerWidth, window.innerHeight);
         });
       }).catch((error) => {
-        logger.error({ 
-          scope: 'renderer/lan-game', 
-          msg: 'failed to initialize sound manager', 
-          err: { message: error.message } 
+        logger.error({
+          scope: 'renderer/lan-game',
+          msg: 'failed to initialize sound manager',
+          err: { message: error.message },
         });
         // Continue anyway
         const lanGameApp = new LANGameApp();

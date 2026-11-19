@@ -5,6 +5,33 @@
 
 // Import sound manager
 import { soundManager, SoundType } from './utils/soundManager.ts';
+import { backgroundMusicManager } from './utils/backgroundMusicManager.ts';
+import { OptionsMenu } from './utils/optionsMenu.ts';
+import { getDeckDescription, getDeckLocaleLabel, getDeckThemeLabel } from './utils/deckPresentation.ts';
+import { createUserDeckCard } from './utils/userDeckCard.ts';
+import { formatVersionBadge, formatVersionTooltip } from './utils/versionPresentation.ts';
+import { LOCAL_ACCOUNTS_STORAGE_KEY } from './utils/accountScoreStore.ts';
+import { AI_DIFFICULTY } from './data/aiDifficulty.ts';
+import { getRankProgress } from './data/playerRanks.ts';
+import { createRankAvatar, createRankProfile } from './utils/rankPresentation.ts';
+import {
+  clearLanSessionState,
+  getLanCardDistribution,
+  getLanServerInfo,
+  getLanSessionState,
+  getLastServerIP,
+  getSelectedGameType,
+  setCurrentPlayer,
+  setLanCardDistribution,
+  setLanClientPlayer,
+  setLanServerInfo,
+  setLanServerPlayer,
+  setLanServerUrl,
+  setLastServerIP,
+  setSelectedDifficulty,
+  setSelectedGameType,
+} from './utils/sessionStore.ts';
+import versionInfo from '../generated/version.ts';
 
 // Silent logger for production
 const logger = {
@@ -14,25 +41,19 @@ const logger = {
   error: () => {}
 };
 
-/**
- * Avatar emoji mapping
- * Maps avatar ID (1-6) to emoji
- */
-const AVATAR_EMOJIS = {
-  '1': '👨‍🚀', // Astronaut
-  '2': '🧙‍♂️', // Wizard
-  '3': '🏴‍☠️', // Pirate
-  '4': '🦄', // Unicorn
-  '5': '🤖', // Robot
-  '6': '🐉', // Dragon
+const ACCOUNT_KEYS = {
+  selectedAccountId: 'selectedAccountId',
+  selectedSecondAccountId: 'selectedSecondAccountId',
+  localAccounts: LOCAL_ACCOUNTS_STORAGE_KEY,
 };
 
-/**
- * Get avatar emoji from avatar ID
- */
-function getAvatarEmoji(avatarId) {
-  if (!avatarId) return '👤';
-  return AVATAR_EMOJIS[String(avatarId)] || '👤';
+function quitApplication() {
+  if (window.AXM?.quitApp) {
+    return window.AXM.quitApp().then(() => undefined);
+  }
+
+  window.close();
+  return Promise.resolve();
 }
 
 /**
@@ -40,8 +61,9 @@ function getAvatarEmoji(avatarId) {
  */
 class LandingPageController {
       constructor() {
-      this.currentSection = 'player-setup';
+      this.currentSection = 'account-selection';
       this.sections = [
+        'account-selection',
         'player-setup',
         'game-mode-selection', 
         'singleplayer-options',
@@ -53,14 +75,18 @@ class LandingPageController {
       ];
       
       this.playerData = {
+        id: null,
         name: '',
         avatar: null
       };
       
       this.secondPlayerData = {
+        id: null,
         name: '',
         avatar: null
       };
+
+      this.accounts = [];
       
            this.gameConfig = {
         mode: null,
@@ -69,10 +95,11 @@ class LandingPageController {
       };
       
                      // LAN connection state
-        this.isServerClient = localStorage.getItem('isServerClient') === 'true';
-        this.serverPlayerName = localStorage.getItem('serverPlayerName');
-        this.clientPlayerName = localStorage.getItem('clientPlayerName'); // Store client player name for server-client
-        this.currentPlayer = localStorage.getItem('currentPlayer') || this.playerData.name; // Current player (starts with local player)
+        const lanSession = getLanSessionState();
+        this.isServerClient = lanSession.isServerClient;
+        this.serverPlayerName = lanSession.serverPlayerName;
+        this.clientPlayerName = lanSession.clientPlayerName; // Store client player name for server-client
+        this.currentPlayer = lanSession.currentPlayer || this.playerData.name; // Current player (starts with local player)
         this.lanClient = null;
        
                console.log('🎮 Landing page initialized with LAN state:', {
@@ -92,11 +119,17 @@ class LandingPageController {
     try {
       logger.info({ scope: 'landing/init', msg: 'initializing landing page' });
       
+      await this.renderVersionBadge();
+
       // Initialize sound manager
       await this.initializeSoundManager();
+      await backgroundMusicManager.play('landing', { fadeInMs: 1600 });
       
       // Initialize game mode if not set
       this.initializeGameMode();
+
+      // Options menu is shared with game views and also available on landing.
+      this.setupOptionsMenu();
       
       // Hide loading screen after a short delay
       setTimeout(() => {
@@ -108,9 +141,15 @@ class LandingPageController {
       
       // Set up IPC listeners for LAN status updates
       this.setupIPCListeners();
+
+      // Load persistent accounts before restoring the selected player.
+      await this.loadAccounts();
       
       // Load saved data if available
       this.loadSavedData();
+
+      await this.ensurePrimaryAccountExists();
+      this.showInitialSection();
       
       // Update progress
       this.updateProgress();
@@ -124,6 +163,49 @@ class LandingPageController {
         err: { message: error.message, stack: error.stack } 
       });
     }
+  }
+
+  async renderVersionBadge() {
+    const versionBadge = document.getElementById('version-badge');
+    if (!versionBadge) {
+      return;
+    }
+
+    const fallback = {
+      ...versionInfo,
+      appVersion: versionInfo.appVersion || window.AXM?.version || 'unknown',
+    };
+
+    let resolvedVersionInfo = fallback;
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      try {
+        if (window.AXM?.getVersionInfo) {
+          resolvedVersionInfo = await window.AXM.getVersionInfo();
+        } else if (window.AXM?.version) {
+          resolvedVersionInfo = {
+            ...fallback,
+            appVersion: window.AXM.version,
+          };
+        }
+
+        if (resolvedVersionInfo.appVersion !== 'unknown' || resolvedVersionInfo.commit !== 'unknown') {
+          break;
+        }
+      } catch (error) {
+        logger.warn({
+          scope: 'landing/version',
+          msg: 'failed to load version info, retrying',
+          err: { message: error.message },
+          meta: { attempt: attempt + 1 }
+        });
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+
+    versionBadge.textContent = formatVersionBadge(resolvedVersionInfo);
+    versionBadge.title = formatVersionTooltip(resolvedVersionInfo);
   }
 
   /**
@@ -143,6 +225,31 @@ class LandingPageController {
     }
   }
 
+  setupOptionsMenu() {
+    const optionsMenu = new OptionsMenu({
+      musicVolume: backgroundMusicManager.getVolume(),
+      sfxVolume: soundManager.getVolume(),
+      onMusicVolumeChange: (volume) => {
+        backgroundMusicManager.setVolume(volume);
+        optionsMenu.setMusicVolume(backgroundMusicManager.getVolume());
+      },
+      onSfxVolumeChange: (volume) => {
+        soundManager.setVolume(volume);
+        optionsMenu.setSfxVolume(soundManager.getVolume());
+      },
+      onReturn: () => {},
+      onSwitchAccount: () => {
+        this.navigateToSection('account-selection');
+      },
+      onLeaveToMenu: null,
+      onLeaveApp: () => {
+        void backgroundMusicManager.fadeOutCurrent(500).finally(() => {
+          void quitApplication();
+        });
+      }
+    });
+  }
+
   /**
    * Play button click sound
    */
@@ -156,6 +263,278 @@ class LandingPageController {
         err: { message: error.message } 
       });
     }
+  }
+
+  async loadAccounts() {
+    try {
+      if (!window.AXM?.getPlayerAccounts) {
+        this.accounts = this.readLocalAccounts();
+        this.renderAccountLists();
+        return;
+      }
+
+      const result = await window.AXM.getPlayerAccounts();
+      this.accounts = result.success ? result.accounts : [];
+
+      await this.migrateLegacyAccounts();
+      this.restoreSelectedAccounts();
+      this.renderAccountLists();
+    } catch (error) {
+      logger.error({
+        scope: 'landing/accounts',
+        msg: 'failed to load accounts',
+        err: { message: error.message }
+      });
+      this.accounts = [];
+      this.renderAccountLists();
+    }
+  }
+
+  readLocalAccounts() {
+    const accounts = this.readJsonFromStorage(ACCOUNT_KEYS.localAccounts);
+    return Array.isArray(accounts) ? accounts : [];
+  }
+
+  writeLocalAccounts() {
+    localStorage.setItem(ACCOUNT_KEYS.localAccounts, JSON.stringify(this.accounts));
+  }
+
+  createLocalAccount(name, avatar) {
+    const now = new Date().toISOString();
+    return {
+      id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: name.trim(),
+      avatar: avatar || null,
+      createdAt: now,
+      updatedAt: now,
+      stats: {
+        totalScore: 0,
+        matchesPlayed: 0,
+        matchesWon: 0,
+        matchesLost: 0,
+        bestScore: 0,
+        aiWins: 0,
+        humanWins: 0,
+        lanWins: 0,
+        processedMatchIds: [],
+      },
+    };
+  }
+
+  findMatchingAccount(playerData) {
+    if (!playerData) {
+      return null;
+    }
+
+    const selectedAccount = this.accounts.find((account) => account.id === playerData.id);
+    if (selectedAccount) {
+      return selectedAccount;
+    }
+
+    const normalizedName = playerData.name?.trim().toLocaleLowerCase();
+    if (!normalizedName) {
+      return null;
+    }
+
+    return this.accounts.find((account) => (
+      account.name.trim().toLocaleLowerCase() === normalizedName
+      && String(account.avatar || '') === String(playerData.avatar || '')
+    )) || null;
+  }
+
+  upsertAccount(account) {
+    const existingIndex = this.accounts.findIndex((existingAccount) => existingAccount.id === account.id);
+    if (existingIndex === -1) {
+      this.accounts.push(account);
+      return;
+    }
+
+    this.accounts[existingIndex] = account;
+  }
+
+  async ensurePrimaryAccountExists() {
+    if (!this.playerData.name || !this.playerData.avatar) {
+      this.renderAccountLists();
+      return;
+    }
+
+    const matchingAccount = this.findMatchingAccount(this.playerData);
+    if (matchingAccount) {
+      this.setPrimaryAccount(matchingAccount);
+      return;
+    }
+
+    const canCreatePersistentAccount = Boolean(window.AXM?.createPlayerAccount);
+    if (canCreatePersistentAccount) {
+      const result = await window.AXM.createPlayerAccount({
+        name: this.playerData.name,
+        avatar: this.playerData.avatar,
+      });
+
+      if (result.success && result.account) {
+        this.upsertAccount(result.account);
+        this.setPrimaryAccount(result.account);
+        return;
+      }
+
+      logger.warn({
+        scope: 'landing/accounts',
+        msg: 'failed to promote saved player data to persistent account',
+        meta: { error: result.error },
+      });
+      this.renderAccountLists();
+      return;
+    }
+
+    const account = this.createLocalAccount(this.playerData.name, this.playerData.avatar);
+    this.upsertAccount(account);
+    this.writeLocalAccounts();
+    this.setPrimaryAccount(account);
+  }
+
+  showInitialSection() {
+    const forceAccountSelection = window.location.hash === '#account-selection';
+    if (!forceAccountSelection && this.playerData.id) {
+      this.navigateToSection('game-mode-selection');
+      return;
+    }
+
+    this.renderAccountLists();
+  }
+
+  async migrateLegacyAccounts() {
+    if (this.accounts.length > 0 || !window.AXM?.createPlayerAccount) {
+      return;
+    }
+
+    const legacyPlayerData = this.readJsonFromStorage('axesMundiPlayer');
+    const legacySecondPlayerData = this.readJsonFromStorage('axesMundiSecondPlayerData');
+    const legacyAccounts = [legacyPlayerData, legacySecondPlayerData]
+      .filter((player) => player?.name && player?.avatar);
+
+    for (const legacyAccount of legacyAccounts) {
+      const result = await window.AXM.createPlayerAccount({
+        name: legacyAccount.name,
+        avatar: legacyAccount.avatar,
+      });
+
+      if (result.success && result.account) {
+        this.accounts.push(result.account);
+      }
+    }
+
+    if (this.accounts[0]) {
+      localStorage.setItem(ACCOUNT_KEYS.selectedAccountId, this.accounts[0].id);
+    }
+
+    if (this.accounts[1]) {
+      localStorage.setItem(ACCOUNT_KEYS.selectedSecondAccountId, this.accounts[1].id);
+    }
+  }
+
+  readJsonFromStorage(key) {
+    try {
+      const rawValue = localStorage.getItem(key);
+      return rawValue ? JSON.parse(rawValue) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  restoreSelectedAccounts() {
+    const selectedAccountId = localStorage.getItem(ACCOUNT_KEYS.selectedAccountId);
+    const selectedSecondAccountId = localStorage.getItem(ACCOUNT_KEYS.selectedSecondAccountId);
+    const selectedAccount = this.accounts.find((account) => account.id === selectedAccountId);
+    const selectedSecondAccount = this.accounts.find((account) => account.id === selectedSecondAccountId);
+
+    if (selectedAccount) {
+      this.setPrimaryAccount(selectedAccount);
+    }
+
+    if (selectedSecondAccount) {
+      this.setSecondAccount(selectedSecondAccount);
+    }
+  }
+
+  renderAccountLists() {
+    this.renderAccountList({
+      containerId: 'account-list',
+      emptyStateId: 'account-empty-state',
+      selectedAccountId: this.playerData.id,
+      excludedAccountId: null,
+      onSelect: (account) => {
+        this.playButtonSound();
+        this.setPrimaryAccount(account);
+        this.navigateToSection('game-mode-selection');
+      },
+    });
+
+    this.renderAccountList({
+      containerId: 'second-account-list',
+      emptyStateId: 'second-account-empty-state',
+      selectedAccountId: this.secondPlayerData.id,
+      excludedAccountId: this.playerData.id,
+      onSelect: (account) => {
+        this.playButtonSound();
+        this.setSecondAccount(account);
+        this.navigateToSection('deck-selection');
+      },
+    });
+  }
+
+  renderAccountList({
+    containerId,
+    emptyStateId,
+    selectedAccountId,
+    excludedAccountId,
+    onSelect,
+  }) {
+    const container = document.getElementById(containerId);
+    const emptyState = document.getElementById(emptyStateId);
+    if (!container) {
+      return;
+    }
+
+    container.replaceChildren();
+    const visibleAccounts = this.accounts.filter((account) => account.id !== excludedAccountId);
+
+    if (emptyState) {
+      emptyState.style.display = visibleAccounts.length === 0 ? 'block' : 'none';
+    }
+
+    visibleAccounts.forEach((account) => {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = account.id === selectedAccountId ? 'account-card selected' : 'account-card';
+
+      const profile = createRankProfile(account.name, account.avatar, account.stats.totalScore);
+      card.append(profile.element);
+      card.addEventListener('click', () => onSelect(account));
+      container.appendChild(card);
+    });
+  }
+
+  setPrimaryAccount(account) {
+    this.playerData = {
+      id: account.id,
+      name: account.name,
+      avatar: account.avatar,
+    };
+    localStorage.setItem(ACCOUNT_KEYS.selectedAccountId, account.id);
+    this.savePlayerData();
+    this.updatePlayerInfoDisplay();
+    this.renderAccountLists();
+  }
+
+  setSecondAccount(account) {
+    this.secondPlayerData = {
+      id: account.id,
+      name: account.name,
+      avatar: account.avatar,
+    };
+    localStorage.setItem(ACCOUNT_KEYS.selectedSecondAccountId, account.id);
+    this.saveSecondPlayerData();
+    this.renderAccountLists();
   }
 
   /**
@@ -190,6 +569,14 @@ class LandingPageController {
       const playerForm = document.getElementById('player-form');
       if (playerForm) {
         playerForm.addEventListener('submit', this.handlePlayerFormSubmit.bind(this));
+      }
+
+      const createNewAccountBtn = document.getElementById('create-new-account-btn');
+      if (createNewAccountBtn) {
+        createNewAccountBtn.addEventListener('click', () => {
+          this.playButtonSound();
+          this.navigateToSection('player-setup');
+        });
       }
 
       // Player name input - update header display on input change
@@ -228,6 +615,11 @@ class LandingPageController {
       // AI difficulty selection
       const difficultyCards = document.querySelectorAll('.difficulty-card');
       difficultyCards.forEach(card => {
+        const { errorChance, turnSeconds, opponentCards, scoreMultiplier } = AI_DIFFICULTY[card.dataset.difficulty];
+        card.querySelector('.difficulty-description').textContent =
+          `${turnSeconds} seconds per turn · AI error chance: ${Math.round(errorChance * 100)}% per turn`;
+        card.querySelector('.difficulty-hand-size').textContent = `AI starts with ${opponentCards} cards`;
+        card.querySelector('.difficulty-score-multiplier').textContent = `Score multiplier: ×${scoreMultiplier.toFixed(2)}`;
         card.addEventListener('click', this.handleDifficultySelection.bind(this));
       });
 
@@ -282,7 +674,7 @@ class LandingPageController {
   /**
    * Handle player form submission
    */
-  handlePlayerFormSubmit(event) {
+  async handlePlayerFormSubmit(event) {
     event.preventDefault();
     
     try {
@@ -302,14 +694,27 @@ class LandingPageController {
         return;
       }
       
-      // Save player data
-      this.playerData.name = playerName;
-      this.savePlayerData();
-      
-      // Show player info in header
-      this.updatePlayerInfoDisplay();
-      
-      // Navigate to next section
+      if (!window.AXM?.createPlayerAccount) {
+        const account = this.createLocalAccount(playerName, this.playerData.avatar);
+        this.upsertAccount(account);
+        this.writeLocalAccounts();
+        this.setPrimaryAccount(account);
+        this.navigateToSection('game-mode-selection');
+        return;
+      }
+
+      const result = await window.AXM.createPlayerAccount({
+        name: playerName,
+        avatar: this.playerData.avatar,
+      });
+
+      if (!result.success || !result.account) {
+        this.showError(result.error || 'Error creating account.');
+        return;
+      }
+
+      this.upsertAccount(result.account);
+      this.setPrimaryAccount(result.account);
       this.navigateToSection('game-mode-selection');
       
       logger.info({ 
@@ -445,7 +850,7 @@ class LandingPageController {
       }
       
       // Save game type to localStorage immediately
-      localStorage.setItem('selectedGameType', option);
+      setSelectedGameType(option);
       console.log('🎮 Game type saved to localStorage:', option);
       
       if (option === 'ai') {
@@ -455,6 +860,7 @@ class LandingPageController {
         this.navigateToSection('deck-selection');
       } else if (option === 'hotseat') {
         // Hotseat mode - go to second player setup
+        this.renderAccountLists();
         this.navigateToSection('second-player-setup');
       } else if (option === 'lan') {
         // LAN mode - go to LAN options
@@ -470,7 +876,7 @@ class LandingPageController {
           const inputField = document.getElementById('server-ip');
           if (inputField) {
             // Load previously saved IP address from localStorage
-            const savedIP = localStorage.getItem('lastServerIP');
+            const savedIP = getLastServerIP();
             if (savedIP) {
               inputField.value = savedIP;
               logger.info({ scope: 'landing/lan', msg: 'Loaded saved server IP', meta: { ip: savedIP } });
@@ -511,7 +917,7 @@ class LandingPageController {
       this.gameConfig.difficulty = difficulty;
       
       // Save difficulty to localStorage for game access
-      localStorage.setItem('selectedDifficulty', difficulty);
+      setSelectedDifficulty(difficulty);
       
       // Navigate to deck selection
       this.navigateToSection('deck-selection');
@@ -534,7 +940,7 @@ class LandingPageController {
   /**
    * Handle second player form submission
    */
-  handleSecondPlayerFormSubmit(event) {
+  async handleSecondPlayerFormSubmit(event) {
     event.preventDefault();
     
     try {
@@ -554,11 +960,27 @@ class LandingPageController {
         return;
       }
       
-      // Save second player data
-      this.secondPlayerData.name = playerName;
-      this.saveSecondPlayerData();
-      
-      // Navigate to deck selection
+      if (!window.AXM?.createPlayerAccount) {
+        const account = this.createLocalAccount(playerName, this.secondPlayerData.avatar);
+        this.upsertAccount(account);
+        this.writeLocalAccounts();
+        this.setSecondAccount(account);
+        this.navigateToSection('deck-selection');
+        return;
+      }
+
+      const result = await window.AXM.createPlayerAccount({
+        name: playerName,
+        avatar: this.secondPlayerData.avatar,
+      });
+
+      if (!result.success || !result.account) {
+        this.showError(result.error || 'Error creating account.');
+        return;
+      }
+
+      this.upsertAccount(result.account);
+      this.setSecondAccount(result.account);
       this.navigateToSection('deck-selection');
       
       logger.info({ 
@@ -633,9 +1055,7 @@ class LandingPageController {
          console.log('🎮 Server-client flag set to true');
          
          // Store in localStorage for persistence
-         localStorage.setItem('isServerClient', 'true');
-         localStorage.setItem('serverPlayerName', this.playerData.name);
-         localStorage.setItem('serverPlayerAvatar', this.playerData.avatar || 'default');
+         setLanServerPlayer(this.playerData.name, this.playerData.avatar || 'default', true);
          console.log('🎮 isServerClient saved to localStorage');
          console.log('🎮 serverPlayerName saved to localStorage:', this.playerData.name);
          console.log('🎮 serverPlayerAvatar saved to localStorage:', this.playerData.avatar);
@@ -668,13 +1088,12 @@ class LandingPageController {
    */
   getServerIP() {
     // Try to get the real server IP from the server info
-    const serverInfo = localStorage.getItem('lanServerInfo');
+    const serverInfo = getLanServerInfo();
     if (serverInfo) {
       try {
-        const info = JSON.parse(serverInfo);
-        if (info.ip && info.ip !== '127.0.0.1') {
-          console.log('🎮 Using server IP from server info:', info.ip);
-          return info.ip;
+        if (serverInfo.ip && serverInfo.ip !== '127.0.0.1') {
+          console.log('🎮 Using server IP from server info:', serverInfo.ip);
+          return serverInfo.ip;
         }
       } catch (e) {
         console.warn('🎮 Failed to parse server info:', e);
@@ -706,8 +1125,8 @@ class LandingPageController {
       console.log(`🔍 Connecting to server: ${serverUrl}`);
       
       // Store server IP and URL in localStorage for later use
-      localStorage.setItem('lastServerIP', serverIP);
-      localStorage.setItem('lanServerUrl', serverUrl);
+      setLastServerIP(serverIP);
+      setLanServerUrl(serverUrl);
       console.log(`🔍 Stored server IP and URL in localStorage: ${serverIP}`);
       logger.info({ scope: 'landing/lan', msg: 'Saved server IP to localStorage', meta: { ip: serverIP } });
       
@@ -851,10 +1270,10 @@ class LandingPageController {
         // Listen for client player joined events to store avatar early
         window.AXM.on('client-player-joined', (data) => {
           if (data.clientPlayerAvatar) {
-            localStorage.setItem('clientPlayerAvatar', data.clientPlayerAvatar);
+            setLanClientPlayer(data.clientPlayerName || this.clientPlayerName || 'Client', data.clientPlayerAvatar);
           }
           if (data.clientPlayerName) {
-            localStorage.setItem('clientPlayerName', data.clientPlayerName);
+            setLanClientPlayer(data.clientPlayerName, data.clientPlayerAvatar || 'default');
           }
         });
       }
@@ -931,7 +1350,7 @@ class LandingPageController {
         
         // Update local state
         this.currentPlayer = currentPlayer;
-        localStorage.setItem('currentPlayer', currentPlayer);
+        setCurrentPlayer(currentPlayer);
         
         console.log('🎲 Current player update result:', { 
           currentPlayer, 
@@ -984,13 +1403,13 @@ class LandingPageController {
                      console.log('🎴 Client: Current Player:', distribution.currentPlayer);
           
                      // Store card distribution for later use
-           localStorage.setItem('lanCardDistribution', JSON.stringify(distribution));
+           setLanCardDistribution(distribution);
            console.log('🎴 Client: Card distribution saved to localStorage');
            
            // Store current player
            if (distribution.currentPlayer) {
              this.currentPlayer = distribution.currentPlayer;
-             localStorage.setItem('currentPlayer', this.currentPlayer);
+             setCurrentPlayer(this.currentPlayer);
              console.log('🎴 Client: Current player set to:', this.currentPlayer);
            }
            
@@ -1112,7 +1531,7 @@ class LandingPageController {
       console.log('🎮 Handling server info update:', serverInfo);
       
       // Store server info in localStorage for later use
-      localStorage.setItem('lanServerInfo', JSON.stringify(serverInfo));
+      setLanServerInfo(serverInfo);
       
       // Update the displayed server IP
       this.updateServerDisplay(serverInfo);
@@ -1172,7 +1591,7 @@ class LandingPageController {
              // Store client player name for server-client
              if (this.isServerClient && data.clientPlayerName) {
                this.clientPlayerName = data.clientPlayerName;
-               localStorage.setItem('clientPlayerName', this.clientPlayerName);
+               setLanClientPlayer(this.clientPlayerName, 'default');
                console.log('🎯 Server-client: Stored client player name:', this.clientPlayerName);
                console.log('🎯 Server-client: Saved to localStorage');
              }
@@ -1197,14 +1616,14 @@ class LandingPageController {
                  }, 1000); // Small delay for better UX
                }
              } else {
-               this.showConnectionStatus(`Deck ${data.deckId} nicht vorhanden!`, false);
+               this.showConnectionStatus(`Deck ${data.deckId} is not available!`, false);
              }
              break;
                            case 'currentPlayer':
           this.showConnectionStatus(`Player ${data.currentPlayer}'s turn!`, false);
           // Update current player in localStorage
           this.currentPlayer = data.currentPlayer;
-          localStorage.setItem('currentPlayer', this.currentPlayer);
+          setCurrentPlayer(this.currentPlayer);
           console.log('🎲 Current player updated from LAN status:', this.currentPlayer);
           break;
           default:
@@ -1383,48 +1802,20 @@ class LandingPageController {
       return;
     }
     
-    // Create deck card element
-    const deckCard = document.createElement('div');
-    deckCard.className = 'deck-card user-deck';
-    deckCard.dataset.deck = deck.id;
-    deckCard.dataset.isUserDeck = 'true';
-    
-    // Format theme display
-    const themeDisplay = deck.theme ? `${deck.theme.charAt(0).toUpperCase() + deck.theme.slice(1)} & ${deck.axis.charAt(0).toUpperCase() + deck.axis.slice(1)}` : 'Custom Deck';
-    
-    // Format locale display
-    const localeDisplay = deck.locale === 'en' ? 'English' : 
-                          deck.locale === 'de' ? 'German' : 
-                          deck.locale || 'Unknown';
-    
-    deckCard.innerHTML = `
-      <button class="delete-deck-btn" title="Delete deck" data-deck-id="${deck.id}">✕</button>
-      <div class="deck-theme">📥 ${themeDisplay}</div>
-      <h3 class="deck-title">${deck.name}</h3>
-      <p class="deck-description">User-imported deck</p>
-      <div class="deck-stats">
-        <span>${deck.cardCount} Cards</span>
-        <span>${localeDisplay}</span>
-      </div>
-    `;
-    
-    // Add click handler for deck selection
-    deckCard.addEventListener('click', (e) => {
-      // Don't trigger deck selection if delete button was clicked
-      if (e.target.classList.contains('delete-deck-btn')) {
-        return;
-      }
-      this.handleDeckSelection(e);
-    });
-    
-    // Add click handler for delete button
-    const deleteBtn = deckCard.querySelector('.delete-deck-btn');
-    if (deleteBtn) {
-      deleteBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
+    const themeDisplay = getDeckThemeLabel(deck);
+    const localeDisplay = getDeckLocaleLabel(deck.locale);
+    const description = getDeckDescription(deck, true);
+    const deckCard = createUserDeckCard(deck, {
+      themeLabel: themeDisplay,
+      localeLabel: localeDisplay,
+      description,
+      onSelect: (event) => {
+        this.handleDeckSelection(event);
+      },
+      onDelete: () => {
         this.handleDeleteDeck(deck.id, deck.name);
-      });
-    }
+      },
+    });
     
     // Add to deck grid
     deckGrid.appendChild(deckCard);
@@ -1495,7 +1886,10 @@ class LandingPageController {
     // Create and show a success toast/notification
     const toast = document.createElement('div');
     toast.className = 'toast toast-success';
-    toast.innerHTML = `<span>✅</span> ${message}`;
+    // Deck names come from imported files: never interpolate them into HTML.
+    const icon = document.createElement('span');
+    icon.textContent = '✅';
+    toast.append(icon, document.createTextNode(` ${message}`));
     toast.style.cssText = `
       position: fixed;
       top: 20px;
@@ -1565,7 +1959,9 @@ class LandingPageController {
       
       const currentIndex = this.sections.indexOf(this.currentSection);
       if (currentIndex > 0) {
-        const previousSection = this.sections[currentIndex - 1];
+        const previousSection = this.currentSection === 'game-mode-selection'
+          ? 'account-selection'
+          : this.sections[currentIndex - 1];
         this.navigateToSection(previousSection);
       }
       
@@ -1626,7 +2022,7 @@ class LandingPageController {
       const savedPlayerData = localStorage.getItem('axesMundiPlayer');
       const savedGameConfig = localStorage.getItem('axesMundiGameConfig');
       
-      if (savedPlayerData) {
+      if (savedPlayerData && !this.playerData.id) {
         this.playerData = { ...this.playerData, ...JSON.parse(savedPlayerData) };
         
         // Restore avatar selection
@@ -1718,6 +2114,8 @@ class LandingPageController {
       const fullConfig = {
         ...this.gameConfig,
         deckId,
+        playerAccountId: this.playerData.id,
+        secondPlayerAccountId: this.secondPlayerData.id,
         timestamp: Date.now()
       };
       
@@ -1749,7 +2147,7 @@ class LandingPageController {
   /**
    * Start the game
    */
-  startGame(deckId) {
+  async startGame(deckId) {
     try {
       console.log('🎮 startGame called with deckId:', deckId);
       console.log('🎮 this.isServerClient:', this.isServerClient);
@@ -1766,13 +2164,10 @@ class LandingPageController {
       // Show loading message
       this.showLoadingMessage('Starting game...');
       
-      // Redirect to game page after a short delay
-      setTimeout(() => {
-        // In development mode, use the full URL with Vite dev server
-        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        const gameUrl = isDev ? 'http://localhost:5179/game.html' : './game.html';
-        window.location.href = gameUrl;
-      }, 1000);
+      // Redirect to game page after music fade-out
+      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const gameUrl = isDev ? 'http://localhost:5179/game.html' : './game.html';
+      await this.navigateWithMusicFade(gameUrl, 900);
       
       logger.info({ 
         scope: 'landing/game', 
@@ -1802,9 +2197,9 @@ class LandingPageController {
         // Show the player info
         playerInfoDisplay.style.display = 'flex';
         
-        // Set avatar emoji
-        const avatarEmoji = getAvatarEmoji(this.playerData.avatar);
-        avatarDisplay.textContent = avatarEmoji;
+        const account = this.accounts.find(entry => entry.id === this.playerData.id);
+        const rank = account ? getRankProgress(account.stats.totalScore).rank : undefined;
+        avatarDisplay.replaceChildren(createRankAvatar(this.playerData.avatar, rank));
         
         // Set player name
         nameDisplay.textContent = this.playerData.name;
@@ -1904,24 +2299,19 @@ class LandingPageController {
        this.showConnectionStatus('LAN game started - Switching to game board...', false);
        
                // Set LAN mode flag in localStorage
-        localStorage.setItem('selectedGameType', 'lan');
+        setSelectedGameType('lan');
         
         // Store current player from LANGameManager
         const currentPlayer = lanGame.getCurrentPlayer();
         if (currentPlayer) {
           this.currentPlayer = currentPlayer;
-          localStorage.setItem('currentPlayer', this.currentPlayer);
+          setCurrentPlayer(this.currentPlayer);
           console.log('🎮 Server-client: Current player set to:', this.currentPlayer);
         }
         
-        // Redirect to LAN game after 2 seconds
-        setTimeout(() => {
-          console.log('🎮 Redirecting to lan-game.html...');
-          // In development mode, use the full URL with Vite dev server
-          const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-          const lanGameUrl = isDev ? 'http://localhost:5179/lan-game.html' : './lan-game.html';
-          window.location.href = lanGameUrl;
-        }, 2000);
+        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const lanGameUrl = isDev ? 'http://localhost:5179/lan-game.html' : './lan-game.html';
+        await this.navigateWithMusicFade(lanGameUrl, 1200);
       
     } catch (error) {
       console.error('🎮 Failed to start LAN game:', error);
@@ -1946,16 +2336,16 @@ class LandingPageController {
       console.log('🎮 Selected deck saved to localStorage:', deckId);
       
              // Set LAN mode flag in localStorage
-       localStorage.setItem('selectedGameType', 'lan');
+       setSelectedGameType('lan');
        
        // Store current player from card distribution
-       const lanCardDistribution = localStorage.getItem('lanCardDistribution');
+       const lanCardDistribution = getLanCardDistribution();
        if (lanCardDistribution) {
          try {
-           const distribution = JSON.parse(lanCardDistribution);
+           const distribution = lanCardDistribution;
            if (distribution.currentPlayer) {
              this.currentPlayer = distribution.currentPlayer;
-             localStorage.setItem('currentPlayer', this.currentPlayer);
+             setCurrentPlayer(this.currentPlayer);
              console.log('🎮 Client: Current player set to:', this.currentPlayer);
            }
          } catch (error) {
@@ -1966,16 +2356,11 @@ class LandingPageController {
        // Show success message and redirect to LAN game
        this.showConnectionStatus('LAN game started - Switching to game board...', false);
       
-      // Redirect to LAN game after 2 seconds
-      setTimeout(() => {
-        console.log('🎮 Client: Redirecting to lan-game.html...');
-        // In development mode, use the full URL with Vite dev server
-        // In production mode, use the relative path that works in Electron
-        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        const lanGameUrl = isDev ? 'http://localhost:5179/lan-game.html' : 'lan-game.html';
-        console.log('🎮 Client: Redirecting to:', lanGameUrl);
-        window.location.href = lanGameUrl;
-      }, 2000);
+      console.log('🎮 Client: Redirecting to lan-game.html...');
+      const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const lanGameUrl = isDev ? 'http://localhost:5179/lan-game.html' : './lan-game.html';
+      console.log('🎮 Client: Redirecting to:', lanGameUrl);
+      await this.navigateWithMusicFade(lanGameUrl, 1200);
       
     } catch (error) {
       console.error('🎮 Client: Failed to start LAN game:', error);
@@ -1992,12 +2377,15 @@ class LandingPageController {
       // Create loading overlay
       const overlay = document.createElement('div');
       overlay.className = 'loading-overlay';
-      overlay.innerHTML = `
-        <div class="loading-content">
-          <div class="spinner"></div>
-          <div class="loading-text">${message}</div>
-        </div>
-      `;
+      const content = document.createElement('div');
+      content.className = 'loading-content';
+      const spinner = document.createElement('div');
+      spinner.className = 'spinner';
+      const text = document.createElement('div');
+      text.className = 'loading-text';
+      text.textContent = message;
+      content.append(spinner, text);
+      overlay.append(content);
       
       // Add styles
       overlay.style.cssText = `
@@ -2030,16 +2418,30 @@ class LandingPageController {
     }
   }
 
+  async navigateWithMusicFade(targetUrl, fadeDuration = 900) {
+    try {
+      await backgroundMusicManager.fadeOutCurrent(fadeDuration);
+    } catch (error) {
+      logger.warn({
+        scope: 'landing/music',
+        msg: 'failed to fade out background music before navigation',
+        err: { message: error.message }
+      });
+    } finally {
+      window.location.href = targetUrl;
+    }
+  }
+
   /**
    * Initialize game mode if not set
    */
   initializeGameMode() {
     try {
-      const currentGameType = localStorage.getItem('selectedGameType');
+      const currentGameType = getSelectedGameType();
       
       if (!currentGameType) {
         // Set default game type if none exists
-        localStorage.setItem('selectedGameType', 'singleplayer');
+        setSelectedGameType('singleplayer');
         console.log('🎮 Default game type set to singleplayer');
         
         logger.info({
@@ -2069,22 +2471,7 @@ class LandingPageController {
       console.log('🧹 Cleaning up LAN-specific variables...');
       
       // Remove LAN-specific variables but preserve player data
-      const variablesToRemove = [
-        'isServerClient',
-        'serverPlayerName', 
-        'clientPlayerName',
-        'currentPlayer',
-        'lanCardDistribution',
-        'lanPlayerName',
-        'lanOpponentName'
-      ];
-      
-      variablesToRemove.forEach(variable => {
-        if (localStorage.getItem(variable)) {
-          localStorage.removeItem(variable);
-          console.log('🧹 Removed from localStorage:', variable);
-        }
-      });
+      clearLanSessionState();
       
       // Reset instance variables
       this.isServerClient = false;

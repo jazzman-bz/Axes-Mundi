@@ -20,7 +20,10 @@
         "It is one of the Seven Wonders of the Ancient World and the only one still standing."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/topic/Pyramids-of-Giza" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/topic/Pyramids-of-Giza"
+        }
       ],
       "difficulty": "medium"
     },
@@ -37,7 +40,10 @@
         "Romulus became the first king of Rome after killing his twin brother Remus."
       ],
       "sources": [
-        { "label": "Ancient History Encyclopedia", "url": "https://www.worldhistory.org/" }
+        {
+          "label": "Ancient History Encyclopedia",
+          "url": "https://www.worldhistory.org/"
+        }
       ],
       "difficulty": "easy"
     },
@@ -54,7 +60,10 @@
         "This is considered the birth of democracy in Western civilization."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/topic/democracy" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/topic/democracy"
+        }
       ],
       "difficulty": "medium"
     },
@@ -71,7 +80,10 @@
         "A messenger ran from Marathon to Athens to announce the victory, inspiring the modern marathon race."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Battle-of-Marathon" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Battle-of-Marathon"
+        }
       ],
       "difficulty": "easy"
     },
@@ -88,7 +100,10 @@
         "This was one of the most daring military maneuvers in ancient history."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/biography/Hannibal-Carthaginian-general-247-183-BC" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/biography/Hannibal-Carthaginian-general-247-183-BC"
+        }
       ],
       "difficulty": "medium"
     },
@@ -105,7 +120,10 @@
         "She ruled jointly with her father and later with her brothers and son."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/biography/Cleopatra-queen-of-Egypt" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/biography/Cleopatra-queen-of-Egypt"
+        }
       ],
       "difficulty": "easy"
     },
@@ -122,7 +140,10 @@
         "His reign marked the beginning of the Pax Romana, a period of relative peace."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/biography/Augustus-Roman-emperor" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/biography/Augustus-Roman-emperor"
+        }
       ],
       "difficulty": "medium"
     },
@@ -139,7 +160,10 @@
         "This marked a turning point in the history of Christianity."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Edict-of-Milan" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Edict-of-Milan"
+        }
       ],
       "difficulty": "hard"
     },
@@ -156,7 +180,10 @@
         "This event marks the beginning of the Islamic calendar."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Hijrah" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Hijrah"
+        }
       ],
       "difficulty": "medium"
     },
@@ -173,7 +200,10 @@
         "This marked the revival of the Western Roman Empire."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/biography/Charlemagne" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/biography/Charlemagne"
+        }
       ],
       "difficulty": "easy"
     },
@@ -190,7 +220,10 @@
         "His reign strengthened the connection between Germany and Italy."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/biography/Otto-I-Holy-Roman-emperor" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/biography/Otto-I-Holy-Roman-emperor"
+        }
       ],
       "difficulty": "hard"
     },
@@ -207,7 +240,10 @@
         "This event symbolized the conflict between secular and religious authority."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Road-to-Canossa" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Road-to-Canossa"
+        }
       ],
       "difficulty": "hard"
     },
@@ -224,7 +260,10 @@
         "This led to the establishment of Crusader states in the Holy Land."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/First-Crusade" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/First-Crusade"
+        }
       ],
       "difficulty": "medium"
     },
@@ -241,7 +280,10 @@
         "It is considered one of the most important legal documents in history."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/topic/Magna-Carta" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/topic/Magna-Carta"
+        }
       ],
       "difficulty": "easy"
     },
@@ -258,7 +300,10 @@
         "It was one of the deadliest pandemics in human history."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Black-Death" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Black-Death"
+        }
       ],
       "difficulty": "easy"
     },
@@ -275,7 +320,10 @@
         "This revolutionized the spread of knowledge and information."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/biography/Johannes-Gutenberg" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/biography/Johannes-Gutenberg"
+        }
       ],
       "difficulty": "easy"
     },
@@ -292,7 +340,10 @@
         "Henry VII established the Tudor dynasty."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Wars-of-the-Roses" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Wars-of-the-Roses"
+        }
       ],
       "difficulty": "hard"
     },
@@ -309,7 +360,10 @@
         "This marked the beginning of widespread European colonization."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/biography/Christopher-Columbus" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/biography/Christopher-Columbus"
+        }
       ],
       "difficulty": "easy"
     },
@@ -326,7 +380,10 @@
         "Granada, the last Muslim stronghold, fell to Ferdinand and Isabella."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Reconquista" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Reconquista"
+        }
       ],
       "difficulty": "medium"
     },
@@ -343,7 +400,10 @@
         "This sparked the Protestant Reformation."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Reformation" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Reformation"
+        }
       ],
       "difficulty": "easy"
     },
@@ -360,7 +420,10 @@
         "This led to Spanish colonization of Mexico."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/biography/Hernan-Cortes" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/biography/Hernan-Cortes"
+        }
       ],
       "difficulty": "medium"
     },
@@ -377,7 +440,10 @@
         "This led to the fall of the Inca Empire."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/biography/Francisco-Pizarro" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/biography/Francisco-Pizarro"
+        }
       ],
       "difficulty": "medium"
     },
@@ -394,7 +460,10 @@
         "This temporarily ended religious conflicts in the Holy Roman Empire."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Peace-of-Augsburg" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Peace-of-Augsburg"
+        }
       ],
       "difficulty": "hard"
     },
@@ -411,7 +480,10 @@
         "This marked the decline of Spanish naval dominance."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/topic/Armada-Spanish-naval-fleet" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/topic/Armada-Spanish-naval-fleet"
+        }
       ],
       "difficulty": "medium"
     },
@@ -428,7 +500,10 @@
         "This event sparked the Thirty Years' War."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Defenestration-of-Prague" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Defenestration-of-Prague"
+        }
       ],
       "difficulty": "hard"
     },
@@ -445,7 +520,10 @@
         "It established the principle of state sovereignty in international relations."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Peace-of-Westphalia" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Peace-of-Westphalia"
+        }
       ],
       "difficulty": "hard"
     },
@@ -462,7 +540,10 @@
         "The English Bill of Rights limited royal power and established parliamentary supremacy."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Glorious-Revolution" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Glorious-Revolution"
+        }
       ],
       "difficulty": "medium"
     },
@@ -479,7 +560,10 @@
         "This document proclaimed natural rights and government by consent."
       ],
       "sources": [
-        { "label": "National Archives", "url": "https://www.archives.gov/founding-docs/declaration-transcript" }
+        {
+          "label": "National Archives",
+          "url": "https://www.archives.gov/founding-docs/declaration-transcript"
+        }
       ],
       "difficulty": "easy"
     },
@@ -496,7 +580,10 @@
         "It led to the end of absolute monarchy in France."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/French-Revolution" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/French-Revolution"
+        }
       ],
       "difficulty": "easy"
     },
@@ -513,7 +600,10 @@
         "It is considered one of Napoleon's greatest tactical victories."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Battle-of-Austerlitz" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Battle-of-Austerlitz"
+        }
       ],
       "difficulty": "medium"
     },
@@ -530,7 +620,10 @@
         "It aimed to restore balance of power and prevent future wars."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Congress-of-Vienna" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Congress-of-Vienna"
+        }
       ],
       "difficulty": "hard"
     },
@@ -547,7 +640,10 @@
         "This ended the Napoleonic Wars and Napoleon's rule."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Battle-of-Waterloo" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Battle-of-Waterloo"
+        }
       ],
       "difficulty": "easy"
     },
@@ -564,7 +660,10 @@
         "It was fought primarily over slavery and states' rights."
       ],
       "sources": [
-        { "label": "National Park Service", "url": "https://www.nps.gov/subjects/civilwar/index.htm" }
+        {
+          "label": "National Park Service",
+          "url": "https://www.nps.gov/subjects/civilwar/index.htm"
+        }
       ],
       "difficulty": "easy"
     },
@@ -581,7 +680,10 @@
         "It involved most of the world's great powers and lasted until 1918."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/World-War-I" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/World-War-I"
+        }
       ],
       "difficulty": "easy"
     },
@@ -598,7 +700,10 @@
         "This led to the creation of the Soviet Union."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Russian-Revolution" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Russian-Revolution"
+        }
       ],
       "difficulty": "medium"
     },
@@ -615,7 +720,10 @@
         "It imposed harsh penalties on Germany and redrew European borders."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Treaty-of-Versailles-1919" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Treaty-of-Versailles-1919"
+        }
       ],
       "difficulty": "easy"
     },
@@ -632,7 +740,10 @@
         "It killed an estimated 50 million people worldwide."
       ],
       "sources": [
-        { "label": "CDC", "url": "https://www.cdc.gov/flu/pandemic-resources/1918-pandemic-h1n1.html" }
+        {
+          "label": "CDC",
+          "url": "https://www.cdc.gov/flu/pandemic-resources/1918-pandemic-h1n1.html"
+        }
       ],
       "difficulty": "medium"
     },
@@ -649,7 +760,10 @@
         "It caused widespread economic hardship across the world."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Great-Depression" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Great-Depression"
+        }
       ],
       "difficulty": "easy"
     },
@@ -666,7 +780,10 @@
         "It was the deadliest conflict in human history, lasting until 1945."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/World-War-II" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/World-War-II"
+        }
       ],
       "difficulty": "easy"
     },
@@ -683,7 +800,10 @@
         "It marked the beginning of international cooperation after World War II."
       ],
       "sources": [
-        { "label": "United Nations", "url": "https://www.un.org/en/about-us/history-of-the-un" }
+        {
+          "label": "United Nations",
+          "url": "https://www.un.org/en/about-us/history-of-the-un"
+        }
       ],
       "difficulty": "medium"
     },
@@ -700,7 +820,10 @@
         "This followed the end of the British Mandate for Palestine."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/place/Israel" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/place/Israel"
+        }
       ],
       "difficulty": "easy"
     },
@@ -717,7 +840,10 @@
         "It was created to counter the Soviet Union during the Cold War."
       ],
       "sources": [
-        { "label": "NATO", "url": "https://www.nato.int/cps/en/natohq/declassified_139339.htm" }
+        {
+          "label": "NATO",
+          "url": "https://www.nato.int/cps/en/natohq/declassified_139339.htm"
+        }
       ],
       "difficulty": "medium"
     },
@@ -734,7 +860,10 @@
         "This established communist rule in mainland China."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Chinese-Civil-War" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Chinese-Civil-War"
+        }
       ],
       "difficulty": "medium"
     },
@@ -751,7 +880,10 @@
         "It became a symbol of the Cold War division."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/topic/Berlin-Wall" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/topic/Berlin-Wall"
+        }
       ],
       "difficulty": "easy"
     },
@@ -768,7 +900,10 @@
         "The reform movement was crushed by Warsaw Pact invasion."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/Prague-Spring" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/Prague-Spring"
+        }
       ],
       "difficulty": "hard"
     },
@@ -785,7 +920,10 @@
         "This marked the end of Cold War division in Europe."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/reunification-of-Germany" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/reunification-of-Germany"
+        }
       ],
       "difficulty": "easy"
     },
@@ -802,7 +940,10 @@
         "This marked the collapse of communist rule in Eastern Europe."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/the-collapse-of-the-Soviet-Union" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/the-collapse-of-the-Soviet-Union"
+        }
       ],
       "difficulty": "medium"
     },
@@ -819,7 +960,10 @@
         "It created the framework for economic and political integration in Europe."
       ],
       "sources": [
-        { "label": "European Union", "url": "https://european-union.europa.eu/principles-countries-history/history-eu_en" }
+        {
+          "label": "European Union",
+          "url": "https://european-union.europa.eu/principles-countries-history/history-eu_en"
+        }
       ],
       "difficulty": "medium"
     },
@@ -836,7 +980,10 @@
         "This marked the end of institutionalized racial segregation."
       ],
       "sources": [
-        { "label": "Britannica", "url": "https://www.britannica.com/event/apartheid" }
+        {
+          "label": "Britannica",
+          "url": "https://www.britannica.com/event/apartheid"
+        }
       ],
       "difficulty": "easy"
     },
@@ -853,7 +1000,10 @@
         "This followed a 2016 referendum in which 52% voted to leave."
       ],
       "sources": [
-        { "label": "BBC", "url": "https://www.bbc.com/news/uk-politics-32810887" }
+        {
+          "label": "BBC",
+          "url": "https://www.bbc.com/news/uk-politics-32810887"
+        }
       ],
       "difficulty": "easy"
     },
@@ -870,10 +1020,13 @@
         "It led to lockdowns, economic disruption, and social changes worldwide."
       ],
       "sources": [
-        { "label": "WHO", "url": "https://www.who.int/emergencies/diseases/novel-coronavirus-2019" }
+        {
+          "label": "WHO",
+          "url": "https://www.who.int/emergencies/diseases/novel-coronavirus-2019"
+        }
       ],
       "difficulty": "easy"
     }
-  ]
+  ],
+  "description": "Journey through major political events from ancient civilizations to modern history."
 }
-

@@ -1,4 +1,5 @@
 import { Card } from './types';
+import { AI_DIFFICULTY, GameDifficulty } from './aiDifficulty';
 import { logger } from '@/utils/logger';
 
 /**
@@ -42,7 +43,7 @@ export function isAxisCorrectlySorted(allCards: Card[]): boolean {
     });
 
     return true;
-  } catch (error) {
+  } catch (error: any) {
     logger.error({
       scope: 'data/scoring',
       msg: 'failed to check axis sorting',
@@ -83,7 +84,7 @@ export function evaluatePlacement(
     });
 
     return isCorrect;
-  } catch (error) {
+  } catch (error: any) {
     logger.error({
       scope: 'data/scoring',
       msg: 'failed to evaluate placement',
@@ -95,51 +96,53 @@ export function evaluatePlacement(
 
 /**
  * Convert value to comparable units for sorting
+ * Normalizes different units to a common base for comparison:
+ * - Height: converts to meters
+ * - Time: BC values are negative, AD positive
+ * - Temperature: Celsius values pass through
+ * @param value - The numeric value to convert
+ * @param unit - The unit string (e.g., 'm', 'km', 'bc', '°c')
+ * @returns The normalized comparable value
  */
-function convertToComparable(value: number, unit: string): number {
+export function convertToComparable(value: number, unit: string): number {
   switch (unit.toLowerCase()) {
-  // Height units
-  case 'm':
-    return value;
-  case 'km':
-    return value * 1000;
-  case 'cm':
-    return value / 100;
-  case 'mm':
-    return value / 1000;
+    // Height units
+    case 'm':
+      return value;
+    case 'km':
+      return value * 1000;
+    case 'cm':
+      return value / 100;
+    case 'mm':
+      return value / 1000;
 
     // Time units
-  case 'bc':
-    // BC values are already negative, so they sort correctly (older = smaller)
-    return value;
-  case 'ad':
-    // AD values are positive, so they sort correctly (newer = larger)
-    return value;
+    case 'bc':
+      // BC values are already negative, so they sort correctly (older = smaller)
+      return value;
+    case 'ad':
+      // AD values are positive, so they sort correctly (newer = larger)
+      return value;
 
     // Temperature units
-  case '°c':
-  case 'c':
-    // Celsius values are already comparable (colder = smaller, hotter = larger)
-    return value;
+    case '°c':
+    case 'c':
+      // Celsius values are already comparable (colder = smaller, hotter = larger)
+      return value;
 
-  default:
-    // For unknown units, assume they're already in comparable format
-    return value;
+    default:
+      // For unknown units, assume they're already in comparable format
+      return value;
   }
 }
 
-/**
- * Get score for correct placement
- */
-export function getScore(card: Card): number {
-  switch (card.difficulty) {
-  case 'easy':
-    return 10;
-  case 'medium':
-    return 20;
-  case 'hard':
-    return 30;
-  default:
-    return 10;
-  }
+const BASE_CARD_POINTS = {
+  easy: 10, medium: 20, hard: 30, expert: 40,
+} as const;
+
+/** Get the points for a correct placement, with an AI difficulty bonus when applicable. */
+export function getScore(card: Card, aiDifficulty?: GameDifficulty): number {
+  const baseScore = Object.hasOwn(BASE_CARD_POINTS, card.difficulty) ? BASE_CARD_POINTS[card.difficulty] : 10;
+  const multiplier = aiDifficulty ? AI_DIFFICULTY[aiDifficulty]?.scoreMultiplier ?? 1 : 1;
+  return Math.round(baseScore * multiplier);
 }

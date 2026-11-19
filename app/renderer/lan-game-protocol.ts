@@ -93,7 +93,7 @@ export class LANGameProtocol {
       }
 
       return { isValid: errors.length === 0, errors };
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'lan/protocol',
         msg: 'failed to validate message',
@@ -228,7 +228,7 @@ export class LANGameProtocol {
         isValid: validation.isValid,
         errors: validation.errors,
       };
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'lan/protocol',
         msg: 'failed to parse message JSON',
@@ -250,7 +250,7 @@ export class LANGameProtocol {
   static serializeMessage(message: any): string {
     try {
       return JSON.stringify(message);
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'lan/protocol',
         msg: 'failed to serialize message',
@@ -307,23 +307,23 @@ export class LANGameProtocol {
 
       // Log additional fields based on message type
       switch (message.type) {
-      case LANGameProtocol.MESSAGE_TYPES.PLACE_CARD:
-        logData.meta.cardId = message.cardId;
-        logData.meta.position = message.position;
-        break;
-      case LANGameProtocol.MESSAGE_TYPES.GAME_STATE_UPDATE:
-        logData.meta.currentPlayer = message.currentPlayer;
-        logData.meta.placedCardsCount = message.placedCards?.length || 0;
-        break;
-      case LANGameProtocol.MESSAGE_TYPES.CARD_DISTRIBUTION:
-        logData.meta.boardCard = message.distribution?.boardCard?.id;
-        logData.meta.serverHandSize = message.distribution?.serverHand?.length;
-        logData.meta.clientHandSize = message.distribution?.clientHand?.length;
-        break;
+        case LANGameProtocol.MESSAGE_TYPES.PLACE_CARD:
+          logData.meta.cardId = message.cardId;
+          logData.meta.position = message.position;
+          break;
+        case LANGameProtocol.MESSAGE_TYPES.GAME_STATE_UPDATE:
+          logData.meta.currentPlayer = message.currentPlayer;
+          logData.meta.placedCardsCount = message.placedCards?.length || 0;
+          break;
+        case LANGameProtocol.MESSAGE_TYPES.CARD_DISTRIBUTION:
+          logData.meta.boardCard = message.distribution?.boardCard?.id;
+          logData.meta.serverHandSize = message.distribution?.serverHand?.length;
+          logData.meta.clientHandSize = message.distribution?.clientHand?.length;
+          break;
       }
 
       logger.debug(logData);
-    } catch (error) {
+    } catch (error: any) {
       logger.error({
         scope: 'lan/protocol',
         msg: 'failed to log message',

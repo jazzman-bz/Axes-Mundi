@@ -14,7 +14,7 @@ export interface Card {
     label: string;
     url: string;
   }>;
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
 }
 
 /**
@@ -23,6 +23,7 @@ export interface Card {
 export interface Deck {
   id: string;
   name: string;
+  description?: string;
   axis: string;
   theme: string;
   locale: string;

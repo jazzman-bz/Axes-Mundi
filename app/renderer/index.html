@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: user-deck-image:; media-src 'self'; font-src 'self' data:; connect-src 'self' ws: user-deck-image:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
     <title>Axes-Mundi - Welcome</title>
     <link rel="stylesheet" href="./styles/main.css">
+    <link rel="stylesheet" href="./styles/ranks.css">
 </head>
 <body>
     <!-- Loading Screen -->
@@ -15,6 +17,7 @@
             <div class="loading-text">Loading Axes-Mundi...</div>
         </div>
     </div>
+    <div id="version-badge" class="version-badge" aria-live="polite"></div>
 
     <!-- Main App Container -->
     <div id="app" class="app-container" style="display: none;">
@@ -31,11 +34,24 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Player Setup Section -->
-            <section id="player-setup" class="section active">
+            <!-- Account Selection Section -->
+            <section id="account-selection" class="section active">
                 <div class="section-content">
-                    <h2 class="section-title">Welcome to Axes-Mundi!</h2>
-                    <p class="section-description">Create your player profile to begin.</p>
+                    <h2 class="section-title">Choose Account</h2>
+                    <p class="section-description">Continue with an existing account or create a new one.</p>
+
+                    <div id="account-list" class="account-grid"></div>
+                    <div id="account-empty-state" class="empty-state" style="display: none;">No accounts yet.</div>
+
+                    <button id="create-new-account-btn" class="btn btn-primary">Create New Account</button>
+                </div>
+            </section>
+
+            <!-- Player Setup Section -->
+            <section id="player-setup" class="section">
+                <div class="section-content">
+                    <h2 class="section-title">Create Account</h2>
+                    <p class="section-description">Choose a name and avatar for this account.</p>
                     
                     <form id="player-form" class="player-form">
                         <div class="form-group">
@@ -75,6 +91,7 @@
                         
                         <button type="submit" class="btn btn-primary">Continue</button>
                     </form>
+                    <button class="btn btn-secondary back-btn">← Back</button>
                 </div>
             </section>
 
@@ -136,19 +153,25 @@
                         <div class="difficulty-card" data-difficulty="easy">
                             <div class="difficulty-icon">😊</div>
                             <h3 class="difficulty-title">Easy</h3>
-                            <p class="difficulty-description">30 seconds per turn - Perfect for beginners</p>
+                            <p class="difficulty-description"></p>
+                            <p class="difficulty-description difficulty-hand-size"></p>
+                            <p class="difficulty-description difficulty-score-multiplier"></p>
                         </div>
                         
                         <div class="difficulty-card" data-difficulty="medium">
                             <div class="difficulty-icon">😐</div>
                             <h3 class="difficulty-title">Medium</h3>
-                            <p class="difficulty-description">20 seconds per turn - For experienced players</p>
+                            <p class="difficulty-description"></p>
+                            <p class="difficulty-description difficulty-hand-size"></p>
+                            <p class="difficulty-description difficulty-score-multiplier"></p>
                         </div>
                         
                         <div class="difficulty-card" data-difficulty="hard">
                             <div class="difficulty-icon">😈</div>
                             <h3 class="difficulty-title">Hard</h3>
-                            <p class="difficulty-description">10 seconds per turn - Experts only!</p>
+                            <p class="difficulty-description"></p>
+                            <p class="difficulty-description difficulty-hand-size"></p>
+                            <p class="difficulty-description difficulty-score-multiplier"></p>
                         </div>
                     </div>
                     
@@ -219,9 +242,13 @@
             <section id="second-player-setup" class="section">
                 <div class="section-content">
                     <h2 class="section-title">Second Player</h2>
-                    <p class="section-description">Create the profile for the second player.</p>
+                    <p class="section-description">Choose or create the account for the second player.</p>
+
+                    <div id="second-account-list" class="account-grid"></div>
+                    <div id="second-account-empty-state" class="empty-state" style="display: none;">No other accounts yet.</div>
                     
                     <form id="second-player-form" class="player-form">
+                        <h3 class="form-title">Create New Account</h3>
                         <div class="form-group">
                             <label for="second-player-name" class="form-label">Second Player's Name</label>
                             <input type="text" id="second-player-name" class="form-input" placeholder="Enter name" required>

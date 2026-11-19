@@ -59,6 +59,25 @@ body {
   visibility: hidden;
 }
 
+.version-badge {
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 1100;
+  max-width: min(70vw, 320px);
+  padding: 0.45rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+  text-align: left;
+}
+
 .loading-content {
   text-align: center;
   animation: fadeInUp 0.8s ease;
@@ -196,12 +215,63 @@ body {
   margin-right: auto;
 }
 
+/* ===== ACCOUNTS ===== */
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin: 0 auto 2rem;
+  max-width: 720px;
+}
+
+.account-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--background-card);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-small);
+  cursor: pointer;
+  transition: all var(--transition-medium);
+  backdrop-filter: blur(10px);
+  text-align: left;
+}
+
+.account-card:hover {
+  background: var(--background-secondary);
+  border-color: var(--accent-color);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-medium);
+}
+
+.account-card.selected {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(240, 147, 251, 0.25);
+}
+
+.empty-state {
+  margin: 0 auto 2rem;
+  padding: 1rem;
+  max-width: 500px;
+  color: var(--text-secondary);
+  background: var(--background-card);
+  border: 2px dashed var(--border-color);
+  border-radius: var(--border-radius-small);
+}
+
 /* ===== FORMS ===== */
 .player-form {
   max-width: 500px;
   margin: 0 auto;
   position: relative;
   z-index: 5;
+}
+
+.form-title {
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
 }
 
 .form-group {

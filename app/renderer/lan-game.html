@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: user-deck-image:; media-src 'self'; font-src 'self' data:; connect-src 'self' ws: user-deck-image:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
     <title>Axes Mundi - LAN Multiplayer</title>
     <style>
         body {
@@ -45,26 +46,6 @@
             text-align: left;
         }
         
-        #back-to-menu {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            color: #ffffff;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-size: 14px;
-            z-index: 100;
-            text-align: left;
-            cursor: pointer;
-            border: none;
-            transition: background 0.2s ease;
-        }
-        
-        #back-to-menu:hover {
-            background: rgba(50, 50, 50, 0.9);
-        }
-        
         /* UI States */
         .current-turn {
             color: #00ff00 !important;
@@ -77,9 +58,6 @@
     </style>
 </head>
 <body>
-
-    
-    <button id="back-to-menu">✕ Exit</button>
     <div id="lan-status">🎮 Connecting...</div>
     <div id="lan-info">
         <div id="playerName">Player: ...</div>

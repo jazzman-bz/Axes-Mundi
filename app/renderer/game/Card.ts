@@ -47,8 +47,10 @@ export class GameCard {
 
   private imageLoading: boolean = false; // Prevent concurrent loads
 
+  private imageLoadFailed: boolean = false; // Avoid retrying permanently broken paths every frame
+
   // Timer for correct card highlighting
-  private correctTimer: number | null = null;
+  private correctTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Preview position for drag feedback
   private previewX: number | null = null;
@@ -91,6 +93,8 @@ export class GameCard {
 
     // Clear existing image state
     this.imageLoaded = false;
+    this.imageLoadFailed = false;
+    this.imageLoading = false;
     this.imageElement = null;
 
     // Load the image again
@@ -103,7 +107,7 @@ export class GameCard {
   private async responseToDataUrl(response: Response): Promise<string> {
     const arrayBuffer = await response.arrayBuffer();
     const contentType = response.headers.get('content-type') || 'image/png';
-    
+
     // Convert to base64 data URL (more reliable than blob URLs in Electron canvas)
     const uint8Array = new Uint8Array(arrayBuffer);
     let binary = '';
@@ -125,6 +129,7 @@ export class GameCard {
     // Only load if not already loaded or loading
     if (this.imageLoaded) return;
     if (this.imageLoading) return;
+    if (this.imageLoadFailed) return;
 
     // Mark as loading to prevent concurrent loads
     this.imageLoading = true;
@@ -141,6 +146,7 @@ export class GameCard {
       this.imageElement = new Image();
       this.imageElement.onload = () => {
         this.imageLoaded = true;
+        this.imageLoadFailed = false;
         this.imageLoading = false;
         logger.debug({
           scope: 'game/card',
@@ -148,10 +154,11 @@ export class GameCard {
           meta: { cardId: this.card.id, image: this.card.image },
         });
       };
-      
+
       // Handle errors
       this.imageElement.onerror = () => {
         this.imageLoading = false;
+        this.imageLoadFailed = true;
         logger.warn({
           scope: 'game/card',
           msg: 'failed to load card image',
@@ -176,7 +183,7 @@ export class GameCard {
         const fileName = hasExtension ? imageName : `${imageName}.jpg`;
         const encodedFileName = encodeURIComponent(fileName);
         imagePath = `user-deck-image://${imageFolder}/${encodedFileName}`;
-        
+
         logger.debug({
           scope: 'game/card',
           msg: 'loading user deck image via custom protocol',
@@ -210,12 +217,14 @@ export class GameCard {
         }
       } else {
         // Bundled deck - use relative path
-        imagePath = this.buildBundledImagePath(imageName, hasExtension);
+        const candidatePaths = this.buildBundledImageCandidates(imageName, hasExtension);
+        this.loadBundledImageWithFallback(candidatePaths);
+        return;
       }
 
       // Set the image source
       this.imageElement.src = imagePath;
-      
+
       // Note: PNG fallback is already handled via fetch() for user decks
       // For bundled decks, add fallback
       if (!this.deck.isUserDeck) {
@@ -244,6 +253,7 @@ export class GameCard {
             }
           } else {
             this.imageLoading = false;
+            this.imageLoadFailed = true;
             logger.warn({
               scope: 'game/card',
               msg: 'failed to load card image (both .jpg and .png)',
@@ -253,6 +263,8 @@ export class GameCard {
         };
       }
     } catch (error: any) {
+      this.imageLoading = false;
+      this.imageLoadFailed = true;
       logger.error({
         scope: 'game/card',
         msg: 'error loading card image',
@@ -262,19 +274,80 @@ export class GameCard {
   }
 
   /**
-   * Build image path for bundled deck assets
+   * Build candidate image paths for bundled deck assets.
+   * Some repository asset names are stored in NFD form, while deck JSON uses NFC.
    */
-  private buildBundledImagePath(imageName: string, hasExtension: boolean): string {
-    if (this.deck.imageFolder && this.deck.imageFolder.trim() !== '') {
-      if (hasExtension) {
-        return `./assets/${this.deck.imageFolder}/${imageName}`;
+  private buildBundledImageCandidates(imageName: string, hasExtension: boolean): string[] {
+    const folderPrefix = this.deck.imageFolder && this.deck.imageFolder.trim() !== ''
+      ? `./assets/${this.deck.imageFolder}/`
+      : './assets/';
+    const baseNames = Array.from(new Set([
+      imageName,
+      imageName.normalize('NFC'),
+      imageName.normalize('NFD'),
+    ]));
+
+    const rawCandidates = hasExtension
+      ? baseNames.map((name) => `${folderPrefix}${name}`)
+      : baseNames.flatMap((name) => [
+        `${folderPrefix}${name}.jpg`,
+        `${folderPrefix}${name}.png`,
+        `${folderPrefix}${name}.jpeg`,
+      ]);
+
+    return Array.from(new Set(rawCandidates));
+  }
+
+  /**
+   * Try bundled asset paths in sequence until one succeeds.
+   */
+  private loadBundledImageWithFallback(candidatePaths: string[]): void {
+    if (!this.imageElement || candidatePaths.length === 0) {
+      this.imageLoading = false;
+      this.imageLoadFailed = true;
+      return;
+    }
+
+    let candidateIndex = 0;
+    const tryNextCandidate = (): void => {
+      if (!this.imageElement) {
+        this.imageLoading = false;
+        this.imageLoadFailed = true;
+        return;
       }
-      return `./assets/${this.deck.imageFolder}/${imageName}.jpg`;
-    }
-    if (hasExtension) {
-      return `./assets/${imageName}`;
-    }
-    return `./assets/${imageName}.jpg`;
+
+      if (candidateIndex >= candidatePaths.length) {
+        this.imageLoading = false;
+        this.imageLoadFailed = true;
+        logger.warn({
+          scope: 'game/card',
+          msg: 'failed to load card image after trying all bundled candidates',
+          meta: { cardId: this.card.id, image: this.card.image, candidatePaths },
+        });
+        return;
+      }
+
+      const nextPath = candidatePaths[candidateIndex];
+      candidateIndex += 1;
+
+      this.imageElement.onerror = () => {
+        logger.debug({
+          scope: 'game/card',
+          msg: 'bundled image candidate failed, trying next',
+          meta: {
+            cardId: this.card.id,
+            image: this.card.image,
+            failedPath: nextPath,
+            remainingCandidates: candidatePaths.length - candidateIndex,
+          },
+        });
+        tryNextCandidate();
+      };
+
+      this.imageElement.src = nextPath;
+    };
+
+    tryNextCandidate();
   }
 
   /**
@@ -655,7 +728,7 @@ export class GameCard {
             actualImageDimensions.height,
           );
         }
-      } catch (error) {
+      } catch (error: any) {
         logger.error({
           scope: 'game/card',
           msg: 'error drawing card image',
@@ -816,43 +889,6 @@ export class GameCard {
   /**
     * Draw subtle pattern in bottom section
     */
-  private drawPattern(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number): void {
-    ctx.strokeStyle = 'rgba(100, 100, 100, 0.2)';
-    ctx.lineWidth = 1 * this.scale; // Scale line width
-
-    // Draw some subtle lines
-    for (let i = 0; i < 3; i++) {
-      const lineY = y + (height / 4) * (i + 1);
-      ctx.beginPath();
-      ctx.moveTo(x + 10 * this.scale, lineY);
-      ctx.lineTo(x + width - 10 * this.scale, lineY);
-      ctx.stroke();
-    }
-  }
-
-  /**
-   * Draw wrapped text
-   */
-  private drawWrappedText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number): void {
-    const words = text.split(' ');
-    let line = '';
-    let currentY = y;
-
-    for (let i = 0; i < words.length; i++) {
-      const testLine = `${line + words[i]} `;
-      const metrics = ctx.measureText(testLine);
-
-      if (metrics.width > maxWidth && i > 0) {
-        ctx.fillText(line, x, currentY);
-        line = `${words[i]} `;
-        currentY += lineHeight;
-      } else {
-        line = testLine;
-      }
-    }
-    ctx.fillText(line, x, currentY);
-  }
-
   /**
    * Draw wrapped text centered
    */

@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { networkInterfaces } from 'os';
 import { logger } from './logger';
+import { parseLanMessage } from '../shared/lanProtocol';
 
 interface Player {
   id: string;
@@ -26,7 +27,7 @@ export class LANWebSocketServer {
     this.port = port;
     this.serverPlayerName = serverPlayerName;
     this.serverPlayerAvatar = serverPlayerAvatar;
-    this.serverIP = this.getLocalIPAddress();
+    this.serverIP = LANWebSocketServer.getLocalIPAddress();
   }
 
   start(): Promise<void> {
@@ -73,7 +74,7 @@ export class LANWebSocketServer {
   }
 
   private handleConnection(ws: WebSocket): void {
-    const playerId = this.generatePlayerId();
+    const playerId = LANWebSocketServer.generatePlayerId();
 
     logger.info({
       scope: 'main/websocket',
@@ -83,12 +84,13 @@ export class LANWebSocketServer {
 
     ws.on('message', (data: Buffer) => {
       try {
-        const message = JSON.parse(data.toString());
+        const message = parseLanMessage(JSON.parse(data.toString()));
         this.handleMessage(playerId, ws, message);
       } catch (error: any) {
         logger.error({
           scope: 'main/websocket',
-          msg: 'Failed to parse message',
+          msg: 'Failed to parse LAN message',
+          meta: { playerId },
           err: { message: error.message },
         });
       }
@@ -109,67 +111,55 @@ export class LANWebSocketServer {
     });
   }
 
-  private handleMessage(playerId: string, ws: WebSocket, message: any): void {
-    // Add console.log for debugging
-    console.log('🎮 WebSocket Server: Received message from client:', {
-      playerId,
-      messageType: message.type,
-      message,
-    });
-
+  private handleMessage(playerId: string, ws: WebSocket, message: ReturnType<typeof parseLanMessage>): void {
     logger.info({
       scope: 'main/websocket',
       msg: 'Received message from client',
       meta: { playerId, messageType: message.type, message },
     });
 
+    /* eslint-disable indent, @typescript-eslint/indent */
     switch (message.type) {
-    case 'join':
-      this.handleJoin(playerId, ws, message.playerName, message.playerAvatar || 'default');
-      break;
-    case 'ready':
-      this.handleReady(playerId);
-      break;
-    case 'deckSelection':
-      this.handleDeckSelection(playerId, message.deckId);
-      break;
-    case 'deckResponse':
-      this.handleDeckResponse(playerId, message.deckId, message.available);
-      break;
-    case 'currentPlayerSet':
-      this.handleCurrentPlayerSet(playerId, message.currentPlayer);
-      break;
-    case 'playerTurnChanged':
-      this.handlePlayerTurnChanged(playerId, message.currentPlayer);
-      break;
-    case 'cardDistribution':
-      this.handleCardDistribution(playerId, message);
-      break;
-    case 'placeCard':
-      this.handleCardPlacement(playerId, message);
-      break;
-    case 'cardPlacement':
-      this.handleCardPlacement(playerId, message);
-      break;
-    case 'playerSwitch':
-      this.handlePlayerSwitch(playerId, message);
-      break;
-    case 'gameRestart':
-      this.handleGameRestart(playerId, message);
-      break;
-    case 'remainingCardsUpdate':
-      this.handleRemainingCardsUpdate(playerId, message);
-      break;
-    case 'gameStateUpdate':
-      this.handleGameStateUpdate(playerId, message);
-      break;
-    default:
-      logger.warn({
-        scope: 'main/websocket',
-        msg: 'Unknown message type',
-        meta: { playerId, messageType: message.type },
-        });
+      case 'join':
+        this.handleJoin(playerId, ws, message.playerName, message.playerAvatar || 'default');
+        break;
+      case 'ready':
+        this.handleReady(playerId);
+        break;
+      case 'deckSelection':
+        this.handleDeckSelection(playerId, message.deckId);
+        break;
+      case 'deckResponse':
+        this.handleDeckResponse(playerId, message.deckId, message.available);
+        break;
+      case 'currentPlayerSet':
+        this.handleCurrentPlayerSet(playerId, message.currentPlayer);
+        break;
+      case 'playerTurnChanged':
+        this.handlePlayerTurnChanged(playerId, message.currentPlayer);
+        break;
+      case 'cardDistribution':
+        this.handleCardDistribution(playerId, message);
+        break;
+      case 'placeCard':
+      case 'cardPlacement':
+        this.handleCardPlacement(playerId, message);
+        break;
+      case 'playerSwitch':
+        this.handlePlayerSwitch(playerId, message);
+        break;
+      case 'gameRestart':
+        this.handleGameRestart(playerId, message);
+        break;
+      case 'remainingCardsUpdate':
+        this.handleRemainingCardsUpdate(playerId, message);
+        break;
+      case 'gameStateUpdate':
+        this.handleGameStateUpdate(playerId, message);
+        break;
+      default:
     }
+    /* eslint-enable indent, @typescript-eslint/indent */
   }
 
   private handleJoin(playerId: string, ws: WebSocket, playerName: string, playerAvatar: string): void {
@@ -336,13 +326,13 @@ export class LANWebSocketServer {
     });
 
     // Send to all connected clients
-    for (const [, player] of this.players) {
+    this.players.forEach((player) => {
       player.ws.send(JSON.stringify({
         type: 'deckSelection',
         deckId,
         message: `Server selected deck: ${deckId}`,
       }));
-    }
+    });
   }
 
   /**
@@ -375,7 +365,7 @@ export class LANWebSocketServer {
     });
 
     // Send to all connected clients
-    for (const [, player] of this.players) {
+    this.players.forEach((player) => {
       const message = {
         type: 'cardDistribution',
         distribution, // Wrap in distribution object for consistency
@@ -397,7 +387,7 @@ export class LANWebSocketServer {
       });
 
       player.ws.send(JSON.stringify(message));
-    }
+    });
 
     // Card distribution sent - no UI update needed
     logger.info({
@@ -410,43 +400,56 @@ export class LANWebSocketServer {
    * Send current player set event to all connected clients
    */
   async sendCurrentPlayerSet(currentPlayer: string): Promise<void> {
-    console.log('🎮 WebSocket Server: Sending currentPlayerSet to clients:', currentPlayer);
     logger.info({
       scope: 'main/websocket',
       msg: 'Sending current player set event to clients',
       meta: { currentPlayer },
     });
 
-    // Debug: Check if we have any connected players
-    console.log('🎮 WebSocket Server: Connected players count:', this.players.size);
-    for (const [playerId, player] of this.players) {
-      console.log('🎮 WebSocket Server: Player:', { id: playerId, name: player.name, wsState: player.ws.readyState });
-    }
+    logger.debug({
+      scope: 'main/websocket',
+      msg: 'broadcasting current player set to connected players',
+      meta: {
+        playerCount: this.players.size,
+        players: Array.from(this.players.entries()).map(([playerId, player]) => ({
+          playerId,
+          name: player.name,
+          wsState: player.ws.readyState,
+        })),
+      },
+    });
 
     // Send to all connected clients
-    for (const [, player] of this.players) {
+    this.players.forEach((player) => {
       const message = {
         type: 'currentPlayerSet',
         currentPlayer,
-        message: `Spiel gestartet! ${currentPlayer} beginnt.`,
+        message: `Game started! ${currentPlayer} goes first.`,
       };
-
-      console.log('🎮 WebSocket Server: Sending to player:', player.name, 'message:', message);
 
       try {
         player.ws.send(JSON.stringify(message));
-        console.log('🎮 WebSocket Server: Message sent successfully to:', player.name);
-      } catch (error) {
-        console.error('🎮 WebSocket Server: Failed to send message to:', player.name, 'error:', error);
+        logger.debug({
+          scope: 'main/websocket',
+          msg: 'current player set sent to client',
+          meta: { playerName: player.name, currentPlayer },
+        });
+      } catch (error: any) {
+        logger.error({
+          scope: 'main/websocket',
+          msg: 'Failed to send current player message to client',
+          meta: { currentPlayer, playerName: player.name },
+          err: { message: error.message, stack: error.stack },
+        });
       }
-    }
+    });
 
     // Send notification to renderer process to update UI
     if (global.mainWindow && global.mainWindow.webContents) {
       global.mainWindow.webContents.send('lan-status-update', {
         type: 'currentPlayerSet',
         currentPlayer,
-        message: `Spiel gestartet! ${currentPlayer} beginnt.`,
+        message: `Game started! ${currentPlayer} goes first.`,
       });
     }
   }
@@ -461,12 +464,12 @@ export class LANWebSocketServer {
     });
 
     // Send to all connected clients
-    for (const [, player] of this.players) {
+    this.players.forEach((player) => {
       player.ws.send(JSON.stringify({
         type: 'startGame',
         message: 'Game start trigger received from server',
       }));
-    }
+    });
 
     // Send notification to renderer process to update UI
     if (global.mainWindow && global.mainWindow.webContents) {
@@ -537,8 +540,8 @@ export class LANWebSocketServer {
         available,
         playerName: player.name,
         message: available
-          ? `Deck ${deckId} wurde gewählt und ist vorhanden!`
-          : `Deck ${deckId} nicht vorhanden!`,
+          ? `Deck ${deckId} was selected and is available!`
+          : `Deck ${deckId} is not available!`,
       });
     }
   }
@@ -589,7 +592,7 @@ export class LANWebSocketServer {
       global.mainWindow.webContents.send('lan-status-update', {
         type: 'currentPlayerSet',
         currentPlayer,
-        message: `Spiel gestartet! ${currentPlayer} beginnt.`,
+        message: `Game started! ${currentPlayer} goes first.`,
       });
     }
   }
@@ -635,14 +638,14 @@ export class LANWebSocketServer {
     });
 
     // Send to all connected clients
-    for (const [, player] of this.players) {
+    this.players.forEach((player) => {
       player.ws.send(JSON.stringify({
         type: 'cardPlacement',
         cardId,
         boardPosition,
         playerName,
       }));
-    }
+    });
 
     // Only send UI update for card placement (important game event)
     if (global.mainWindow && global.mainWindow.webContents) {
@@ -662,16 +665,13 @@ export class LANWebSocketServer {
   private handleCardPlacement(playerId: string, message: any): void {
     const player = this.players.get(playerId);
     if (!player) {
-      console.error('🎮 WebSocket Server: Player not found for cardPlacement:', playerId);
+      logger.warn({
+        scope: 'main/websocket',
+        msg: 'player not found for card placement',
+        meta: { playerId },
+      });
       return;
     }
-
-    console.log('🎮 WebSocket Server: Received cardPlacement from client:', {
-      playerId,
-      playerName: player.name,
-      cardId: message.cardId,
-      boardPosition: message.boardPosition,
-    });
 
     logger.info({
       scope: 'main/websocket',
@@ -699,22 +699,30 @@ export class LANWebSocketServer {
         cardId: message.cardId,
         boardPosition: message.boardPosition,
         playerName: player.name,
-        message: `Karte ${message.cardId} wurde von ${player.name} an Board-Position ${message.boardPosition} platziert`,
+        message: `Karte ${message.cardId} wurde von `
+          + `${player.name} an Board-Position ${message.boardPosition} platziert`,
       };
 
-      console.log('🎮 WebSocket Server: Sending lan-status-update to renderer:', statusUpdate);
-      console.log('🎮 WebSocket Server: mainWindow available:', !!global.mainWindow);
-      console.log('🎮 WebSocket Server: webContents available:', !!(global.mainWindow && global.mainWindow.webContents));
-
       global.mainWindow.webContents.send('lan-status-update', statusUpdate);
-      console.log('🎮 WebSocket Server: lan-status-update sent to renderer successfully');
-
-      // Also log the broadcast to other WebSocket clients
-      console.log('🎮 WebSocket Server: Broadcasting cardPlacement to other WebSocket clients');
+      logger.debug({
+        scope: 'main/websocket',
+        msg: 'card placement forwarded to renderer and peers',
+        meta: {
+          playerId,
+          playerName: player.name,
+          cardId: message.cardId,
+          boardPosition: message.boardPosition,
+        },
+      });
     } else {
-      console.error('🎮 WebSocket Server: Cannot send lan-status-update - mainWindow not available');
-      console.error('🎮 WebSocket Server: mainWindow:', !!global.mainWindow);
-      console.error('🎮 WebSocket Server: webContents:', !!(global.mainWindow && global.mainWindow.webContents));
+      logger.warn({
+        scope: 'main/websocket',
+        msg: 'cannot forward card placement to renderer because main window is unavailable',
+        meta: {
+          hasMainWindow: !!global.mainWindow,
+          hasWebContents: !!(global.mainWindow && global.mainWindow.webContents),
+        },
+      });
     }
   }
 
@@ -724,15 +732,13 @@ export class LANWebSocketServer {
   private handlePlayerSwitch(playerId: string, message: any): void {
     const player = this.players.get(playerId);
     if (!player) {
-      console.error('🎮 WebSocket Server: Player not found for playerSwitch:', playerId);
+      logger.warn({
+        scope: 'main/websocket',
+        msg: 'player not found for player switch',
+        meta: { playerId },
+      });
       return;
     }
-
-    console.log('🎮 WebSocket Server: Received playerSwitch from client:', {
-      playerId,
-      playerName: player.name,
-      nextPlayer: message.nextPlayer,
-    });
 
     logger.info({
       scope: 'main/websocket',
@@ -757,18 +763,24 @@ export class LANWebSocketServer {
         type: 'playerSwitch',
         nextPlayer: message.nextPlayer,
         playerName: player.name,
-        message: `Spieler gewechselt zu ${message.nextPlayer} von ${player.name}`,
+        message: `Turn switched to ${message.nextPlayer} by ${player.name}`,
       };
 
       global.mainWindow.webContents.send('lan-status-update', statusUpdate);
-      console.log('🎮 WebSocket Server: lan-status-update sent to renderer successfully');
-
-      // Also log the broadcast to other WebSocket clients
-      console.log('🎮 WebSocket Server: Broadcasting playerSwitch to other WebSocket clients');
+      logger.debug({
+        scope: 'main/websocket',
+        msg: 'player switch forwarded to renderer and peers',
+        meta: { playerId, playerName: player.name, nextPlayer: message.nextPlayer },
+      });
     } else {
-      console.error('🎮 WebSocket Server: Cannot send lan-status-update - mainWindow not available');
-      console.error('🎮 WebSocket Server: mainWindow:', !!global.mainWindow);
-      console.error('🎮 WebSocket Server: webContents:', !!(global.mainWindow && global.mainWindow.webContents));
+      logger.warn({
+        scope: 'main/websocket',
+        msg: 'cannot forward player switch to renderer because main window is unavailable',
+        meta: {
+          hasMainWindow: !!global.mainWindow,
+          hasWebContents: !!(global.mainWindow && global.mainWindow.webContents),
+        },
+      });
     }
   }
 
@@ -778,14 +790,13 @@ export class LANWebSocketServer {
   private handleGameRestart(playerId: string, _message: any): void {
     const player = this.players.get(playerId);
     if (!player) {
-      console.error('🎮 WebSocket Server: Player not found for gameRestart:', playerId);
+      logger.warn({
+        scope: 'main/websocket',
+        msg: 'player not found for game restart',
+        meta: { playerId },
+      });
       return;
     }
-
-    console.log('🎮 WebSocket Server: Received gameRestart from client:', {
-      playerId,
-      playerName: player.name,
-    });
 
     logger.info({
       scope: 'main/websocket',
@@ -807,18 +818,24 @@ export class LANWebSocketServer {
       const statusUpdate = {
         type: 'gameRestart',
         playerName: player.name,
-        message: `Spiel wird von ${player.name} neu gestartet`,
+        message: `Game is being restarted by ${player.name}`,
       };
 
       global.mainWindow.webContents.send('lan-status-update', statusUpdate);
-      console.log('🎮 WebSocket Server: lan-status-update sent to renderer successfully');
-
-      // Also log the broadcast to other WebSocket clients
-      console.log('🎮 WebSocket Server: Broadcasting gameRestart to other WebSocket clients');
+      logger.debug({
+        scope: 'main/websocket',
+        msg: 'game restart forwarded to renderer and peers',
+        meta: { playerId, playerName: player.name },
+      });
     } else {
-      console.error('🎮 WebSocket Server: Cannot send lan-status-update - mainWindow not available');
-      console.error('🎮 WebSocket Server: mainWindow:', !!global.mainWindow);
-      console.error('🎮 WebSocket Server: webContents:', !!(global.mainWindow && global.mainWindow.webContents));
+      logger.warn({
+        scope: 'main/websocket',
+        msg: 'cannot forward game restart to renderer because main window is unavailable',
+        meta: {
+          hasMainWindow: !!global.mainWindow,
+          hasWebContents: !!(global.mainWindow && global.mainWindow.webContents),
+        },
+      });
     }
   }
 
@@ -828,15 +845,13 @@ export class LANWebSocketServer {
   private handleRemainingCardsUpdate(playerId: string, message: any): void {
     const player = this.players.get(playerId);
     if (!player) {
-      console.error('🎮 WebSocket Server: Player not found for remainingCardsUpdate:', playerId);
+      logger.warn({
+        scope: 'main/websocket',
+        msg: 'player not found for remaining cards update',
+        meta: { playerId },
+      });
       return;
     }
-
-    console.log('🎮 WebSocket Server: Received remainingCardsUpdate from client:', {
-      playerId,
-      playerName: player.name,
-      remainingCardsCount: message.remainingCardsCount,
-    });
 
     logger.info({
       scope: 'main/websocket',
@@ -865,14 +880,24 @@ export class LANWebSocketServer {
       };
 
       global.mainWindow.webContents.send('lan-status-update', statusUpdate);
-      console.log('🎮 WebSocket Server: lan-status-update sent to renderer successfully');
-
-      // Also log the broadcast to other WebSocket clients
-      console.log('🎮 WebSocket Server: Broadcasting remainingCardsUpdate to other WebSocket clients');
+      logger.debug({
+        scope: 'main/websocket',
+        msg: 'remaining cards update forwarded to renderer and peers',
+        meta: {
+          playerId,
+          playerName: player.name,
+          remainingCardsCount: message.remainingCardsCount,
+        },
+      });
     } else {
-      console.error('🎮 WebSocket Server: Cannot send lan-status-update - mainWindow not available');
-      console.error('🎮 WebSocket Server: mainWindow:', !!global.mainWindow);
-      console.error('🎮 WebSocket Server: webContents:', !!(global.mainWindow && global.mainWindow.webContents));
+      logger.warn({
+        scope: 'main/websocket',
+        msg: 'cannot forward remaining cards update to renderer because main window is unavailable',
+        meta: {
+          hasMainWindow: !!global.mainWindow,
+          hasWebContents: !!(global.mainWindow && global.mainWindow.webContents),
+        },
+      });
     }
   }
 
@@ -915,7 +940,7 @@ export class LANWebSocketServer {
       global.mainWindow.webContents.send('lan-status-update', {
         type: 'currentPlayerSet',
         currentPlayer: message.currentPlayer,
-        message: `Spiel gestartet! ${message.currentPlayer} beginnt.`,
+        message: `Game started! ${message.currentPlayer} goes first.`,
       });
     }
   }
@@ -958,7 +983,7 @@ export class LANWebSocketServer {
     });
   }
 
-  private generatePlayerId(): string {
+  private static generatePlayerId(): string {
     return Math.random().toString(36).substring(2, 15);
   }
 
@@ -978,20 +1003,16 @@ export class LANWebSocketServer {
   /**
    * Get the server's local IP address
    */
-  private getLocalIPAddress(): string {
+  private static getLocalIPAddress(): string {
     const interfaces = networkInterfaces();
-    
-    for (const name of Object.keys(interfaces)) {
-      const iface = interfaces[name];
-      if (!iface) continue;
-      
-      for (const alias of iface) {
-        if (alias.family === 'IPv4' && !alias.internal) {
-          return alias.address;
-        }
-      }
+    const externalAddress = Object.keys(interfaces)
+      .flatMap((name) => interfaces[name] || [])
+      .find((alias) => alias.family === 'IPv4' && !alias.internal)?.address;
+
+    if (externalAddress) {
+      return externalAddress;
     }
-    
+
     // Fallback to localhost if no external IP found
     return '127.0.0.1';
   }
