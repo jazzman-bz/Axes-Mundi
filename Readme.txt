@@ -114,7 +114,7 @@ tests/unit/        # Vitest Unit-Tests
 - LAN- und GameScene-Hotspots verwenden jetzt strukturierte Logger-Pfade statt direkter `console.*`-Ausgaben.
 - Der Repo-Lint laeuft jetzt ohne Fehler und ohne Warnungen durch.
 - Die ESLint-Regeln wurden dabei auf signalstarke Checks fuer diese Canvas-/Electron-Codebasis zugeschnitten, statt Legacy-Hotspots nur formell umzuschreiben.
-- Aktuell abgesichert durch `npm run lint`, `npm run typecheck` und `npm test` mit 34 Testdateien / 540 Tests.
+- Aktuell abgesichert durch `npm run lint`, `npm run typecheck` und `npm test` mit 35 Testdateien / 548 Tests.
 - Der gebaute Electron-Bundle wurde zusaetzlich Ende-zu-Ende ueber den Singleplayer-Kernfluss bis ins Spiel gestartet und per Screenshot verifiziert.
 
 ## Beispiel-Deck (JSON)
@@ -172,6 +172,8 @@ Empfohlene Felder in `deck.json`:
 - `cards`
 
 Karten können `difficulty` auf `easy`, `medium`, `hard` oder `expert` setzen (10/20/30/40 Basispunkte); ohne Angabe gelten 10 Punkte.
+
+Ein Deck braucht mindestens 20 Karten, sonst lehnt der Import es ab (eine Partie teilt bis zu 13 Karten aus und braucht danach einen Nachziehstapel). Fehlt bei einer Karte `displayValue`, zeigt die App Wert und Einheit an, z. B. `120 m`.
 
 `description` ist optional, wird aber empfohlen. Wenn sie fehlt, erzeugt die App fuer importierte Deck-Kacheln einen generischen Fallback-Text.
 

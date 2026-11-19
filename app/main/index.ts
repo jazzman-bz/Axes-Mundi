@@ -19,6 +19,7 @@ import {
   isDeckImageEntry,
   isDeckJsonEntry,
   parseImportedDeck,
+  assertPlayableDeck,
   resolveUserDeckAssetPath,
 } from '../shared/deckSecurity';
 import { isAllowedAppUrl } from './navigationPolicy';
@@ -800,6 +801,7 @@ function setupIPC(): void {
       let deck;
       try {
         deck = parseImportedDeck(JSON.parse(deckJsonContent));
+        assertPlayableDeck(deck);
       } catch (parseError: any) {
         logger.error({
           scope: 'main/deck',

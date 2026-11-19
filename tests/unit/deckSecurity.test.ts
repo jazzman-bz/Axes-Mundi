@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   DECK_ARCHIVE_LIMITS,
+  MIN_IMPORTED_DECK_CARDS,
   assertDeckArchiveEntries,
+  assertPlayableDeck,
   assertDeckArchiveSize,
   isDeckImageEntry,
   isDeckJsonEntry,
@@ -42,6 +44,25 @@ describe('deckSecurity', () => {
       expect(deck.imageFolder).toBe('custom-deck');
     });
 
+    it('fills the value text shown on the axis when a card has none', () => {
+      const deck = parseImportedDeck({
+        id: 'custom-deck',
+        name: 'Custom Deck',
+        axis: 'height',
+        cards: [
+          {
+ id: 'with-unit', title: 'Tower', value: 120, unit: 'm',
+},
+          { id: 'no-unit', title: 'Year', value: 1969 },
+          {
+ id: 'given', title: 'Peak', value: 8849, unit: 'm', displayValue: '8,849 m',
+},
+        ],
+      });
+
+      expect(deck.cards.map((card) => card.displayValue)).toEqual(['120 m', '1969', '8,849 m']);
+    });
+
     it('rejects unsafe deck ids', () => {
       expect(() => parseImportedDeck({
         id: '../escape',
@@ -49,6 +70,24 @@ describe('deckSecurity', () => {
         axis: 'time',
         cards: [{ id: 'card-1', title: 'Card', value: 10 }],
       })).toThrow(/Deck id/);
+    });
+  });
+
+  describe('assertPlayableDeck', () => {
+    const deckWith = (count: number) => ({ cards: Array.from({ length: count }, (_, index) => ({ id: `c${index}` })) });
+
+    it('accepts decks with enough cards for a full game', () => {
+      expect(() => assertPlayableDeck(deckWith(MIN_IMPORTED_DECK_CARDS))).not.toThrow();
+      expect(() => assertPlayableDeck(deckWith(62))).not.toThrow();
+    });
+
+    it('rejects decks that cannot fill the hands and the draw pile', () => {
+      expect(() => assertPlayableDeck(deckWith(8))).toThrow(/at least 20 cards.*has 8/);
+      expect(() => assertPlayableDeck(deckWith(MIN_IMPORTED_DECK_CARDS - 1))).toThrow();
+    });
+
+    it('covers the most cards a game deals: axis card, 5 for the player, 7 for an easy AI', () => {
+      expect(MIN_IMPORTED_DECK_CARDS).toBeGreaterThan(1 + 5 + 7);
     });
   });
 

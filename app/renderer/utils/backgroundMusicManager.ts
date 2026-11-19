@@ -1,5 +1,6 @@
 import { logger } from './logger';
 import { getMusicVolumeSetting, setMusicVolumeSetting } from './audioSettings';
+import { getFadeVolume } from './volumeFade';
 
 export type BackgroundTrack = 'landing' | 'gameplay';
 
@@ -193,10 +194,10 @@ class BackgroundMusicManager {
 
     const startedAt = performance.now();
     const step = (now: number) => {
-      const progress = Math.min(1, (now - startedAt) / durationMs);
-      audio.volume = from + ((to - from) * progress);
+      const elapsedMs = now - startedAt;
+      audio.volume = getFadeVolume(from, to, elapsedMs, durationMs);
 
-      if (progress < 1) {
+      if (elapsedMs < durationMs) {
         this.fadeFrame = window.requestAnimationFrame(step);
         return;
       }

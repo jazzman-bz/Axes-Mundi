@@ -44,7 +44,30 @@ export const importedDeckSchema = z.object({
 });
 
 export type ImportedDeck = z.infer<typeof importedDeckSchema>;
-export type NormalizedImportedDeck = Omit<ImportedDeck, 'imageFolder'> & { imageFolder: string };
+type ImportedCard = ImportedDeck['cards'][number];
+export type NormalizedImportedCard = ImportedCard & { displayValue: string };
+export type NormalizedImportedDeck = Omit<ImportedDeck, 'imageFolder' | 'cards'> & {
+  imageFolder: string;
+  cards: NormalizedImportedCard[];
+};
+
+/**
+ * A game deals up to 13 cards (axis card, 5 for the player, up to 7 for the AI)
+ * and needs a few more to draw after wrong placements.
+ */
+export const MIN_IMPORTED_DECK_CARDS = 20;
+
+/** Text shown under a card on the axis, e.g. "120 m". */
+export function formatCardValue(value: number, unit?: string): string {
+  return unit ? `${value} ${unit}` : String(value);
+}
+
+/** Checked when a deck is imported. Decks imported earlier still load. */
+export function assertPlayableDeck(deck: { cards: unknown[] }): void {
+  if (deck.cards.length < MIN_IMPORTED_DECK_CARDS) {
+    throw new Error(`A deck needs at least ${MIN_IMPORTED_DECK_CARDS} cards to be playable (this one has ${deck.cards.length})`);
+  }
+}
 
 export function isSafeDeckId(value: string): boolean {
   return SAFE_DECK_ID_PATTERN.test(value);
@@ -169,6 +192,10 @@ export function parseImportedDeck(input: unknown): NormalizedImportedDeck {
   return {
     ...deck,
     imageFolder: deck.imageFolder ?? deck.id,
+    cards: deck.cards.map((card) => ({
+      ...card,
+      displayValue: card.displayValue ?? formatCardValue(card.value, card.unit),
+    })),
   };
 }
 
